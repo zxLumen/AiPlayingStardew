@@ -73,7 +73,7 @@ public static class ActionProcessor
                     "plant" => Plant(root),
                     "enter" => Enter(root),
                     "clear_area" => ClearArea(root),
-                    "till_area" => TillArea(root),
+                    "refill" => Refill(),                    "till_area" => TillArea(root),
                     "plant_all" => PlantAll(),
                     "water_all" => WaterAll(),
                     "harvest_all" => HarvestAll(),
@@ -787,6 +787,74 @@ public static class ActionProcessor
     }
 
 
+    // -- the watering can --------------------------------------------------
+    //
+    // A watering can runs out. Nothing in the bridge used to say so, and there was no way to fill
+    // it, so every watering action swung an empty can and reported success. These three helpers are
+    // what turn "watering silently does nothing" into "watering needs a full can".
+
+    /// <summary>How much the can holds when full.</summary>
+    internal static int CanCapacity(WateringCan can)
+    {
+        try
+        {
+            var field = typeof(WateringCan).GetField(
+                "waterCanMax", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            if (field?.GetValue(can) is int max && max > 0)
+                return max;
+        }
+        catch { }
+
+        return 40;
+    }
+
+
+    /// <summary>The watering can the farmer is holding, or null when there is none.</summary>
+    internal static WateringCan? HeldCan(Farmer farmer)
+    {
+        if (farmer.CurrentItem is WateringCan current)
+            return current;
+
+        return farmer.Items?.OfType<WateringCan>().FirstOrDefault();
+    }
+
+
+    internal static bool CanIsFull(WateringCan can)
+    {
+        try { return can.IsBottomless || can.WaterLeft >= CanCapacity(can); }
+        catch { return true; }
+    }
+
+
+    /// <summary>
+    /// Fills the can from the water tile it faces, using the game's own refill path.
+    ///
+    /// The fallback writes the capacity directly because the game's refill only runs from a proper
+    /// use action, and a chore's swing is not one.
+    /// </summary>
+    internal static void RefillCanAt(GameLocation location, int x, int y, Farmer farmer)
+    {
+        WateringCan? can = HeldCan(farmer);
+        if (can == null)
+            return;
+
+        try
+        {
+            FaceTowards(farmer, x, y);
+            int before = can.WaterLeft;
+            can.DoFunction(location, x, y, 1, farmer);
+
+            if (can.WaterLeft > before)
+                return;
+        }
+        catch { }
+
+        try { can.WaterLeft = CanCapacity(can); }
+        catch { }
+    }
+
+
     private static (string Kind, int X, int Y)? _pendingAction;
 
     private static readonly Point[] AdjacentOffsets =
@@ -798,6 +866,42 @@ public static class ActionProcessor
     /// Clears weeds, twigs and stones in an area, at game speed, with one model decision.
     /// This is what makes the agent look like a person playing instead of a person typing.
     /// </summary>
+    /// <summary>
+    /// Fills the watering can from the nearest water.
+    ///
+    /// This exists because the game says the can has to be refilled and the bridge had no way to do
+    /// it - so every watering action quietly did nothing. It is a capability, not a rule: the agent
+    /// still has to work out for itself that watering needs water.
+    /// </summary>
+    private static (bool, string) Refill()
+    {
+        if (Game1.player == null || Game1.currentLocation == null)
+            return (false, "no active save");
+
+        WateringCan? can = HeldCan(Game1.player);
+
+        if (can == null)
+            return (false, "no watering can in the inventory");
+
+        if (CanIsFull(can))
+            return (false, $"the watering can is already full ({can.WaterLeft}/{CanCapacity(can)})");
+
+        int cx = (int)Game1.player.Tile.X;
+        int cy = (int)Game1.player.Tile.Y;
+
+        List<Vector2> water = ChoreController.CollectRefillTiles(Game1.currentLocation, cx, cy, 40);
+
+        if (water.Count == 0)
+            return (false, "no water to fill from within 40 tiles of here");
+
+        // One water tile is the whole job. Queuing every water tile in sight made a five-second
+        // job into a 351-target chore that could never be "finished".
+        List<Vector2> nearest = ChoreController.Nearest(water, Game1.player.Tile, 1);
+
+        return ChoreController.Start("refill", nearest);
+    }
+
+
     private static (bool, string) ClearArea(JsonElement root)
     {
         if (Game1.player == null || Game1.currentLocation == null)
@@ -1276,8 +1380,30 @@ public static class ActionProcessor
     }
 
 
+    /// <summary>
+    /// Makes sure the game window is in front before injecting input.
+    ///
+    /// The game only acts on menu input while its window is active, so a click delivered to a
+    /// background window lands in the menu's state and is never processed. The menu still reports
+    /// the click, nothing happens, and the caller has no way to tell the difference - which is how
+    /// a save that loads perfectly well by hand looks permanently unloadable to an agent.
+    /// This is a precondition of every click-based action, so the bridge enforces it.
+    /// </summary>
+    internal static void EnsureWindowActive()
+    {
+        try
+        {
+            if (!NativeInput.IsGameWindowActive())
+                NativeInput.FocusGameWindow();
+        }
+        catch { }
+    }
+
+
     private static (bool, string) PressKey(JsonElement root)
     {
+        EnsureWindowActive();
+
         string key = root.TryGetProperty("key", out JsonElement keyEl)
             ? (keyEl.GetString() ?? "").ToLowerInvariant()
             : "";
@@ -1615,6 +1741,8 @@ public static class ActionProcessor
         IClickableMenu? active = Game1.activeClickableMenu;
         if (active == null)
             return (false, "no menu is open");
+
+        EnsureWindowActive();
 
         // Descend into TitleMenu's submenu (e.g. LoadGameMenu) when one is open.
         IClickableMenu menu = UiStateBuilder.GetEffectiveMenu() ?? active;
@@ -2072,6 +2200,8 @@ public static class ActionProcessor
         if (Game1.activeClickableMenu is not DialogueBox box)
             return (false, "no dialogue box open");
 
+        EnsureWindowActive();
+
         if (!root.TryGetProperty("index", out JsonElement indexEl))
             return (false, "missing 'index'");
 
@@ -2107,6 +2237,8 @@ public static class ActionProcessor
     {
         if (Game1.activeClickableMenu is not DialogueBox box)
             return (false, "no dialogue box open");
+
+        EnsureWindowActive();
 
         if (box.responses is { Length: > 0 })
             return (false, "dialogue is waiting for a choice; use dialogue_choose {index}");
@@ -2271,6 +2403,16 @@ public static class NativeInput
 
     [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr GetForegroundWindow();
+
+    /// <summary>Whether the game window is the one the user's input would go to.</summary>
+    public static bool IsGameWindowActive()
+    {
+        IntPtr handle = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+        return handle != IntPtr.Zero && GetForegroundWindow() == handle;
+    }
 
     /// <summary>Brings the game window to the front, which keyboard input needs.</summary>
     public static bool FocusGameWindow()

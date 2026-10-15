@@ -36,6 +36,9 @@ Never nest the arguments inside an "args" object. Never output markdown or prose
 ACTION_CATALOGUE = """Actions (args are shown after the arrow):
 
 GAMEPLAY
+- refill          -> {}   fill the watering can from the nearest water, by itself. The can runs
+                          dry, and an empty can waters nothing - check inventory[].charges before
+                          watering, and refill when it is 0.
 - clear_area      -> {"x": int, "y": int, "radius": int}
                      clear every weed, twig and stone in that area. It walks and swings BY ITSELF
                      at game speed - one decision replaces dozens. Use this instead of clearing

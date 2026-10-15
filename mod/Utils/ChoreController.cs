@@ -3,6 +3,7 @@ using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Pathfinding;
 using StardewValley.TerrainFeatures;
+using StardewValley.Tools;
 using xTile.Dimensions;
 
 namespace StateBridge.Utils;
@@ -24,6 +25,8 @@ public static class ChoreController
     private const int ChoreTimeoutMs = 300_000;   // give up on a chore that cannot finish
     private const int SwingIntervalMs = 400;      // roughly one tool animation
     private const int MaxAttemptsPerTile = 8;     // before giving up on a stubborn tile
+    private const int BlockedGraceMs = 2_500;     // how long a menu/event may hold a chore
+    private const int WalkTimeoutMs = 9_000;      // how long walking to one tile may take
 
     private sealed class Chore
     {
@@ -33,14 +36,31 @@ public static class ChoreController
         public int Done;
         public int Failed;
         public int Attempts;
+        public long Started;
         public long Deadline;
         public long NextSwingAt;
+        public long BlockedSince;
+        public long WalkingSince;
         public string LastNote = "";
     }
 
+    /// <summary>
+    /// What a finished chore actually achieved.
+    ///
+    /// A chore used to report "37 tiles queued" and then vanish, so a routine that watered nothing
+    /// looked exactly like one that watered everything. The count of what really changed is the only
+    /// thing worth telling an agent.
+    /// </summary>
+    public sealed record ChoreSummary(string Kind, int Targets, int Done, int Failed,
+                                      string LastNote, double Seconds, string EndReason);
+
     private static Chore? _chore;
+    private static ChoreSummary? _last;
 
     public static bool IsRunning => _chore != null;
+
+    /// <summary>The last chore that ended, or null if none has run.</summary>
+    public static ChoreSummary? Last => _last;
 
     public static string Describe()
     {
@@ -48,6 +68,38 @@ public static class ChoreController
         return chore == null
             ? "idle"
             : $"{chore.Kind}: {chore.Index}/{chore.Targets.Count} visited, {chore.Done} finished, {chore.Failed} given up {chore.LastNote}";
+    }
+
+    /// <summary>The outcome of the last finished chore, in one sentence.</summary>
+    public static string DescribeLast()
+    {
+        ChoreSummary? last = _last;
+        if (last == null)
+            return "";
+
+        string note = last.LastNote.Length > 0 ? $" ({last.LastNote.Trim()})" : "";
+        return $"{last.Kind}: {last.Done} done, {last.Failed} given up of {last.Targets} " +
+               $"in {last.Seconds:0.#}s - {last.EndReason}{note}";
+    }
+
+    /// <summary>Ends the running chore, recording what it managed to do.</summary>
+    private static void Finish(string reason)
+    {
+        Chore? chore = _chore;
+        if (chore == null)
+            return;
+
+        _last = new ChoreSummary(
+            chore.Kind,
+            chore.Targets.Count,
+            chore.Done,
+            chore.Failed,
+            chore.LastNote,
+            (Now() - chore.Started) / (double)TimeSpan.TicksPerSecond,
+            reason);
+
+        _chore = null;
+        MovementController.Stop();
     }
 
     public static (bool, string) Start(string kind, List<Vector2> targets)
@@ -69,6 +121,7 @@ public static class ChoreController
         {
             Kind = kind,
             Targets = targets,
+            Started = Now(),
             Deadline = Now() + ChoreTimeoutMs * TimeSpan.TicksPerMillisecond,
         };
 
@@ -80,10 +133,8 @@ public static class ChoreController
         if (_chore == null)
             return (false, "no chore is running");
 
-        string was = Describe();
-        _chore = null;
-        MovementController.Stop();
-        return (true, $"cancelled ({was})");
+        Finish("cancelled");
+        return (true, $"cancelled - {DescribeLast()}");
     }
 
     public static string Status() => Describe();
@@ -98,24 +149,64 @@ public static class ChoreController
         GameLocation? location = Game1.currentLocation;
         if (farmer == null || location == null)
         {
-            _chore = null;
+            Finish("lost the farmer");
             return;
         }
 
         if (Now() > chore.Deadline)
         {
-            _chore = null;
+            Finish("timed out");
             return;
         }
 
-        if (farmer.controller != null) return;        // still walking to the target
-        if (!GameQuery.IsPlayerFree()) return;        // a menu or event is up
+        // Blocked is not "wait a moment" - it is an event that has to be reported. A greeting
+        // dialogue left a chore sitting idle for its whole five-minute deadline, silently.
+        if (!GameQuery.IsPlayerFree())
+        {
+            string why = GameQuery.BlockedReason();
+
+            if (chore.BlockedSince == 0)
+                chore.BlockedSince = Now();
+
+            chore.LastNote = $"({why} is holding the chore)";
+
+            if (Now() - chore.BlockedSince > BlockedGraceMs * TimeSpan.TicksPerMillisecond)
+                Finish($"blocked - {why}");
+
+            return;
+        }
+
+        chore.BlockedSince = 0;
+
+        // Walking is not progress by itself. Without this a path that never arrives looks exactly
+        // like a path that is nearly there, for as long as the deadline allows.
+        if (farmer.controller != null)
+        {
+            if (chore.WalkingSince == 0)
+                chore.WalkingSince = Now();
+
+            if (Now() - chore.WalkingSince > WalkTimeoutMs * TimeSpan.TicksPerMillisecond)
+            {
+                farmer.controller = null;
+                MovementController.Stop();
+                chore.LastNote = $"could not reach the tile within {WalkTimeoutMs / 1000}s";
+                chore.Index++;
+                chore.Failed++;
+                chore.Attempts = 0;
+                chore.WalkingSince = 0;
+            }
+
+            return;
+        }
+
+        chore.WalkingSince = 0;
+
         if (Now() < chore.NextSwingAt) return;        // the swing animation is still playing
 
         if (chore.Index >= chore.Targets.Count)
         {
-            _chore = null;
-            return;                                    // finished
+            Finish("finished");
+            return;
         }
 
         Vector2 target = chore.Targets[chore.Index];
@@ -152,6 +243,10 @@ public static class ChoreController
             {
                 // Planting does not go through checkAction or a tool swing - see PlantAt.
                 ActionProcessor.PlantAt(location, tx, ty, farmer);
+            }
+            else if (chore.Kind == "refill")
+            {
+                ActionProcessor.RefillCanAt(location, tx, ty, farmer);
             }
             else if (toolType == null)
             {
@@ -192,10 +287,12 @@ public static class ChoreController
         {
             var controller = new PathFindController(farmer, location, stand.Value, 2);
             farmer.controller = controller;
+            chore.WalkingSince = Now();                // the walk timeout counts from here
 
             if (controller.pathToEndPoint == null || controller.pathToEndPoint.Count == 0)
             {
                 farmer.controller = null;
+                chore.WalkingSince = 0;
                 chore.LastNote = $"(no path to ({tx},{ty}))";
                 chore.Index++;
                 chore.Failed++;
@@ -244,6 +341,13 @@ public static class ChoreController
                 return dirt.crop != null;
             }
 
+            case "refill":
+            {
+                // Not a per-tile job: the moment the can is full the whole chore is done.
+                WateringCan? can = ActionProcessor.HeldCan(Game1.player);
+                return can == null || ActionProcessor.CanIsFull(can);
+            }
+
             default:
                 return false;
         }
@@ -272,7 +376,51 @@ public static class ChoreController
         return null;
     }
 
+    /// <summary>The nearest few of a target list, so a job that needs one tile gets one tile.</summary>
+    public static List<Vector2> Nearest(List<Vector2> targets, Vector2 from, int count)
+    {
+        return targets
+            .OrderBy(t => Distance(from, t))
+            .Take(Math.Max(1, count))
+            .ToList();
+    }
+
+
     // -- target collection -------------------------------------------------
+
+    /// <summary>Tiles the farmer can fill a watering can from.</summary>
+    public static List<Vector2> CollectRefillTiles(GameLocation location, int cx, int cy, int radius)
+    {
+        var list = new List<Vector2>();
+
+        try
+        {
+            var layer = location.Map?.Layers.FirstOrDefault();
+            if (layer == null)
+                return list;
+
+            int minX = Math.Max(0, cx - radius);
+            int maxX = Math.Min(layer.LayerWidth - 1, cx + radius);
+            int minY = Math.Max(0, cy - radius);
+            int maxY = Math.Min(layer.LayerHeight - 1, cy + radius);
+
+            for (int x = minX; x <= maxX; x++)
+            {
+                for (int y = minY; y <= maxY; y++)
+                {
+                    try
+                    {
+                        if (location.CanRefillWateringCanOnTile(x, y))
+                            list.Add(new Vector2(x, y));
+                    }
+                    catch { }
+                }
+            }
+        }
+        catch { }
+
+        return list;
+    }
 
     public static List<Vector2> CollectDebris(GameLocation location, int cx, int cy, int radius)
     {

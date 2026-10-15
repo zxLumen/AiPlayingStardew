@@ -5,6 +5,7 @@ using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Quests;
 using StardewValley.TerrainFeatures;
+using StardewValley.Tools;
 using StateBridge.Models;
 
 namespace StateBridge.Utils;
@@ -60,6 +61,9 @@ public static class StateSnapshotBuilder
 
         try { snap.Chore = ChoreController.Status(); }
         catch (Exception ex) { monitor.Log($"Chore status failed: {ex}", LogLevel.Error); }
+
+        try { snap.ChoreLast = ChoreController.DescribeLast(); }
+        catch (Exception ex) { monitor.Log($"Chore last failed: {ex}", LogLevel.Error); }
 
         try { snap.Ui = UiStateBuilder.Build(monitor); }
         catch (Exception ex) { monitor.Log($"BuildUi failed: {ex}", LogLevel.Error); }
@@ -232,6 +236,9 @@ public static class StateSnapshotBuilder
                 Category = info.Category,
                 Kind = info.Kind,
                 Description = info.Description,
+                Charges = info.Charges,
+                ChargesMax = info.ChargesMax,
+                UpgradeLevel = info.UpgradeLevel,
             });
         }
         return result;
@@ -255,6 +262,27 @@ public static class StateSnapshotBuilder
         try { description = Truncate(item.getDescription(), DescriptionMaxLen); }
         catch { /* some items throw; description stays empty */ }
 
+        // A tool that runs out looks exactly like a full one from the outside. Report what it holds,
+        // so "swing did nothing" and "swing had nothing to work with" stop looking the same.
+        int charges = -1;
+        int chargesMax = -1;
+        int upgradeLevel = 0;
+
+        if (item is Tool tool)
+        {
+            upgradeLevel = tool.UpgradeLevel;
+
+            try
+            {
+                if (tool is WateringCan can)
+                {
+                    charges = can.WaterLeft;
+                    chargesMax = ActionProcessor.CanCapacity(can);
+                }
+            }
+            catch { /* not every tool reports this */ }
+        }
+
         return new ItemInfo
         {
             Name = item.DisplayName ?? "",
@@ -263,6 +291,9 @@ public static class StateSnapshotBuilder
             Category = item.Category,
             Kind = kind,
             Description = description,
+            Charges = charges,
+            ChargesMax = chargesMax,
+            UpgradeLevel = upgradeLevel,
         };
     }
 

@@ -130,3 +130,98 @@
 - 第一次 go_to 报 NOT_FREE 'farmer cannot move right now' 时照旧 noop 一次再重发同一 go_to，别误判成路被挡。
 - water_all 一次排队后角色会自己走完全部格子，当天不要再重复下单或逐格手动浇。
 - 播种后的第二天优先留出浇水时间（38 格），清障/耕地/播种这类活儿留到浇完再排。
+
+## 2026-10-16
+- 出门固定流水线 go_to (64,18) → select_slot 2 → water_all 到第 16 天仍然有效，一天 7 步就能收工，别多加多余动作。
+- 播种后第二天起浇水量级稳定在 37~38 格，浇水日就把时间全留给浇水，清障/耕地/播种另排一天。
+- 第一次 go_to 报 NOT_FREE 'farmer cannot move right now' 照旧 noop 一次再重发同一 go_to，别误判成路被挡或事件锁。
+
+## 2026-10-16
+- 出门 catch 后重发同一 go_to 可能从 NOT_FREE 变成 NO_PATH：别死磕 (64,18)，改发相邻的 (65,18)（5 步）再继续。
+- Farm 的 Known exits / BusStop 可用性随站位变化，以当场 enter 的返回为准，别沿用旧日期的'没有 BusStop'结论。
+- enter 一旦返回 'walking to the door...' 就已排队，别再重复发同一个 enter，重复只会拿到 NOT_FREE 或 nothing here leads to。
+- 今天全部时间花在赶路和试出口、零农活：明天出门优先补 water_all，作物不会自己浇水。
+
+## 2026-10-16
+- 出门固定流水线不要再死磕 go_to (64,18)：今天它已 NO_PATH，先试相邻的 (65,18) 或另找可达的作物区。
+- enter 一旦返回 ok 'walking to the door' 就是已排队，别再重发同一个 enter（只会拿 NOT_FREE）；真要重发先 noop 一次。
+- Farm 的 BusStop 出口可用：从落点走 go_to (79,16) 再 enter 'BusStop' 即可，别沿用'没有 BusStop'的旧结论。
+- 在镇上长距离移动前先 scan/go_to 分段试：(30,55)、(35,55)、(45,55) 都是 NO_PATH，绕 (12,54)→(25,55)→(40,58) 才走得通。
+
+## 2026-10-16
+- 出门固定流水线别再用 (64,18)：今天它已 NO_PATH，直接 go_to (65,18)（5 步）再 water_all。
+- 第一次 go_to 报 NOT_FREE 后重发同一目标可能变 NO_PATH；一旦变成 NO_PATH 就立刻换相邻格，别死磕原坐标。
+- water_all 排队 37 格后角色会自己走完，当天不要再重复下单或逐格手动浇。
+- 浇水日就专心浇水（37 格量级），清障/耕地/播种另排一天。
+
+## 2026-10-16
+- 出门固定流水线换点：go_to (65,18)（5 步）→ select_slot 2 → water_all，别再死磕 (64,18)。
+- 第一次 go_to 报 NOT_FREE 后重发同一目标可能直接变 NO_PATH，此时立刻换相邻格（如 (65,18)），别连续重试原坐标。
+- water_all 一次排队 37 格后角色自己走完，当天不要再重复下单或手动逐格浇。
+- 出门后不要再发 exit_building（户外执行会返回 NOT_FREE 'cutscene/event playing'），那是室内动作。
+
+## 2026-10-16
+- 出门流水线第 21 天仍有效：go_to (65,18)（5 步）→ select_slot 2 → water_all，全程 7 步即收工。
+- go_to 报 NOT_FREE 'cutscene/event playing' 时先 noop 一次再重发同一目标，今天直接成功；不必立刻换成相邻格。
+- 浇水量级稳定在 36~38 格，浇水日只干浇水，清障/耕地/播种另排一天。
+- water_all 排队后角色自行走完所有格子，当天不要再重复下单或手动逐格浇。
+
+## 2026-10-16
+- go_to 报 NOT_FREE 别急着换坐标：今天连续两次 NOT_FREE（含 'cutscene/event playing'）后各 noop 一次、第三次重发同一目标就 ok。
+- 出门流水线第 22 天仍可收工：落地 (64,15) → go_to (65,18) → water_all，全程 9 步。
+- 今天没发 select_slot，water_all 仍 ok；若喷壶已在手上可省掉 select_slot，失败再加。
+- 浇水量级 35~38 格，浇水日只干浇水，清障/耕地/播种另排一天。
+
+## 2026-10-16
+- 出门流水线第 23 天照旧有效：exit_building → go_to (65,18) → water_all，连续两次 NOT_FREE 时各补一次 noop 再重发同一目标即可。
+- 喷壶若已在手上可省掉 select_slot：今天没发 select_slot，water_all 仍 ok。
+- 浇水量级稳定在 35~38 格，浇水日只干浇水，清障/耕地/播种另排一天。
+- water_all 排队后角色自行走完所有格子，当天不要再重复下单或逐格手动浇。
+
+## 2026-10-16
+- 出门流水线第 24 天照旧：exit_building → go_to (65,18)（连报 NOT_FREE 就各补一次 noop 再重发）→ water_all，共 8 步收工。
+- 喷壶若已在手上就省掉 select_slot：今天没发 select_slot，water_all 仍 ok。
+- 浇水量级稳定在 34~38 格，浇水日只干浇水，清障/耕地/播种另排一天。
+- water_all 排队后角色自行走完所有格子，当天不要再重复下单或逐格手动浇。
+
+## 2026-10-16
+- clear_area 可一次排队 25~38 格并自动完成，下单后当天别重复下单或逐格手动清障。
+- 清障前先 select_slot 0 拿斧头，再发 clear_area{x,y,radius}。
+- 出门后不要再发 exit_building：户外执行只会返回 ALREADY_OUTDOORS（且可能先报一次 NOT_FREE）。
+- 首次 exit_building/go_to 报 NOT_FREE 'farmer cannot move right now' 时补一次 noop 再重发即可。
+
+## 2026-10-16
+- 出门流水线第 26 天照旧：exit_building → go_to (65,18)（连报 NOT_FREE 就各补一次 noop 再重发同一目标）→ select_slot 2 → water_all，共 9 步收工。
+- go_to 报 NOT_FREE 'farmer cannot move right now'/'cutscene/event playing' 时不要换坐标，补 noop 后重发同一目标即可成功。
+- water_all 排队 33 格后角色自行走完，当天不要再重复下单或逐格手动浇。
+- 浇水量级 33~38 格，浇水日只干浇水，清障/耕地/播种另排一天。
+
+## 2026-10-16
+- 出门流水线第 27 天照旧：exit_building → go_to (65,18)（连报两次 NOT_FREE 就各补一次 noop 再重发同一目标）→ water_all，共 9 步收工。
+- 作物开始成熟：到 (65,18) 后先发 harvest_all 再 water_all，两者都会自动排队走完。
+- harvest_all 排队后角色自行处理，当天不要重复下单或逐格手动收。
+- 浇水 33 格量级仍稳定，收作物+浇水同一天即可收工，清障/耕地另排一天。
+
+## 2026-10-16
+- 去镇子走 Farm (78,15) 的 enter 'BusStop'；在 Farm 直接 enter 'Town' 必然 FAILED。
+- 进入 Town 后别再 enter 'Town'，镇内换地图要用 enter 'BusStop'/'CommunityCenter' 等 Town 自己的出口。
+- harvest_all 只排队 2 格说明作物已收完，接下来该排清障（斧头槽 0 + clear_area）或耕地（锄头槽 1 + 播种）。
+- go_to 报 NO_PATH 且提示 'farmer is at (11,23)' 时说明已换地图，别拿旧地图坐标继续试，改发当前地图内的相邻格。
+
+## 2026-10-16
+- 出 Farm 去镇子：exit_building → go_to (78,15)（约 17 步）→ enter 'BusStop'，进门后就是 BusStop 地图。
+- 进入 BusStop 地图后别再 enter 'BusStop'，换地图要用该地图自己的出口 Desert/Town/Farm/Backwoods。
+- go_to 报 NO_PATH 且提示 'farmer is at (x,y)' 时说明位置已变，别拿旧坐标继续试，改朝当前地图内相邻格走或用 move 脱身。
+- 出门后 go_to (65,18) 仍会先报一次 NOT_FREE 'farmer cannot move right now'，补一次 noop 再重发同一目标即可成功。
+
+## 2026-10-16
+- 出门流水线今天照旧：exit_building → go_to (65,18)（首次报 NOT_FREE 就补一次 noop 再重发同一目标）→ 再做后续动作。
+- 进 BusStop 后别再 enter 'BusStop'，换地图要用该地图自己的出口（Desert/Town/Farm/Backwoods）。
+- go_to 报 NO_PATH 且提示 'farmer is at (x,y)' 时别继续用旧坐标，改用 move 方向脱身，再发当前地图内的新目标。
+- 到新地图后可用 scan radius 15~20 确认周边可行走格，再决定下一个 go_to 目标。
+
+## 2026-10-16
+- enter 报 NOT_FREE 'farmer cannot move right now' 时不要换目标，补一次 noop 后重发同一 enter 即可成功。
+- 去镇子流程：exit_building 落在 Farm (64,15) → go_to (78,15)（约 19 步）→ enter 'BusStop' → 在 BusStop 内再 enter 'Town'。
+- 在 BusStop 内换地图要用该地图自己的出口（Town/Desert/Farm/Backwoods），不要重复 enter 'BusStop'。
+- 到 Town 后可直接发镇内坐标 go_to（如 (30,58) 35 步、(50,55) 24 步），无需再出门动作。

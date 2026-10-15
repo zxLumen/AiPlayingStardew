@@ -1,4 +1,5 @@
 using StardewValley;
+using StardewValley.Menus;
 
 namespace StateBridge.Utils;
 
@@ -28,14 +29,29 @@ public static class GameQuery
     {
         if (Game1.player == null)
             return "no active save";
-        if (Game1.eventUp)
-            return "cutscene/event playing";
-        if (Game1.dialogueUp)
-            return "dialogue is open";
+
+        // Most specific first. Sitting on Game1.eventUp first reported a plain greeting as
+        // "cutscene/event playing", which sends the agent looking for the wrong remedy - and the
+        // remedy for a dialogue box is simply to advance it.
+        if (Game1.activeClickableMenu is DialogueBox dialogue)
+        {
+            return dialogue.responses is { Length: > 0 }
+                ? "dialogue is waiting for a choice"
+                : "dialogue is open";
+        }
+
         if (Game1.activeClickableMenu != null)
             return $"menu open: {Game1.activeClickableMenu.GetType().Name}";
+
+        if (Game1.dialogueUp)
+            return "dialogue is open";
+
+        if (Game1.eventUp)
+            return "cutscene/event playing";
+
         if (!Game1.player.CanMove)
             return "farmer cannot move right now";
+
         return "";
     }
 

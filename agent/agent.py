@@ -22,8 +22,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import game_process  # noqa: E402
 import gaps  # noqa: E402
 import memory as memory_mod  # noqa: E402
+import runner  # noqa: E402
+import witness  # noqa: E402
 from compact import compact_state  # noqa: E402
-from learning import NOT_ACTIONABLE, TILE_ACTIONS, LearningStore, judge_outcome  # noqa: E402
+from defects import DefectLedger  # noqa: E402
+from learning import NOT_ACTIONABLE, LearningStore  # noqa: E402
+from watcher import Watcher  # noqa: E402
+from witness import TILE_ACTIONS  # noqa: E402
 from llm import LlmClient  # noqa: E402
 from planner import PlannerAI  # noqa: E402
 from referee import RefereeAI  # noqa: E402
@@ -215,7 +220,7 @@ def stable_day(client: StateClient, tries: int = 20, gap_s: float = 1.5) -> dict
     return state
 
 
-CHORE_ACTIONS = {"clear_area", "till_area", "plant_all", "water_all", "harvest_all"}
+CHORE_ACTIONS = {"clear_area", "till_area", "plant_all", "water_all", "harvest_all", "refill"}
 
 
 def settle_timeout(action: str, args: dict) -> float:
@@ -237,7 +242,8 @@ def settle_timeout(action: str, args: dict) -> float:
 
 def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
          max_steps: int, store: "memory_mod.MemoryStore",
-         learning: LearningStore, runlog: RunLog, budget_s: float = 0.0) -> tuple[str, str, int]:
+         learning: LearningStore, runlog: RunLog, budget_s: float = 0.0,
+         watcher: Watcher | None = None) -> tuple[str, str, int]:
     history: list[str] = []
     directive: str | None = None
     total_llm = total_action = total_watch = 0.0
@@ -250,6 +256,9 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
     day_start = first.get("game") or {}
     label = memory_mod.day_label(day_start)
     learning.attempts.clear()      # loop detection is per day
+
+    if watcher is None:
+        watcher = Watcher(client, log=log)
     log(f"[day] starting {day_start.get('season')} {day_start.get('day_of_month')}, "
         f"year {day_start.get('year')}, time {day_start.get('time_of_day')}")
 
@@ -360,31 +369,64 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
 
         started = time.perf_counter()
         result = client.action(action, **args)
+
+        # Watch the world while it happens. The blind waits this replaces polled the state once a
+        # second and looked at a single boolean, so a farmer held by a greeting dialogue waited out
+        # the whole five-minute deadline while every agent sat idle.
+        shared_budget = max(10.0, deadline - time.monotonic()) if deadline else 0.0
+        watch = watcher.watch(
+            action, args, state,
+            day=label, step=step,
+            budget_s=shared_budget,
+            timeout_s=settle_timeout(action, args) or 60.0,
+            witness_field=witness.CHORE_WORK_FIELD.get(action),
+        )
+        after_state = watch.state
+
+        if watch.stopped not in ("done",):
+            log(f"[守望] {action} 提前结束：{watch.stopped}"
+                + (f"（处置：{', '.join(watch.remedies)}）" if watch.remedies else ""))
+            if watch.remedies:
+                result = dict(result)
+                result["detail"] = f"{result.get('detail', '')} | 守望者处置: {', '.join(watch.remedies)}"
+
+        # A macro reports what it *queued*, not what it *did*. The real outcome - how many tiles
+        # it finished and how many it gave up on - only exists once the chore has stopped.
         if action in CHORE_ACTIONS:
-            # A reflex routine is running inside the game. Wait for it by polling state.
-            client.wait_until_chore_done()
-        elif settle_timeout(action, args) > 0:
-            # Wait for the world to finish, by polling state - NOT by asking the model.
-            client.wait_until_settled(timeout_s=settle_timeout(action, args))
+            outcome = str(after_state.get("chore_last") or "").strip()
+            if outcome:
+                result = dict(result)
+                result["queued"] = result.get("detail", "")
+                result["detail"] = outcome
+
         action_s = time.perf_counter() - started
 
         total_llm += llm_s
         total_action += action_s
 
-        # Judge by whether the world changed, not by what the action claimed.
-        if tracking:
-            after = observe_tile(client, tx, ty) if action in TILE_ACTIONS else None
-            worked = judge_outcome(action, args, before, after, result, client.state())
+        # Judge by whether the world changed, not by what the action claimed. Every action class has
+        # a witness; when it does not, that is recorded as no-verdict rather than as success.
+        after = observe_tile(client, tx, ty) if (tracking and action in TILE_ACTIONS) else None
+        worked, evidence = witness.judge(action, args, state, after_state, before, after)
 
-            if worked is not None and kind not in NOT_ACTIONABLE:
-                learning.record(kind, action, worked)
-                runlog.agent("learning", day=label, step=step, kind=kind, action=action,
-                             worked=worked, ok=learning.rate(kind, action).ok,
-                             total=learning.rate(kind, action).total)
-                if worked:
-                    learning.clear_failures()
-                else:
-                    learning.remember_failure(action, args)
+        # `state` here is the pre-action picture, so re-read before the before/after are mixed up.
+        outcome_kind = kind or ("area" if action in CHORE_ACTIONS else None)
+
+        if worked is not None and outcome_kind not in NOT_ACTIONABLE:
+            learning.record(outcome_kind or "area", action, worked)
+            runlog.agent("learning", day=label, step=step, kind=outcome_kind, action=action,
+                         worked=worked, evidence=evidence,
+                         ok=learning.rate(outcome_kind or "area", action).ok,
+                         total=learning.rate(outcome_kind or "area", action).total)
+            if worked:
+                learning.clear_failures()
+            else:
+                learning.remember_failure(action, args)
+
+        if worked is not None:
+            runlog.agent("witness", day=label, step=step, action=action, worked=worked,
+                         evidence=evidence, ok=bool(result.get("ok")),
+                         detail=str(result.get("detail", ""))[:160])
 
         # A failure invalidates the rest of the queue: it was planned against a world that turned
         # out not to be true. Re-decide immediately rather than replaying stale intentions.
@@ -409,7 +451,8 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
                      reason=str(item.get("reason") or batch_reason), ok=bool(result.get("ok")),
                      reason_code=str(result.get("reason_code") or ""), detail=detail,
                      kind=kind, llm_s=round(llm_s, 2), act_s=round(action_s, 2),
-                     directive=directive or "")
+                     directive=directive or "",
+                     worked=worked, evidence=evidence)
         log(f"[主播 {step:>3}] {action:<15} {json.dumps(args, ensure_ascii=False)[:44]:<44} {flag} "
             f"llm {llm_s:4.1f}s act {action_s:4.1f}s  {tail}")
 
@@ -530,45 +573,6 @@ def reflect(supervisor: SupervisorAI, store: "memory_mod.MemoryStore", known: st
         f"(total {report['total']}) | lessons: +{lessons}")
 
 
-def ensure_game(client: StateClient, streamer: StreamerAI, ai_save: dict | None,
-                timeout_s: int = 300) -> bool:
-    """Make sure the game is up and the AI's OWN save is loaded. Relaunches the game if needed."""
-    if not client.wait_until_up(timeout_s=45):
-        log("[run ] game not responding - relaunching it")
-        try:
-            game_process.stop()
-        except Exception:
-            pass
-        time.sleep(6)
-        game_process.launch()
-        if not client.wait_until_up(timeout_s=timeout_s):
-            log("[run ] game never came back")
-            return False
-
-    state = client.state()
-    game = state.get("game") or {}
-
-    if game.get("has_save"):
-        expected = str((ai_save or {}).get("character_name", "")).strip()
-        actual = str((state.get("player") or {}).get("name", "")).strip()
-        if expected and actual != expected:
-            log(f"[run ] save in game is '{actual}', the AI is '{expected}' - restarting to title")
-            try:
-                game_process.stop()
-            except Exception:
-                pass
-            time.sleep(6)
-            game_process.launch()
-            if not client.wait_until_up(timeout_s=timeout_s):
-                return False
-        else:
-            return True
-
-    log("[run ] driving menus to the AI's own save...")
-    bootstrap(client, streamer, ai_save, force_new=False, max_iterations=90)
-    return bool(((client.state().get("game") or {}).get("has_save")))
-
-
 def run_forever(args: argparse.Namespace) -> int:
     """Unattended loop: play day after day, recover from anything, and keep a progress file."""
     started = time.time()
@@ -576,6 +580,7 @@ def run_forever(args: argparse.Namespace) -> int:
     store = memory_mod.MemoryStore()
     learning = LearningStore(memory_mod.PROJECT_ROOT / "memory" / "learning.json", log=log)
     runlog = RunLog(memory_mod.PROJECT_ROOT, log=log)
+    ledger = DefectLedger(memory_mod.PROJECT_ROOT, log=log)
 
     runlog.line(f"- 开始时间：{time.strftime('%Y-%m-%d %H:%M:%S')}")
     runlog.line(f"- 限制：最多 {args.max_hours} 小时 / {args.max_days} 个循环 / 每循环 {args.steps} 步")
@@ -598,6 +603,8 @@ def run_forever(args: argparse.Namespace) -> int:
         supervisor = SupervisorAI(smart)
         planner = PlannerAI(smart)
         referee = RefereeAI(smart)
+        watcher = Watcher(client, ledger=ledger, runlog=runlog, log=log)
+        pipeline = runner.Pipeline(client, ledger, runlog=runlog, log=log)
 
         while time.time() < deadline and cycle < args.max_days:
             cycle += 1
@@ -632,11 +639,25 @@ def run_forever(args: argparse.Namespace) -> int:
                                         f"`{gap.action}` **{gap.verdict}** — {reason}\n")
 
             try:
-                if not ensure_game(client, streamer, ai_save):
-                    log("[run ] game unavailable - waiting 60s")
-                    time.sleep(60)
-                    continue
+                # Every stage before a day is played now has an owner, a retry, and a record.
+                # "Could not load the save" used to be an exception nobody wrote down.
+                pipeline.ensure(ai_save)
+            except runner.StageFailure as failure:
+                log(f"[流水线] {failure} —— 记录进台账，等 60 秒重试")
+                runlog.agent("pipeline", stage=failure.stage, event="stage failed",
+                             detail=failure.detail)
+                ledger.save()
+                time.sleep(60)
+                continue
+            except Exception as exc:
+                log(f"[流水线] 意外错误 {type(exc).__name__}: {exc}")
+                runlog.agent("pipeline", stage="?", event="crash",
+                             error=type(exc).__name__, message=str(exc))
+                ledger.save()
+                time.sleep(30)
+                continue
 
+            try:
                 start_state = client.state()
                 label_hint = memory_mod.day_label(start_state.get("game") or {})
                 plan = planner.plan_day(start_state, persona=streamer.persona, memory=known,
@@ -650,7 +671,8 @@ def run_forever(args: argparse.Namespace) -> int:
                 streamer.set_plan(plan)
 
                 outcome, label, steps = play(client, streamer, supervisor, args.steps, store,
-                                             learning, runlog, budget_s=args.day_seconds)
+                                             learning, runlog, budget_s=args.day_seconds,
+                                             watcher=watcher)
 
                 # Never let the run sit on the same day forever.
                 if outcome in ("steps_exhausted", "budget_exhausted"):
@@ -685,6 +707,7 @@ def run_forever(args: argparse.Namespace) -> int:
                 known = store.cheat_sheet()
                 streamer.memory_block = known
                 days_done += 1
+                ledger.save()          # a defect must survive a crash to be worth writing down
 
                 runlog.agent("referee", day=label, score=verdict.get("score"),
                              verdict=verdict.get("verdict"), why=verdict.get("why"),
@@ -713,8 +736,11 @@ def run_forever(args: argparse.Namespace) -> int:
                 time.sleep(30)
 
     stats = store.stats()
+    ledger.save()
+
     log(f"\n[run ] finished: {days_done} day(s) in {(time.time() - started) / 60:.0f} min | "
         f"memory now {stats['facts']} facts / {stats['lessons']} lessons")
+    log(f"[台账] 未结缺陷：{ledger.summary()} -> {ledger.report}")
     runlog.section("结束")
     runlog.line(f"- 完成 {days_done} 天，用时 {(time.time() - started) / 60:.0f} 分钟")
     runlog.line(f"- 记忆库：{stats['facts']} 条事实 / {stats['lessons']} 条教训 / {stats['journals']} 篇日记")

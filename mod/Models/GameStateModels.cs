@@ -42,7 +42,15 @@ public class GameStateSnapshot
     [JsonPropertyName("quests")] public List<QuestInfo> Quests { get; set; } = new();
 
     /// <summary>Status of the running chore (reflex macro), or "idle". While one runs, don't interfere.</summary>
-    [JsonPropertyName("chore")] public string Chore { get; set; } = "idle";    [JsonPropertyName("ui")] public UiInfo? Ui { get; set; }
+    [JsonPropertyName("chore")] public string Chore { get; set; } = "idle";
+
+    /// <summary>
+    /// What the last finished chore actually achieved - "water_all: 0 done, 33 given up of 33 in
+    /// 134s". A chore that did nothing used to be indistinguishable from one that did everything.
+    /// </summary>
+    [JsonPropertyName("chore_last")] public string? ChoreLast { get; set; }
+
+    [JsonPropertyName("ui")] public UiInfo? Ui { get; set; }
     [JsonPropertyName("display")] public DisplayInfo? Display { get; set; }
 }
 
@@ -191,6 +199,19 @@ public class ItemInfo
     [JsonPropertyName("category")] public int Category { get; set; }
     [JsonPropertyName("kind")] public string Kind { get; set; } = "item";
     [JsonPropertyName("description")] public string Description { get; set; } = "";
+
+    /// <summary>
+    /// How much the tool still holds, for tools that run out (the watering can). -1 means the tool
+    /// does not hold anything. A watering can with 0 in it looks identical to a full one from
+    /// outside, which is how an agent ends up swinging an empty can all day.
+    /// </summary>
+    [JsonPropertyName("charges")] public int Charges { get; set; } = -1;
+
+    /// <summary>What "charges" counts up to, or -1 when the tool does not run out.</summary>
+    [JsonPropertyName("charges_max")] public int ChargesMax { get; set; } = -1;
+
+    /// <summary>The tool's upgrade level, or 0 for a plain item.</summary>
+    [JsonPropertyName("upgrade_level")] public int UpgradeLevel { get; set; }
 }
 
 
@@ -203,6 +224,9 @@ public class InventorySlot
     [JsonPropertyName("category")] public int Category { get; set; }
     [JsonPropertyName("kind")] public string Kind { get; set; } = "item";
     [JsonPropertyName("description")] public string Description { get; set; } = "";
+    [JsonPropertyName("charges")] public int Charges { get; set; } = -1;
+    [JsonPropertyName("charges_max")] public int ChargesMax { get; set; } = -1;
+    [JsonPropertyName("upgrade_level")] public int UpgradeLevel { get; set; }
 }
 
 

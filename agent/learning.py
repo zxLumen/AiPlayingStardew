@@ -18,8 +18,9 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-# Actions that aim at one tile - these are what experience can correct.
-TILE_ACTIONS = {"work", "use_tool_at", "interact_at"}
+# Actions that aim at one tile - these are what experience can correct. Kept in step with the
+# witness module so there is exactly one definition of "acts on a tile".
+from witness import TILE_ACTIONS
 CANDIDATE_ACTIONS = ("work", "use_tool_at", "interact_at")
 
 # There is nothing to learn about these - they are already settled.
@@ -190,20 +191,3 @@ class LearningStore:
             kind, _, action = key.partition("|")
             rows.append(f"{kind}+{action} {tally.ok}/{tally.total}")
         return " | ".join(rows)
-
-
-def judge_outcome(action: str, args: dict, before: dict | None, after: dict | None,
-                  result: dict, state: dict) -> bool | None:
-    """Did the WORLD change? This is the only honest measure of success."""
-    if action in TILE_ACTIONS:
-        if before is None or after is None:
-            return None
-        return after.get("kind") != before.get("kind")
-
-    if action == "go_to":
-        player = state.get("player") or {}
-        here = (player.get("tile_x"), player.get("tile_y"))
-        want = (args.get("x"), args.get("y"))
-        return here == want
-
-    return bool(result.get("ok"))
