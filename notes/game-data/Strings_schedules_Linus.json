@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Strings/schedules/Linus (String): 2 of 2 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Strings/schedules/Linus",
+    "entry_type": "table of String",
+    "count_total": 2,
+    "count_returned": 2,
+    "entries": {
+      "winter_15.000": "这些人都是旅客，像我一样……我感到有某种缘份。但只是呆在这里倾听和观察，我也能接受。",
+      "winter.000": "即使是我也要时不时到室内暖一暖。"
+    }
+  }
+}

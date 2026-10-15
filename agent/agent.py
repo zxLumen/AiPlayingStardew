@@ -237,14 +237,19 @@ def settle_timeout(action: str, args: dict) -> float:
 
 def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
          max_steps: int, store: "memory_mod.MemoryStore",
-         learning: LearningStore, runlog: RunLog) -> tuple[str, str, int]:
+         learning: LearningStore, runlog: RunLog, budget_s: float = 0.0) -> tuple[str, str, int]:
     history: list[str] = []
     directive: str | None = None
     total_llm = total_action = total_watch = 0.0
+    queued: list[dict] = []
+    batch_reason = ""
+    stuck_events = 0
+    deadline = time.monotonic() + budget_s if budget_s > 0 else 0.0
 
     first = stable_day(client)
     day_start = first.get("game") or {}
     label = memory_mod.day_label(day_start)
+    learning.attempts.clear()      # loop detection is per day
     log(f"[day] starting {day_start.get('season')} {day_start.get('day_of_month')}, "
         f"year {day_start.get('year')}, time {day_start.get('time_of_day')}")
 
@@ -257,12 +262,46 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         log(f"[day] could not freeze the clock: {frozen.get('detail')}")
 
     for step in range(1, max_steps + 1):
+        # A day is a round, and a round that drags on teaches nothing. When the budget is gone the
+        # day is ended and scored as it stands - a fast failure is a data point, a slow one is a loss.
+        if deadline and time.monotonic() > deadline:
+            log(f"[day] round budget ({budget_s:.0f}s) spent at step {step} - ending the day here")
+            return "budget_exhausted", label, step - 1
+
         state = client.state()
         game = state.get("game") or {}
+
+        # Whatever the game says out loud is a fact the world just handed us. Record it now -
+        # waiting for the end-of-day referee means losing anything learned mid-day.
+        dialogue = ((state.get("ui") or {}).get("dialogue") or {})
+        spoken = str(dialogue.get("text") or "").strip()
+        if spoken and store.observe(spoken, label, int(game.get("time_of_day") or 0)):
+            runlog.agent("observation", day=label, time=game.get("time_of_day"), text=spoken)
+            runlog.history_line(f"\n- **{time.strftime('%m-%d %H:%M')}** 游戏说：{spoken[:120]}\n")
+            log(f"[观察] 游戏说：{spoken[:90]}")
 
         if session_finished(day_start, game):
             log(f"[day] COMPLETE - day {day_start.get('day_of_month')} -> {game.get('day_of_month')}")
             return "day_complete", label, step
+
+        # An event flag with nothing on screen is abandoned state, not a cutscene: the game will
+        # never clear it on its own, and every action fails while it is set. A real cutscene always
+        # has dialogue, a menu, or a choice, so those are left alone.
+        ui_now = state.get("ui") or {}
+        if (not game.get("is_player_free")
+                and (game.get("blocked_reason") or "") == "cutscene/event playing"
+                and not spoken
+                and not ui_now.get("menu_name")):
+            stuck_events += 1
+            if stuck_events >= 2:
+                released = client.action("clear_event")
+                log(f"[恢复] 事件标志卡住、屏幕上没有内容 -> clear_event: {released.get('detail')}")
+                runlog.agent("run", event="cleared_stuck_event", day=label, step=step,
+                             detail=str(released.get("detail")))
+                stuck_events = 0
+                continue
+        else:
+            stuck_events = 0
 
         if supervisor.should_review(step, history):
             started = time.perf_counter()
@@ -278,16 +317,31 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             if verdict.get("status") == "done":
                 return "supervisor_done", label, step
 
-        started = time.perf_counter()
-        decision = streamer.decide(state, history, directive)
-        llm_s = time.perf_counter() - started
+            # A directive means "stop what you are doing" - drop the rest of the queue.
+            queued.clear()
 
-        action = str(decision.get("action") or "noop").strip()
+        # One model call per queue, not per action. The queue is what makes this play at a human
+        # pace: a person does not re-decide between walking somewhere and opening the door.
+        if queued:
+            llm_s = 0.0
+        else:
+            started = time.perf_counter()
+            decision = streamer.decide(state, history, directive)
+            llm_s = time.perf_counter() - started
+            directive = None
+            queued = streamer.extract_actions(decision)
+            batch_reason = str(decision.get("reason", ""))
+            if len(queued) > 1:
+                log(f"[思考] {batch_reason[:70]}  -> {len(queued)} 步")
+
+        item = queued.pop(0)
+
+        action = str(item.get("action") or "noop").strip()
 
         # Arguments belong at the top level, but tolerate a model that nests them.
-        nested = decision.get("args")
+        nested = item.get("args")
         args: dict = dict(nested) if isinstance(nested, dict) else {}
-        args.update({k: v for k, v in decision.items() if k not in ("action", "reason", "args")})
+        args.update({k: v for k, v in item.items() if k not in ("action", "reason", "args")})
 
         # --- learning: look at the target, let experience correct the action, then judge what
         # actually happened. All of this is cheap HTTP; it never costs an extra model call.
@@ -301,6 +355,8 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             runlog.agent("gatekeeper", day=label, step=step, action=action, args=args,
                          kind=kind, note=note)
             log(f"[守门] {note}")
+
+        learning.remember_attempt(action, args)
 
         started = time.perf_counter()
         result = client.action(action, **args)
@@ -330,6 +386,13 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
                 else:
                     learning.remember_failure(action, args)
 
+        # A failure invalidates the rest of the queue: it was planned against a world that turned
+        # out not to be true. Re-decide immediately rather than replaying stale intentions.
+        if not result.get("ok"):
+            if queued:
+                log(f"[思考] {action} 失败，丢弃队列剩下的 {len(queued)} 步，重新决策")
+            queued.clear()
+
         detail = str(result.get("detail", ""))
         history.append(f"{action} {json.dumps(args, ensure_ascii=False)} -> ok={result.get('ok')} {detail}")
         store.log_step(
@@ -338,12 +401,12 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             f"-> ok={result.get('ok')} rc={result.get('reason_code') or '-'} {detail}",
         )
 
-        reason = str(decision.get("reason", ""))[:45]
+        reason = str(item.get("reason") or batch_reason)[:45]
         flag = "OK " if result.get("ok") else "ERR"
         # On failure the detail is the whole point - show it instead of the reason.
         tail = reason if result.get("ok") else f"! {detail[:80]}"
         runlog.agent("streamer", day=label, step=step, action=action, args=args,
-                     reason=str(decision.get("reason", "")), ok=bool(result.get("ok")),
+                     reason=str(item.get("reason") or batch_reason), ok=bool(result.get("ok")),
                      reason_code=str(result.get("reason_code") or ""), detail=detail,
                      kind=kind, llm_s=round(llm_s, 2), act_s=round(action_s, 2),
                      directive=directive or "")
@@ -587,14 +650,22 @@ def run_forever(args: argparse.Namespace) -> int:
                 streamer.set_plan(plan)
 
                 outcome, label, steps = play(client, streamer, supervisor, args.steps, store,
-                                             learning, runlog)
+                                             learning, runlog, budget_s=args.day_seconds)
 
                 # Never let the run sit on the same day forever.
-                if outcome == "steps_exhausted":
-                    log("[run ] step budget ran out without sleeping - ending the day")
+                if outcome in ("steps_exhausted", "budget_exhausted"):
+                    before_day = (client.state().get("game") or {}).get("day_of_month")
+                    log(f"[run ] {outcome} - ending the day")
                     runlog.agent("run", event="forced_day_end", day=label, outcome=outcome)
                     enforce_day_end(client)
-                    time.sleep(25)
+
+                    # Wait for the new day to actually appear rather than guessing at a fixed sleep.
+                    day_deadline = time.monotonic() + 45
+                    while time.monotonic() < day_deadline:
+                        day_now = (client.state().get("game") or {}).get("day_of_month")
+                        if day_now and day_now != before_day:
+                            break
+                        time.sleep(2)
 
                 end_state = client.state()
                 verdict = referee.score_day(plan, store.read_journal(label),
@@ -655,6 +726,9 @@ def run_forever(args: argparse.Namespace) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="主播AI + 监工AI for Stardew Valley")
     parser.add_argument("--steps", type=int, default=120, help="max decisions per day")
+    parser.add_argument("--day-seconds", type=float, default=120.0,
+                        help="wall-clock budget for one round; when it runs out the day is ended and "
+                             "scored as it stands, so a bad round costs seconds rather than minutes")
     parser.add_argument("--goal", default=DEFAULT_GOAL)
     parser.add_argument("--base-url", default="http://127.0.0.1:8787")
     parser.add_argument("--no-launch", action="store_true", help="do not start the game process")

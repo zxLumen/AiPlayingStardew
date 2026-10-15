@@ -264,8 +264,9 @@ class MemoryStore:
         facts = facts[:max_facts]
 
         lessons = self.lesson_lines(max_lessons)
+        observations = self.load_observations(12)
 
-        if not facts and not lessons:
+        if not facts and not lessons and not observations:
             return ""
 
         parts = ["WHAT YOU ALREADY LEARNED IN EARLIER SESSIONS (trust this, but the live state wins):"]
@@ -275,7 +276,56 @@ class MemoryStore:
             parts.append("")
             parts.append("LESSONS:")
             parts.extend(lessons)
+        if observations:
+            parts.append("")
+            parts.append("WHAT THE GAME ITSELF TOLD YOU:")
+            for o in observations:
+                parts.append(f"- {o.get('text', '')}")
         return "\n".join(parts)
+
+    # -- what the game itself told us --------------------------------------
+
+    def load_observations(self, limit: int = 200) -> list[dict]:
+        """Things the game said out loud (dialogue), which are facts the world gave us."""
+        path = self.base / "observations.jsonl"
+        if not path.exists():
+            return []
+        try:
+            lines = [ln for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+        except OSError:
+            return []
+
+        out: list[dict] = []
+        for line in lines[-limit:]:
+            try:
+                out.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+        return out
+
+    def observe(self, text: str, day: str = "", time_of_day: int = 0) -> bool:
+        """Record something the game said. Returns True when it is new.
+
+        Mid-day discoveries used to die with the day, because only the once-a-day referee wrote
+        anything down. The game telling us "the shop opens at 9" is a fact, and it should survive.
+        """
+        text = " ".join((text or "").split()).strip()
+        if len(text) < 4:
+            return False
+
+        if any(o.get("text") == text for o in self.load_observations(400)):
+            return False
+
+        path = self.base / "observations.jsonl"
+        try:
+            self.base.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(
+                    {"day": day, "time": time_of_day, "text": text}, ensure_ascii=False) + "\n")
+        except OSError:
+            return False
+
+        return True
 
     # -- day records (the track record) ------------------------------------
 

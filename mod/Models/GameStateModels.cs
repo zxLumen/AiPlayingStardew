@@ -97,6 +97,25 @@ public class LocationInfo
 
     /// <summary>Every exit and door here, with where it leads. Lets an agent pick the right door.</summary>
     [JsonPropertyName("warps")] public List<WarpInfo> Warps { get; set; } = new();
+
+    /// <summary>
+    /// What work exists in this whole location, with example tiles. The agent cannot plan farm
+    /// work without knowing where the farmable ground actually is - guessing coordinates is how it
+    /// ends up hoeing a path outside the farmhouse for three days.
+    /// </summary>
+    [JsonPropertyName("work")] public WorkSummaryInfo? Work { get; set; }
+}
+
+
+public class WorkSummaryInfo
+{
+    [JsonPropertyName("tillable")] public int Tillable { get; set; }
+    [JsonPropertyName("empty_soil")] public int EmptySoil { get; set; }
+    [JsonPropertyName("debris")] public int Debris { get; set; }
+    [JsonPropertyName("thirsty_crops")] public int ThirstyCrops { get; set; }
+    [JsonPropertyName("ready_crops")] public int ReadyCrops { get; set; }
+    [JsonPropertyName("tillable_samples")] public List<int[]> TillableSamples { get; set; } = new();
+    [JsonPropertyName("empty_soil_samples")] public List<int[]> EmptySoilSamples { get; set; } = new();
 }
 
 

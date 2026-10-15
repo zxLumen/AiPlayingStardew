@@ -52,8 +52,22 @@ class LearningStore:
         self.log = log
         self.tally: dict[str, Tally] = {}
         self.failures: list[tuple[str, str]] = []
+        self.attempts: list[tuple[str, str]] = []   # every attempt, success or not
         self.blocked: dict[str, str] = {}     # action -> why it was blacklisted
         self._load()
+
+    def remember_attempt(self, action: str, args: dict) -> None:
+        """Count every attempt, not just the failed ones.
+
+        The worst loops are not failures at all: 'enter the locked shop' returns ok, opens a
+        dialogue, and the agent does it again. Repeating one action+args this many times in a day
+        is a loop, whatever it reports.
+        """
+        self.attempts.append((action, json.dumps(args, sort_keys=True, ensure_ascii=False)))
+
+    def is_loop(self, action: str, args: dict, threshold: int = 4) -> bool:
+        needle = (action, json.dumps(args, sort_keys=True, ensure_ascii=False))
+        return self.attempts.count(needle) >= threshold
 
     def blacklist(self, action: str, reason: str) -> bool:
         """Stop using an action that has been shown not to work. Returns True when newly blocked."""
@@ -150,6 +164,10 @@ class LearningStore:
         """Return (action, args, note). Rewrites what experience says does not work."""
         if action in self.blocked:
             return action, args, f"'{action}' 已被能力缺口检测器拉黑（{self.blocked[action]}）- 换个做法"
+
+        if self.is_loop(action, args):
+            return action, args, (f"'{action}' {json.dumps(args, ensure_ascii=False)} "
+                                  "本日已重复 4 次 - 这是个循环，别再做了")
 
         if self.is_repeat(action, args):
             return action, args, f"'{action}' {args} 已连续失败 2 次，被拦截 - 换个做法"

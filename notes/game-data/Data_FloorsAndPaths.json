@@ -1,0 +1,300 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/FloorsAndPaths (FloorPathData): 13 of 13 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/FloorsAndPaths",
+    "entry_type": "table of FloorPathData",
+    "count_total": 13,
+    "count_returned": 13,
+    "entries": {
+      "0": {
+        "Id": "0",
+        "ItemId": "328",
+        "Texture": "TerrainFeatures\\Flooring",
+        "Corner": {
+          "X": 0,
+          "Y": 0
+        },
+        "WinterTexture": "TerrainFeatures\\Flooring_winter",
+        "WinterCorner": {
+          "X": 0,
+          "Y": 0
+        },
+        "PlacementSound": "axchop",
+        "RemovalSound": null,
+        "RemovalDebrisType": 12,
+        "FootstepSound": "woodyStep",
+        "ConnectType": 0,
+        "ShadowType": 1,
+        "CornerSize": 4,
+        "FarmSpeedBuff": -1
+      },
+      "1": {
+        "Id": "1",
+        "ItemId": "329",
+        "Texture": "TerrainFeatures\\Flooring",
+        "Corner": {
+          "X": 64,
+          "Y": 0
+        },
+        "WinterTexture": "TerrainFeatures\\Flooring_winter",
+        "WinterCorner": {
+          "X": 64,
+          "Y": 0
+        },
+        "PlacementSound": "thudStep",
+        "RemovalSound": "hammer",
+        "RemovalDebrisType": 14,
+        "FootstepSound": "stoneStep",
+        "ConnectType": 0,
+        "ShadowType": 1,
+        "CornerSize": 4,
+        "FarmSpeedBuff": -1
+      },
+      "2": {
+        "Id": "2",
+        "ItemId": "331",
+        "Texture": "TerrainFeatures\\Flooring",
+        "Corner": {
+          "X": 128,
+          "Y": 0
+        },
+        "WinterTexture": "TerrainFeatures\\Flooring_winter",
+        "WinterCorner": {
+          "X": 128,
+          "Y": 0
+        },
+        "PlacementSound": "axchop",
+        "RemovalSound": null,
+        "RemovalDebrisType": 12,
+        "FootstepSound": "woodyStep",
+        "ConnectType": 0,
+        "ShadowType": 1,
+        "CornerSize": 4,
+        "FarmSpeedBuff": -1
+      },
+      "3": {
+        "Id": "3",
+        "ItemId": "333",
+        "Texture": "TerrainFeatures\\Flooring",
+        "Corner": {
+          "X": 192,
+          "Y": 0
+        },
+        "WinterTexture": "TerrainFeatures\\Flooring_winter",
+        "WinterCorner": {
+          "X": 192,
+          "Y": 0
+        },
+        "PlacementSound": "thudStep",
+        "RemovalSound": "hammer",
+        "RemovalDebrisType": 14,
+        "FootstepSound": "thudStep",
+        "ConnectType": 0,
+        "ShadowType": 1,
+        "CornerSize": 4,
+        "FarmSpeedBuff": -1
+      },
+      "4": {
+        "Id": "4",
+        "ItemId": "401",
+        "Texture": "TerrainFeatures\\Flooring",
+        "Corner": {
+          "X": 0,
+          "Y": 64
+        },
+        "WinterTexture": "TerrainFeatures\\Flooring_winter",
+        "WinterCorner": {
+          "X": 0,
+          "Y": 64
+        },
+        "PlacementSound": "axchop",
+        "RemovalSound": null,
+        "RemovalDebrisType": 14,
+        "FootstepSound": "woodyStep",
+        "ConnectType": 0,
+        "ShadowType": 1,
+        "CornerSize": 4,
+        "FarmSpeedBuff": -1
+      },
+      "5": {
+        "Id": "5",
+        "ItemId": "407",
+        "Texture": "TerrainFeatures\\Flooring",
+        "Corner": {
+          "X": 64,
+          "Y": 64
+        },
+        "WinterTexture": "TerrainFeatures\\Flooring_winter",
+        "WinterCorner": {
+          "X": 64,
+          "Y": 64
+        },
+        "PlacementSound": "dirtyHit",
+        "RemovalSound": "hammer",
+        "RemovalDebrisType": 14,
+        "FootstepSound": "dirtyHit",
+        "ConnectType": 1,
+        "ShadowType": 0,
+        "CornerSize": 4,
+        "FarmSpeedBuff": -1
+      },
+      "6": {
+        "Id": "6",
+        "ItemId": "405",
+        "Texture": "TerrainFeatures\\Flooring",
+        "Corner": {
+          "X": 128,
+          "Y": 64
+        },
+        "WinterTexture": "TerrainFeatures\\Flooring_winter",
+        "WinterCorner": {
+          "X": 128,
+          "Y": 64
+        },
+        "PlacementSound": "woodyStep",
+        "RemovalSound": "axchop",
+        "RemovalDebrisType": 12,
+        "FootstepSound": "thudStep",
+        "ConnectType": 1,
+        "ShadowType": 0,
+        "CornerSize": 4,
+        "FarmSpeedBuff": -1
+      },
+      "7": {
+        "Id": "7",
+        "ItemId": "409",
+        "Texture": "TerrainFeatures\\Flooring",
+        "Corner": {
+          "X": 192,
+          "Y": 64
+        },
+        "WinterTexture": "TerrainFeatures\\Flooring_winter",
+        "WinterCorner": {
+          "X": 192,
+          "Y": 64
+        },
+        "PlacementSound": "stoneStep",
+        "RemovalSound": "hammer",
+        "RemovalDebrisType": 14,
+        "FootstepSound": "stoneStep",
+        "ConnectType": 1,
+        "ShadowType": 0,
+        "CornerSize": 4,
+        "FarmSpeedBuff": -1
+      },
+      "8": {
+        "Id": "8",
+        "ItemId": "411",
+        "Texture": "TerrainFeatures\\Flooring",
+        "Corner": {
+          "X": 0,
+          "Y": 128
+        },
+        "WinterTexture": "TerrainFeatures\\Flooring_winter",
+        "WinterCorner": {
+          "X": 0,
+          "Y": 128
+        },
+        "PlacementSound": "stoneStep",
+        "RemovalSound": "hammer",
+        "RemovalDebrisType": 14,
+        "FootstepSound": "stoneStep",
+        "ConnectType": 1,
+        "ShadowType": 0,
+        "CornerSize": 4,
+        "FarmSpeedBuff": -1
+      },
+      "9": {
+        "Id": "9",
+        "ItemId": "415",
+        "Texture": "TerrainFeatures\\Flooring",
+        "Corner": {
+          "X": 64,
+          "Y": 128
+        },
+        "WinterTexture": "TerrainFeatures\\Flooring_winter",
+        "WinterCorner": {
+          "X": 64,
+          "Y": 128
+        },
+        "PlacementSound": "stoneStep",
+        "RemovalSound": "hammer",
+        "RemovalDebrisType": 14,
+        "FootstepSound": "stoneStep",
+        "ConnectType": 3,
+        "ShadowType": 0,
+        "CornerSize": 4,
+        "FarmSpeedBuff": -1
+      },
+      "10": {
+        "Id": "10",
+        "ItemId": "293",
+        "Texture": "TerrainFeatures\\Flooring",
+        "Corner": {
+          "X": 128,
+          "Y": 128
+        },
+        "WinterTexture": "TerrainFeatures\\Flooring_winter",
+        "WinterCorner": {
+          "X": 128,
+          "Y": 128
+        },
+        "PlacementSound": "thudStep",
+        "RemovalSound": "hammer",
+        "RemovalDebrisType": 14,
+        "FootstepSound": "stoneStep",
+        "ConnectType": 0,
+        "ShadowType": 1,
+        "CornerSize": 4,
+        "FarmSpeedBuff": -1
+      },
+      "11": {
+        "Id": "11",
+        "ItemId": "840",
+        "Texture": "TerrainFeatures\\Flooring",
+        "Corner": {
+          "X": 192,
+          "Y": 128
+        },
+        "WinterTexture": "TerrainFeatures\\Flooring_winter",
+        "WinterCorner": {
+          "X": 192,
+          "Y": 128
+        },
+        "PlacementSound": "axchop",
+        "RemovalSound": null,
+        "RemovalDebrisType": 12,
+        "FootstepSound": "woodyStep",
+        "ConnectType": 1,
+        "ShadowType": 2,
+        "CornerSize": 4,
+        "FarmSpeedBuff": -1
+      },
+      "12": {
+        "Id": "12",
+        "ItemId": "841",
+        "Texture": "TerrainFeatures\\Flooring",
+        "Corner": {
+          "X": 0,
+          "Y": 192
+        },
+        "WinterTexture": "TerrainFeatures\\Flooring_winter",
+        "WinterCorner": {
+          "X": 0,
+          "Y": 192
+        },
+        "PlacementSound": "stoneStep",
+        "RemovalSound": "hammer",
+        "RemovalDebrisType": 14,
+        "FootstepSound": "stoneStep",
+        "ConnectType": 2,
+        "ShadowType": 2,
+        "CornerSize": 6,
+        "FarmSpeedBuff": -1
+      }
+    }
+  }
+}

@@ -49,3 +49,84 @@
 - 锄头 use_tool_at 返回 ok 不代表能播种：plant 返回 FAILED 就说明种子放不下这一格，别在原地反复 select_slot+plant。
 - Farm 南侧 (44,50)、(44,55)、(30,45)、(52,63) 全 NO_PATH，别当导航目标；(44,49)、(48,56) 实际可达。
 - plant 失败后不要死磕同一格（今天在 (9,22)/(9,23) 反复 FAILED），换格或用别的动作验证耕地状态。
+
+## 2026-10-16
+- plant 返回 FAILED 'that tile is nothing / is it tilled soil?' 就是那格没耕成，别在同一格反复 select_slot+plant，换格或先 till_area。
+- 混合种子是能播种的（(10,23)、(73,18)、(64,21) 今天成功），之前'播种不可能'的结论作废，先确认 tile 是 hoe_dirt 再 plant。
+- till_area {x:75,y:18,radius:2} 这类小半径能一次排队 3 格并在 (73,18) 顺利下种，东北片可继续用同样方式扩张。
+- 同一格 go_to 先 ok 后 NO_PATH（(80,17)、(-1,54)、(9,22)）是站位问题，靠近后重试即可，别当永久 NO_PATH。
+
+## 2026-10-16
+- Farm 的 enter 出口列表会变：先看返回的 Known exits 再决定，今天要进城得先 enter BusStop。
+- 遇到 'cutscene/event playing' 就别再 go_to/enter，先连续 dialogue_advance 推完事件。
+- exit_building 出门后立刻再调会被 NOT_FREE 挡住，等一拍或先做别的动作。
+- 出门落点仍是 Farm (64,15)，可用 water_all 一次排队 3 格浇水再走。
+
+## 2026-10-16
+- Farm 的 (44,23) 是可达的（从 (64,15) 34 步），但那一带会触发剧情事件，去之前先规划好抵达后要做什么。
+- 一旦出现 'cutscene/event playing'，别再用 go_to/enter/move，只反复 dialogue_advance，遇到 'no dialogue box open' 就 noop 一拍再继续。
+- enter 'BusStop' 会先走门，返回 ok 后要等落定再操作，立刻再 enter 必被 NOT_FREE 挡。
+- 想进城仍走 Farm -> enter BusStop，直接从 Farm enter 'Town' 永远 FAILED。
+
+## 2026-10-16
+- 连续 dialogue_advance 都返回 'no dialogue box open' 时，说明是无对话框演出，别再刷 dialogue_advance/interact，改成 noop 或 pause_time 等待。
+- 今天被事件锁死、零农活进展：这种无对话事件推不动时别硬刷步数，记录状态等下一个 game day。
+- pause_time 在事件期间可用（返回 ok），可用来控制时间，但无法解除 go_to/interact 的 NOT_FREE。
+- 事件结束前 go_to 目标格（如 (3,12)）根本测不出可达性，别把这种 NOT_FREE 记成 NO_PATH。
+
+## 2026-10-16
+- 无对话事件里 menu_click 'Skip' 也是 NO_MENU，别浪费时间找跳过按钮，直接 noop 等事件结束。
+- 事件锁定期只发 noop（或 pause_time 控时间），反复 dialogue_advance/interact 只会刷出 FAILED/NOT_FREE。
+- 无对话事件可能连续好几天锁死（spring-06→spring-07），这两天什么都测不出来，诚实记录'被事件锁住、零进展'即可。
+- 被事件锁死当天结束时不要下任何地形可达性结论（NO_PATH 可能是事件造成的假象），等能自由行动时再验证。
+
+## 2026-10-16
+- 无对话事件已连续锁死 spring-06→08 三天，别指望隔天自动解除，但也别靠刷步数耗掉一整天，记录状态即可。
+- 事件期只发 noop（必要时 pause_time），dialogue_advance/interact/move/go_to 全是 FAILED 或 NOT_FREE，纯浪费步数。
+- 被锁当天不要下任何地形可达性结论，NO_PATH/NOT_FREE 都可能是事件造成的假象。
+- 连续多天开局即被事件锁住时，把'事件未解、零进展'当成当天唯一可信结果上报。
+
+## 2026-10-16
+- 无对话事件已从 spring-06 连续锁到 spring-09 共四天，别指望隔天自动解除；当天只发少量 noop 并如实记录'零进展'，不要刷满步数。
+- 这次事件内容是社区中心剧情，台词不弹对话框，继续刷 dialogue_advance 只会得到 FAILED，先 noop 等待。
+- 被事件锁住的当天不要下任何地形可达性结论（没测过 NO_PATH，也没法验证出路），一切等能自由行动时再测。
+- 事件期间唯一稳的动作是 noop（必要时 pause_time），go_to/enter/interact/move/dialogue_advance 全是 FAILED 或 NOT_FREE，纯浪费步数。
+
+## 2026-10-16
+- 无对话事件已连续锁死 spring-06→spring-10 共五天，别指望隔天自动解除：当天只发少量 noop（必要时 pause_time）并如实上报零进展，不要刷满步数。
+- 事件期间 interact_at/go_to 的 NOT_FREE 不是地形或可交互性的证据，(9,9)、(3,12) 这类结论必须等能自由行动后再重测。
+
+## 2026-10-16
+- 事件锁定期当天只发少量 noop（必要时 pause_time），go_to/enter/interact/move/dialogue_advance 全是 FAILED 或 NOT_FREE，纯浪费步数。
+- 同一无对话框事件已连续锁死 spring-06→11，别指望隔天自动解除，也别刷满步数，如实上报'零进展'即可。
+- 社区中心剧情台词不弹对话框，遇到它时别再刷 dialogue_advance，直接 noop 等事件结束。
+- 被锁当天不要下任何地形或可交互性结论，(3,12) 这类 NOT_FREE 不是 NO_PATH，等能自由行动时再重测。
+
+## 2026-10-16
+- 事件一解除就优先重测被锁期间悬空的东西（Farm 出口名、可达格），别沿用上锁日期的旧结论。
+- enter 的目标名要以返回里的 'Known exits' 列表为准：这版 Farm 没有 BusStop，进城请用 Town。
+- water_all 只在附近确实有需要浇水的格子时才 ok，先 go_to 到耕地旁再按喷壶（槽 2）。
+- Farm 里 (64,20) 这类 NO_PATH 是真实阻挡（当天无事件），排路线时要绕开。
+
+## 2026-10-16
+- 出门后先 go_to (64,18) 再 water_all；在落点 (64,15) 直接 water_all 只会返回 FAILED 'nothing to do'。
+- Farm 的 enter 目标名以返回的 Known exits 为准（Desert/Town/Farm/Backwoods），没有 BusStop。
+- 出现 NOT_FREE 'player not free' 时先 noop 等事件，别连续 enter/go_to 刷步数。
+- (9,21) 从 (43,23) 直接 go_to 是 NO_PATH，要先 enter 'Farm' 再走过去。
+
+## 2026-10-16
+- 先 clear_area 清障，再对同一坐标执行 till_area，能在一次调用里排到更多耕地（(69,25) r3 从 10 格变成 22 格）。
+- 刚 exit_building 出门后的第一次 go_to 可能报 NOT_FREE 'farmer cannot move right now'，先 noop 一次再重发同一 go_to，别当成路被挡。
+- 出门后仍按老路线 go_to (64,18) 再 water_all，8 天后依然有效（3 格排队）。
+
+## 2026-10-16
+- 播种流程走通：select_slot 5（混合种子）+ plant_all 一次排了 37 格，别再试 use_tool_at/interact_at 播种。
+- 出门后第一次 go_to 报 NOT_FREE 'farmer cannot move right now' 时，noop 一次再重发同一 go_to 即可（今晨再次验证）。
+- 出门后固定 catch：go_to (64,18) → select_slot 2 → water_all（3 格），这条流水线 14 天仍有效。
+- 清障→耕地→播种按 clear_area → till_area → plant_all 顺序发，同一天内可把清出的地块直接耕完种上。
+
+## 2026-10-16
+- 出门后固定流水线仍是 go_to (64,18) → select_slot 2 → water_all，第 15 天依然有效；播种次日浇水格数会从 3 格暴涨到 38 格，别以为还是小活。
+- 第一次 go_to 报 NOT_FREE 'farmer cannot move right now' 时照旧 noop 一次再重发同一 go_to，别误判成路被挡。
+- water_all 一次排队后角色会自己走完全部格子，当天不要再重复下单或逐格手动浇。
+- 播种后的第二天优先留出浇水时间（38 格），清障/耕地/播种这类活儿留到浇完再排。

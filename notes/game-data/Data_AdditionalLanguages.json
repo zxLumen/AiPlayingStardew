@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/AdditionalLanguages (list of ModLanguage): 0 of 0 items",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/AdditionalLanguages",
+    "entry_type": "list of ModLanguage",
+    "count_total": 0,
+    "count_returned": 0,
+    "entries": []
+  }
+}

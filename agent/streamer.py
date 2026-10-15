@@ -22,6 +22,20 @@ class StreamerAI:
         """Hand over the plan for today (from the planner AI)."""
         self.plan = plan or {}
 
+    def extract_actions(self, decision: dict) -> list[dict]:
+        """The queue of actions the model asked for.
+
+        A reply is meant to be a short queue, but a model that answers with a single flat action is
+        still understood - the harness should not lose a whole turn over a shape difference.
+        """
+        queued = decision.get("actions")
+        if isinstance(queued, list):
+            items = [item for item in queued if isinstance(item, dict) and item.get("action")]
+            if items:
+                return items
+
+        return [decision]
+
     def _plan_block(self) -> str:
         goals = self.plan.get("plan") or []
         if not goals:

@@ -105,6 +105,20 @@ def compact_state(state: dict) -> dict:
                 for w in warps[:10]
             ]
 
+        # Where the work actually is, across this whole location. Without it the planner guesses
+        # coordinates and ends up hoeing a path.
+        work = location.get("work") or {}
+        if work:
+            compact["location"]["work"] = {
+                k: work.get(k) for k in
+                ("tillable", "empty_soil", "debris", "thirsty_crops", "ready_crops")
+                if work.get(k)
+            }
+            if work.get("tillable_samples"):
+                compact["location"]["work"]["tillable_at"] = work["tillable_samples"]
+            if work.get("empty_soil_samples"):
+                compact["location"]["work"]["empty_soil_at"] = work["empty_soil_samples"]
+
     crops = [
         {"tile": [c.get("tile_x"), c.get("tile_y")], "name": c.get("name"),
          "ready": c.get("is_ready"), "watered": c.get("is_watered")}

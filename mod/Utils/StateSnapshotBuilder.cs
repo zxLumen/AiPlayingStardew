@@ -293,6 +293,33 @@ public static class StateSnapshotBuilder
         try { info.Warps = WorldMapper.BuildWarps(loc); }
         catch { info.Warps = new List<WarpInfo>(); }
 
+        // Work available anywhere in this location, so planning does not have to guess coordinates.
+        try
+        {
+            int cx = info.TileX;
+            int cy = info.TileY;
+            const int wholeMap = 200;   // the collectors clamp to the map bounds
+
+            List<Vector2> tillable = ChoreController.CollectTillable(loc, cx, cy, wholeMap);
+            List<Vector2> soil = ChoreController.CollectEmptySoil(loc, cx, cy, wholeMap);
+
+            info.Work = new WorkSummaryInfo
+            {
+                Tillable = tillable.Count,
+                EmptySoil = soil.Count,
+                Debris = ChoreController.CollectDebris(loc, cx, cy, wholeMap).Count,
+                ThirstyCrops = ChoreController.CollectThirstyCrops(loc, cx, cy, wholeMap).Count,
+                ReadyCrops = ChoreController.CollectReadyCrops(loc, cx, cy, wholeMap).Count,
+                TillableSamples = tillable
+                    .OrderBy(t => Math.Abs((int)t.X - cx) + Math.Abs((int)t.Y - cy))
+                    .Take(3).Select(t => new[] { (int)t.X, (int)t.Y }).ToList(),
+                EmptySoilSamples = soil
+                    .OrderBy(t => Math.Abs((int)t.X - cx) + Math.Abs((int)t.Y - cy))
+                    .Take(3).Select(t => new[] { (int)t.X, (int)t.Y }).ToList(),
+            };
+        }
+        catch { }
+
         return info;
     }
 

@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/AdditionalFarms (list of ModFarmType): 1 of 1 items",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/AdditionalFarms",
+    "entry_type": "list of ModFarmType",
+    "count_total": 1,
+    "count_returned": 1,
+    "entries": [
+      {
+        "Id": "MeadowlandsFarm",
+        "TooltipStringPath": "Strings/1_6_Strings:Farm_Ranching_Description",
+        "MapName": "Farm_Ranching",
+        "IconTexture": "LooseSprites/farm_ranching_icon",
+        "WorldMapTexture": "LooseSprites/Farm_ranching_map",
+        "SpawnMonstersByDefault": false,
+        "ModData": null,
+        "CustomFields": null
+      }
+    ]
+  }
+}

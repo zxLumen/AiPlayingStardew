@@ -1,0 +1,78 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/Minecarts (MinecartNetworkData): 1 of 1 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/Minecarts",
+    "entry_type": "table of MinecartNetworkData",
+    "count_total": 1,
+    "count_returned": 1,
+    "entries": {
+      "Default": {
+        "UnlockCondition": "PLAYER_HAS_MAIL Host ccBoilerRoom Received",
+        "LockedMessage": null,
+        "ChooseDestinationMessage": null,
+        "BuyTicketMessage": null,
+        "Destinations": [
+          {
+            "Id": "Mines",
+            "DisplayName": "矿井",
+            "Condition": "PLAYER_HAS_MAIL Any landslideDone",
+            "Price": 0,
+            "BuyTicketMessage": null,
+            "TargetLocation": "Mine",
+            "TargetTile": {
+              "X": 13,
+              "Y": 9
+            },
+            "TargetDirection": "right",
+            "CustomFields": null
+          },
+          {
+            "Id": "Town",
+            "DisplayName": "城镇",
+            "Condition": null,
+            "Price": 0,
+            "BuyTicketMessage": null,
+            "TargetLocation": "Town",
+            "TargetTile": {
+              "X": 105,
+              "Y": 80
+            },
+            "TargetDirection": "right",
+            "CustomFields": null
+          },
+          {
+            "Id": "Bus",
+            "DisplayName": "巴士站",
+            "Condition": null,
+            "Price": 0,
+            "BuyTicketMessage": null,
+            "TargetLocation": "BusStop",
+            "TargetTile": {
+              "X": 14,
+              "Y": 4
+            },
+            "TargetDirection": null,
+            "CustomFields": null
+          },
+          {
+            "Id": "Quarry",
+            "DisplayName": "采石场",
+            "Condition": "PLAYER_HAS_MAIL Host ccCraftsRoom Received",
+            "Price": 0,
+            "BuyTicketMessage": null,
+            "TargetLocation": "Mountain",
+            "TargetTile": {
+              "X": 124,
+              "Y": 12
+            },
+            "TargetDirection": null,
+            "CustomFields": null
+          }
+        ]
+      }
+    }
+  }
+}

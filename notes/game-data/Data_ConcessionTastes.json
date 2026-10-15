@@ -1,0 +1,517 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/ConcessionTastes (list of ConcessionTaste): 34 of 34 items",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/ConcessionTastes",
+    "entry_type": "list of ConcessionTaste",
+    "count_total": 34,
+    "count_returned": 34,
+    "entries": [
+      {
+        "Id": "Penny",
+        "Name": "Penny",
+        "LovedTags": [
+          "Cotton Candy"
+        ],
+        "LikedTags": [
+          "Sweet"
+        ],
+        "DislikedTags": [
+          "Sour"
+        ]
+      },
+      {
+        "Id": "Pam",
+        "Name": "Pam",
+        "LovedTags": [
+          "Nachos"
+        ],
+        "LikedTags": [
+          "Salty",
+          "Fatty",
+          "Joja"
+        ],
+        "DislikedTags": [
+          "Healthy",
+          "Gourmet"
+        ]
+      },
+      {
+        "Id": "George",
+        "Name": "George",
+        "LovedTags": [
+          "Black Licorice"
+        ],
+        "LikedTags": [
+          "Salty"
+        ],
+        "DislikedTags": [
+          "Sweet",
+          "Healthy"
+        ]
+      },
+      {
+        "Id": "Alex",
+        "Name": "Alex",
+        "LovedTags": [
+          "Salmon Burger"
+        ],
+        "LikedTags": [
+          "Salty",
+          "Hot"
+        ],
+        "DislikedTags": [
+          "Candy"
+        ]
+      },
+      {
+        "Id": "Evelyn",
+        "Name": "Evelyn",
+        "LovedTags": [
+          "Cappuccino Mousse Cake",
+          "Star Cookie"
+        ],
+        "LikedTags": [
+          "Sweet"
+        ],
+        "DislikedTags": [
+          "Salty",
+          "Hot"
+        ]
+      },
+      {
+        "Id": "Pierre",
+        "Name": "Pierre",
+        "LovedTags": [
+          "Personal Pizza"
+        ],
+        "LikedTags": [
+          "Hot"
+        ],
+        "DislikedTags": [
+          "Joja"
+        ]
+      },
+      {
+        "Id": "Abigail",
+        "Name": "Abigail",
+        "LovedTags": [
+          "Rock Candy"
+        ],
+        "LikedTags": [
+          "Candy",
+          "Sweet"
+        ],
+        "DislikedTags": [
+          "Healthy"
+        ]
+      },
+      {
+        "Id": "Caroline",
+        "Name": "Caroline",
+        "LovedTags": [
+          "Truffle Popcorn",
+          "Jasmine Tea"
+        ],
+        "LikedTags": [
+          "Healthy"
+        ],
+        "DislikedTags": [
+          "Fatty",
+          "Candy"
+        ]
+      },
+      {
+        "Id": "Harvey",
+        "Name": "Harvey",
+        "LovedTags": [
+          "Apple Slices",
+          "Jasmine Tea"
+        ],
+        "LikedTags": [
+          "Healthy",
+          "Gourmet"
+        ],
+        "DislikedTags": [
+          "Sweet",
+          "Fatty",
+          "Salty"
+        ]
+      },
+      {
+        "Id": "Gus",
+        "Name": "Gus",
+        "LovedTags": [
+          "Gourmet"
+        ],
+        "LikedTags": [
+          "Sandwich"
+        ],
+        "DislikedTags": [
+          "Healthy",
+          "Candy"
+        ]
+      },
+      {
+        "Id": "Lewis",
+        "Name": "Lewis",
+        "LovedTags": [
+          "Jasmine Tea"
+        ],
+        "LikedTags": [
+          "Sweet",
+          "Popcorn"
+        ],
+        "DislikedTags": [
+          "Candy"
+        ]
+      },
+      {
+        "Id": "Jodi",
+        "Name": "Jodi",
+        "LovedTags": [
+          "Chocolate Popcorn"
+        ],
+        "LikedTags": [
+          "Fatty",
+          "Hot",
+          "Salty"
+        ],
+        "DislikedTags": [
+          "Candy",
+          "Truffle Popcorn",
+          "Healthy"
+        ]
+      },
+      {
+        "Id": "Sam",
+        "Name": "Sam",
+        "LovedTags": [
+          "Personal Pizza"
+        ],
+        "LikedTags": [
+          "Joja Cola",
+          "Candy"
+        ],
+        "DislikedTags": [
+          "Healthy",
+          "Gourmet"
+        ]
+      },
+      {
+        "Id": "Vincent",
+        "Name": "Vincent",
+        "LovedTags": [
+          "Jawbreaker"
+        ],
+        "LikedTags": [
+          "Sweet",
+          "Candy"
+        ],
+        "DislikedTags": [
+          "Healthy",
+          "Gourmet"
+        ]
+      },
+      {
+        "Id": "Kent",
+        "Name": "Kent",
+        "LovedTags": [
+          "Popcorn"
+        ],
+        "LikedTags": [
+          "Salty"
+        ],
+        "DislikedTags": [
+          "Candy"
+        ]
+      },
+      {
+        "Id": "Clint",
+        "Name": "Clint",
+        "LovedTags": [
+          "Fries"
+        ],
+        "LikedTags": [
+          "Fatty"
+        ],
+        "DislikedTags": [
+          "Healthy"
+        ]
+      },
+      {
+        "Id": "Emily",
+        "Name": "Emily",
+        "LovedTags": [
+          "Kale Smoothie"
+        ],
+        "LikedTags": [
+          "Healthy",
+          "Gourmet"
+        ],
+        "DislikedTags": [
+          "Fatty",
+          "Salty"
+        ]
+      },
+      {
+        "Id": "Haley",
+        "Name": "Haley",
+        "LovedTags": [
+          "Cappuccino Mousse Cake"
+        ],
+        "LikedTags": [
+          "Sweet"
+        ],
+        "DislikedTags": [
+          "Fatty",
+          "Salty"
+        ]
+      },
+      {
+        "Id": "Maru",
+        "Name": "Maru",
+        "LovedTags": [
+          "Star Cookie"
+        ],
+        "LikedTags": [
+          "Fatty",
+          "Sweet"
+        ],
+        "DislikedTags": [
+          "Cold"
+        ]
+      },
+      {
+        "Id": "Sebastian",
+        "Name": "Sebastian",
+        "LovedTags": [
+          "Jasmine Tea"
+        ],
+        "LikedTags": [
+          "Apple Slices",
+          "Salty",
+          "Hot"
+        ],
+        "DislikedTags": [
+          "Gourmet",
+          "Kale Smoothie"
+        ]
+      },
+      {
+        "Id": "Robin",
+        "Name": "Robin",
+        "LovedTags": [
+          "Salted Peanuts"
+        ],
+        "LikedTags": [
+          "Salty",
+          "Fatty"
+        ],
+        "DislikedTags": [
+          "Candy"
+        ]
+      },
+      {
+        "Id": "Demetrius",
+        "Name": "Demetrius",
+        "LovedTags": [
+          "Popcorn"
+        ],
+        "LikedTags": [
+          "Sweet"
+        ],
+        "DislikedTags": [
+          "Healthy"
+        ]
+      },
+      {
+        "Id": "Linus",
+        "Name": "Linus",
+        "LovedTags": [
+          "Salmon Burger"
+        ],
+        "LikedTags": [
+          "Healthy",
+          "Gourmet"
+        ],
+        "DislikedTags": [
+          "Joja"
+        ]
+      },
+      {
+        "Id": "Dwarf",
+        "Name": "Dwarf",
+        "LovedTags": [
+          "Rock Candy"
+        ],
+        "LikedTags": [
+          "Candy"
+        ],
+        "DislikedTags": [
+          "Hot",
+          "Healthy",
+          "Gourmet",
+          "Salty",
+          "Fatty"
+        ]
+      },
+      {
+        "Id": "Krobus",
+        "Name": "Krobus",
+        "LovedTags": [
+          "Black Licorice"
+        ],
+        "LikedTags": [],
+        "DislikedTags": [
+          "Sweet",
+          "Stardrop Sorbet"
+        ]
+      },
+      {
+        "Id": "Wizard",
+        "Name": "Wizard",
+        "LovedTags": [
+          "Black Licorice",
+          "Star Cookie"
+        ],
+        "LikedTags": [
+          "Jasmine Tea",
+          "Candy"
+        ],
+        "DislikedTags": [
+          "Hot",
+          "Healthy",
+          "Gourmet",
+          "Salty",
+          "Fatty"
+        ]
+      },
+      {
+        "Id": "Marnie",
+        "Name": "Marnie",
+        "LovedTags": [
+          "Ice Cream Sandwich"
+        ],
+        "LikedTags": [
+          "Sweet",
+          "Popcorn"
+        ],
+        "DislikedTags": [
+          "Salty"
+        ]
+      },
+      {
+        "Id": "Shane",
+        "Name": "Shane",
+        "LovedTags": [
+          "Personal Pizza",
+          "Nachos",
+          "Joja",
+          "Hummus Snack Pack"
+        ],
+        "LikedTags": [
+          "Fatty"
+        ],
+        "DislikedTags": [
+          "Gourmet",
+          "Apple Slices",
+          "Kale Smoothie"
+        ]
+      },
+      {
+        "Id": "Jas",
+        "Name": "Jas",
+        "LovedTags": [
+          "Sour Slimes"
+        ],
+        "LikedTags": [
+          "Sweet",
+          "Candy"
+        ],
+        "DislikedTags": [
+          "Healthy",
+          "Gourmet",
+          "Salty"
+        ]
+      },
+      {
+        "Id": "Leah",
+        "Name": "Leah",
+        "LovedTags": [
+          "Panzanella Salad"
+        ],
+        "LikedTags": [
+          "Healthy",
+          "Gourmet"
+        ],
+        "DislikedTags": [
+          "Fatty",
+          "Salty"
+        ]
+      },
+      {
+        "Id": "Sandy",
+        "Name": "Sandy",
+        "LovedTags": [
+          "Cotton Candy"
+        ],
+        "LikedTags": [
+          "Gourmet",
+          "Sweet"
+        ],
+        "DislikedTags": [
+          "Candy"
+        ]
+      },
+      {
+        "Id": "Elliott",
+        "Name": "Elliott",
+        "LovedTags": [
+          "Truffle Popcorn",
+          "Cappuccino Mousse Cake"
+        ],
+        "LikedTags": [
+          "Gourmet",
+          "Healthy"
+        ],
+        "DislikedTags": [
+          "Candy",
+          "Fatty",
+          "Salty"
+        ]
+      },
+      {
+        "Id": "Willy",
+        "Name": "Willy",
+        "LovedTags": [
+          "Salmon Burger"
+        ],
+        "LikedTags": [
+          "Hot",
+          "Fatty",
+          "Salty"
+        ],
+        "DislikedTags": [
+          "Candy",
+          "Healthy",
+          "Gourmet"
+        ]
+      },
+      {
+        "Id": "*",
+        "Name": "*",
+        "LovedTags": [
+          "Stardrop Sorbet"
+        ],
+        "LikedTags": [],
+        "DislikedTags": [
+          "Black Licorice",
+          "Joja"
+        ]
+      }
+    ]
+  }
+}

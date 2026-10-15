@@ -1,0 +1,26 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/AdditionalWallpaperFlooring (list of ModWallpaperOrFlooring): 2 of 2 items",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/AdditionalWallpaperFlooring",
+    "entry_type": "list of ModWallpaperOrFlooring",
+    "count_total": 2,
+    "count_returned": 2,
+    "entries": [
+      {
+        "Id": "MoreWalls",
+        "Texture": "Maps/wallpapers_2",
+        "IsFlooring": false,
+        "Count": 26
+      },
+      {
+        "Id": "MoreFloors",
+        "Texture": "Maps/floors_2",
+        "IsFlooring": true,
+        "Count": 9
+      }
+    ]
+  }
+}

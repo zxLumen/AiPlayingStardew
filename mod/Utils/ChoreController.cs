@@ -350,15 +350,27 @@ public static class ChoreController
         if (layer == null)
             return list;
 
-        for (int x = cx - radius; x <= cx + radius; x++)
+        // Tilled tiles, gathered once rather than looked up per candidate - a whole-map scan is
+        // thousands of tiles and FindFeature walks every terrain feature.
+        var tilled = new HashSet<Vector2>();
+        foreach ((Vector2 tile, TerrainFeature feature) in TerrainFeatures(location))
         {
-            for (int y = cy - radius; y <= cy + radius; y++)
+            if (feature is HoeDirt)
+                tilled.Add(tile);
+        }
+
+        int minX = Math.Max(0, cx - radius);
+        int maxX = Math.Min(layer.LayerWidth - 1, cx + radius);
+        int minY = Math.Max(0, cy - radius);
+        int maxY = Math.Min(layer.LayerHeight - 1, cy + radius);
+
+        for (int x = minX; x <= maxX; x++)
+        {
+            for (int y = minY; y <= maxY; y++)
             {
-                if (x < 0 || y < 0 || x >= layer.LayerWidth || y >= layer.LayerHeight)
+                if (tilled.Contains(new Vector2(x, y)))     // already tilled
                     continue;
-                if (FindFeature(location, x, y) is HoeDirt)     // already tilled
-                    continue;
-                if (HasDebris(location, x, y))                  // clear it first
+                if (HasDebris(location, x, y))              // clear it first
                     continue;
 
                 try

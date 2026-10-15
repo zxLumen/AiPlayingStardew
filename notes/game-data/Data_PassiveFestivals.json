@@ -1,0 +1,78 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/PassiveFestivals (PassiveFestivalData): 4 of 4 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/PassiveFestivals",
+    "entry_type": "table of PassiveFestivalData",
+    "count_total": 4,
+    "count_returned": 4,
+    "entries": {
+      "NightMarket": {
+        "DisplayName": "夜市",
+        "Condition": "",
+        "ShowOnCalendar": true,
+        "Season": 3,
+        "StartDay": 15,
+        "EndDay": 17,
+        "StartTime": 1700,
+        "StartMessage": "夜市正在进行。",
+        "OnlyShowMessageOnFirstDay": false,
+        "MapReplacements": {
+          "Beach": "BeachNightMarket"
+        },
+        "DailySetupMethod": null,
+        "CleanupMethod": null,
+        "CustomFields": null
+      },
+      "DesertFestival": {
+        "DisplayName": "沙漠节",
+        "Condition": "LOCATION_ACCESSIBLE Desert",
+        "ShowOnCalendar": true,
+        "Season": 0,
+        "StartDay": 15,
+        "EndDay": 17,
+        "StartTime": 1000,
+        "StartMessage": "沙漠节现已开始！",
+        "OnlyShowMessageOnFirstDay": false,
+        "MapReplacements": {
+          "Desert": "DesertFestival"
+        },
+        "DailySetupMethod": "StardewValley.Locations.DesertFestival, Stardew Valley: SetupFestivalDay",
+        "CleanupMethod": "StardewValley.Locations.DesertFestival, Stardew Valley: CleanupFestival",
+        "CustomFields": null
+      },
+      "TroutDerby": {
+        "DisplayName": "",
+        "Condition": "",
+        "ShowOnCalendar": false,
+        "Season": 1,
+        "StartDay": 20,
+        "EndDay": 21,
+        "StartTime": 610,
+        "StartMessage": "一年一度的鳟鱼大赛开始了。",
+        "OnlyShowMessageOnFirstDay": true,
+        "MapReplacements": null,
+        "DailySetupMethod": null,
+        "CleanupMethod": null,
+        "CustomFields": null
+      },
+      "SquidFest": {
+        "DisplayName": "",
+        "Condition": "",
+        "ShowOnCalendar": false,
+        "Season": 3,
+        "StartDay": 12,
+        "EndDay": 13,
+        "StartTime": 610,
+        "StartMessage": "鱿鱼节开始了。",
+        "OnlyShowMessageOnFirstDay": true,
+        "MapReplacements": null,
+        "DailySetupMethod": null,
+        "CleanupMethod": null,
+        "CustomFields": null
+      }
+    }
+  }
+}

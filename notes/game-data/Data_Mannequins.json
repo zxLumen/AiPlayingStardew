@@ -1,0 +1,54 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/Mannequins (MannequinData): 4 of 4 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/Mannequins",
+    "entry_type": "table of MannequinData",
+    "count_total": 4,
+    "count_returned": 4,
+    "entries": {
+      "MannequinMale": {
+        "DisplayName": "假人模特（男）",
+        "Description": "可以随意打扮它。",
+        "Texture": "TileSheets\\Mannequins",
+        "FarmerTexture": "Characters/Farmer/farmer_base_mannequin",
+        "SheetIndex": 0,
+        "DisplaysClothingAsMale": true,
+        "Cursed": false,
+        "CustomFields": null
+      },
+      "MannequinFemale": {
+        "DisplayName": "假人模特（女）",
+        "Description": "可以随意打扮它。",
+        "Texture": "TileSheets\\Mannequins",
+        "FarmerTexture": "Characters/Farmer/farmer_girl_mannequin",
+        "SheetIndex": 4,
+        "DisplaysClothingAsMale": false,
+        "Cursed": false,
+        "CustomFields": null
+      },
+      "CursedMannequinMale": {
+        "DisplayName": "被诅咒的假人模特（男）",
+        "Description": "可以随意打扮它。记得祈祷它不会在你睡觉的时候活过来……",
+        "Texture": "TileSheets\\Mannequins",
+        "FarmerTexture": "Characters/Farmer/farmer_base_mannequin_cursed",
+        "SheetIndex": 8,
+        "DisplaysClothingAsMale": true,
+        "Cursed": true,
+        "CustomFields": null
+      },
+      "CursedMannequinFemale": {
+        "DisplayName": "被诅咒的假人模特（女）",
+        "Description": "可以随意打扮它。记得祈祷它不会在你睡觉的时候活过来……",
+        "Texture": "TileSheets\\Mannequins",
+        "FarmerTexture": "Characters/Farmer/farmer_girl_mannequin_cursed",
+        "SheetIndex": 12,
+        "DisplaysClothingAsMale": false,
+        "Cursed": true,
+        "CustomFields": null
+      }
+    }
+  }
+}

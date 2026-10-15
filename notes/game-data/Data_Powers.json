@@ -1,0 +1,410 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/Powers (PowersData): 36 of 36 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/Powers",
+    "entry_type": "table of PowersData",
+    "count_total": 36,
+    "count_returned": 36,
+    "entries": {
+      "ForestMagic": {
+        "DisplayName": "森林魔法",
+        "Description": "你拥有森林的魔法……",
+        "TexturePath": "LooseSprites\\Cursors_1_6",
+        "TexturePosition": {
+          "X": 16,
+          "Y": 340
+        },
+        "UnlockedCondition": "PLAYER_HAS_MAIL Current canReadJunimoText",
+        "CustomFields": null
+      },
+      "DwarvishTranslationGuide": {
+        "DisplayName": "矮人语教程",
+        "Description": "教你矮人语。",
+        "TexturePath": "Maps\\springobjects",
+        "TexturePosition": {
+          "X": 224,
+          "Y": 208
+        },
+        "UnlockedCondition": "PLAYER_HAS_MAIL Host HasDwarvishTranslationGuide",
+        "CustomFields": null
+      },
+      "RustyKey": {
+        "DisplayName": "生锈的钥匙",
+        "Description": "",
+        "TexturePath": "LooseSprites\\Cursors",
+        "TexturePosition": {
+          "X": 144,
+          "Y": 320
+        },
+        "UnlockedCondition": "PLAYER_HAS_MAIL Host HasRustyKey",
+        "CustomFields": null
+      },
+      "ClubCard": {
+        "DisplayName": "会员卡",
+        "Description": "",
+        "TexturePath": "LooseSprites\\Cursors",
+        "TexturePosition": {
+          "X": 160,
+          "Y": 320
+        },
+        "UnlockedCondition": "PLAYER_HAS_MAIL Current HasClubCard",
+        "CustomFields": null
+      },
+      "SpecialCharm": {
+        "DisplayName": "特殊的魅力",
+        "Description": "",
+        "TexturePath": "LooseSprites\\Cursors",
+        "TexturePosition": {
+          "X": 176,
+          "Y": 320
+        },
+        "UnlockedCondition": "PLAYER_HAS_MAIL Current HasSpecialCharm",
+        "CustomFields": null
+      },
+      "SkullKey": {
+        "DisplayName": "头骨钥匙",
+        "Description": "",
+        "TexturePath": "LooseSprites\\Cursors",
+        "TexturePosition": {
+          "X": 192,
+          "Y": 320
+        },
+        "UnlockedCondition": "PLAYER_HAS_MAIL Host HasSkullKey",
+        "CustomFields": null
+      },
+      "MagnifyingGlass": {
+        "DisplayName": "放大镜",
+        "Description": "",
+        "TexturePath": "LooseSprites\\Cursors",
+        "TexturePosition": {
+          "X": 208,
+          "Y": 320
+        },
+        "UnlockedCondition": "PLAYER_HAS_MAIL Current HasMagnifyingGlass",
+        "CustomFields": null
+      },
+      "DarkTalisman": {
+        "DisplayName": "黑暗护身符",
+        "Description": "",
+        "TexturePath": "LooseSprites\\Cursors",
+        "TexturePosition": {
+          "X": 224,
+          "Y": 320
+        },
+        "UnlockedCondition": "PLAYER_HAS_MAIL Current HasDarkTalisman",
+        "CustomFields": null
+      },
+      "MagicInk": {
+        "DisplayName": "魔法墨水",
+        "Description": "",
+        "TexturePath": "LooseSprites\\Cursors",
+        "TexturePosition": {
+          "X": 240,
+          "Y": 320
+        },
+        "UnlockedCondition": "PLAYER_HAS_MAIL Current HasMagicInk",
+        "CustomFields": null
+      },
+      "BearPaw": {
+        "DisplayName": "熊的知识",
+        "Description": "黑莓和美洲大树莓的售价提高到了原先的 3 倍。",
+        "TexturePath": "LooseSprites\\Cursors",
+        "TexturePosition": {
+          "X": 192,
+          "Y": 336
+        },
+        "UnlockedCondition": "PLAYER_HAS_SEEN_EVENT Current 2120303",
+        "CustomFields": null
+      },
+      "SpringOnionMastery": {
+        "DisplayName": "青葱技术",
+        "Description": "带叶洋葱的售价提高到了原先的 5 倍。",
+        "TexturePath": "LooseSprites\\Cursors",
+        "TexturePosition": {
+          "X": 208,
+          "Y": 336
+        },
+        "UnlockedCondition": "PLAYER_HAS_SEEN_EVENT Current 3910979",
+        "CustomFields": null
+      },
+      "KeyToTheTown": {
+        "DisplayName": "小镇钥匙",
+        "Description": "用它可以随时进入镇上的所有建筑。",
+        "TexturePath": "Maps\\springobjects",
+        "TexturePosition": {
+          "X": 0,
+          "Y": 608
+        },
+        "UnlockedCondition": "PLAYER_HAS_MAIL Current HasTownKey",
+        "CustomFields": null
+      },
+      "Book_PriceCatalogue": {
+        "DisplayName": "价格目录",
+        "Description": "你可以看到物品的价值了。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 32,
+          "Y": 224
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_PriceCatalogue 1",
+        "CustomFields": null
+      },
+      "Book_Marlon": {
+        "DisplayName": "洞穴地图绘制法",
+        "Description": "马龙取回物品时费用给你打五折。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 0,
+          "Y": 224
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Marlon 1",
+        "CustomFields": null
+      },
+      "Book_Speed": {
+        "DisplayName": "风之道 第一部分",
+        "Description": "你的跑步速度变快了一点。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 112,
+          "Y": 208
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Speed 1",
+        "CustomFields": null
+      },
+      "Book_Speed2": {
+        "DisplayName": "风之道 第二部分",
+        "Description": "你的跑步速度变快了一点。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 112,
+          "Y": 224
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Speed2 1",
+        "CustomFields": null
+      },
+      "Book_Void": {
+        "DisplayName": "怪物图鉴",
+        "Description": "怪物有小概率掉落双倍战利品。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 96,
+          "Y": 208
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Void 1",
+        "CustomFields": null
+      },
+      "Book_Friendship": {
+        "DisplayName": "交友导论",
+        "Description": "你与人增进友谊的速度变快了一点。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 80,
+          "Y": 208
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Friendship 1",
+        "CustomFields": null
+      },
+      "Book_Defense": {
+        "DisplayName": "铜墙铁壁",
+        "Description": "获得 +1 防御。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 64,
+          "Y": 208
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Defense 1",
+        "CustomFields": null
+      },
+      "Book_Woodcutting": {
+        "DisplayName": "伐木秘事",
+        "Description": "砍倒的树有 5% 的几率掉落双倍木头。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 48,
+          "Y": 208
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Woodcutting 1",
+        "CustomFields": null
+      },
+      "Book_WildSeeds": {
+        "DisplayName": "浣熊日记",
+        "Description": "杂草有更大的几率掉落混合种子。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 32,
+          "Y": 208
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_WildSeeds 1",
+        "CustomFields": null
+      },
+      "Book_Roe": {
+        "DisplayName": "海之宝石",
+        "Description": "钓鱼宝箱有几率开出鱼籽。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 16,
+          "Y": 208
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Roe 1",
+        "CustomFields": null
+      },
+      "Book_Bombs": {
+        "DisplayName": "矮人安全手册",
+        "Description": "炸弹对你造成的伤害减少 25%。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 0,
+          "Y": 208
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Bombs 1",
+        "CustomFields": null
+      },
+      "Book_Crabbing": {
+        "DisplayName": "捕蟹秘籍",
+        "Description": "蟹笼有 25% 的几率产出双倍。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 112,
+          "Y": 192
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Crabbing 1",
+        "CustomFields": null
+      },
+      "Book_Trash": {
+        "DisplayName": "小巷自助餐",
+        "Description": "在垃圾桶里找到物品的几率更高。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 96,
+          "Y": 192
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Trash 1",
+        "CustomFields": null
+      },
+      "Book_Diamonds": {
+        "DisplayName": "钻石猎人",
+        "Description": "手动凿开石头时有几率掉落钻石。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 64,
+          "Y": 224
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Diamonds 1",
+        "CustomFields": null
+      },
+      "Book_Mystery": {
+        "DisplayName": "谜之书",
+        "Description": "你找到谜之盒的几率稍微变高了一些。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 80,
+          "Y": 224
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Mystery 1",
+        "CustomFields": null
+      },
+      "Book_Horse": {
+        "DisplayName": "马术秘籍",
+        "Description": "骑马速度稍微加快。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 80,
+          "Y": 272
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Horse 1",
+        "CustomFields": null
+      },
+      "Book_Artifact": {
+        "DisplayName": "古代珍宝鉴定指南",
+        "Description": "出售古物时价格更高。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 64,
+          "Y": 272
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Artifact 1",
+        "CustomFields": null
+      },
+      "Book_Grass": {
+        "DisplayName": "草中窜",
+        "Description": "在草丛和庄稼中的移动速度大幅增加。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 16,
+          "Y": 288
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_Grass 1",
+        "CustomFields": null
+      },
+      "Book_AnimalCatalogue": {
+        "DisplayName": "动物目录",
+        "Description": "玛妮不在的时候也可以进入她的商店。",
+        "TexturePath": "TileSheets\\Objects_2",
+        "TexturePosition": {
+          "X": 96,
+          "Y": 224
+        },
+        "UnlockedCondition": "PLAYER_STAT Current Book_AnimalCatalogue 1",
+        "CustomFields": null
+      },
+      "Mastery_Farming": {
+        "DisplayName": "耕种精通",
+        "Description": "你可以找到金色动物饼干了，它可以使一只农场动物的产量永久翻倍，对猪无效。",
+        "TexturePath": "LooseSprites\\Cursors_1_6",
+        "TexturePosition": {
+          "X": 0,
+          "Y": 340
+        },
+        "UnlockedCondition": "PLAYER_STAT Current mastery_0 1",
+        "CustomFields": null
+      },
+      "Mastery_Fishing": {
+        "DisplayName": "钓鱼精通",
+        "Description": "你可以遇到金色钓鱼宝箱了。",
+        "TexturePath": "LooseSprites\\Cursors_1_6",
+        "TexturePosition": {
+          "X": 0,
+          "Y": 340
+        },
+        "UnlockedCondition": "PLAYER_STAT Current mastery_1 1",
+        "CustomFields": null
+      },
+      "Mastery_Foraging": {
+        "DisplayName": "采集精通",
+        "Description": "你可以找到金色谜之盒了，里面装有优质物品。",
+        "TexturePath": "LooseSprites\\Cursors_1_6",
+        "TexturePosition": {
+          "X": 0,
+          "Y": 340
+        },
+        "UnlockedCondition": "PLAYER_STAT Current mastery_2 1",
+        "CustomFields": null
+      },
+      "Mastery_Mining": {
+        "DisplayName": "采矿精通",
+        "Description": "产宝石的岩石产量翻倍了。",
+        "TexturePath": "LooseSprites\\Cursors_1_6",
+        "TexturePosition": {
+          "X": 0,
+          "Y": 340
+        },
+        "UnlockedCondition": "PLAYER_STAT Current mastery_3 1",
+        "CustomFields": null
+      },
+      "Mastery_Combat": {
+        "DisplayName": "战斗精通",
+        "Description": "解锁了一个新的饰品装备栏。饰品会赋予特殊能力，在探险时可以找到。",
+        "TexturePath": "LooseSprites\\Cursors_1_6",
+        "TexturePosition": {
+          "X": 0,
+          "Y": 340
+        },
+        "UnlockedCondition": "PLAYER_STAT Current mastery_4 1",
+        "CustomFields": null
+      }
+    }
+  }
+}

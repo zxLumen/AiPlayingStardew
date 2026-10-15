@@ -1,0 +1,105 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/Trinkets (TrinketData): 8 of 8 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/Trinkets",
+    "entry_type": "table of TrinketData",
+    "count_total": 8,
+    "count_returned": 8,
+    "entries": {
+      "MagicHairDye": {
+        "DisplayName": "魔法发胶",
+        "Description": "你的头发闪烁着五彩碎片的所有颜色。",
+        "Texture": "TileSheets\\Objects_2",
+        "SheetIndex": 1,
+        "TrinketEffectClass": "StardewValley.Objects.Trinkets.RainbowHairTrinketEffect",
+        "DropsNaturally": false,
+        "CanBeReforged": false,
+        "CustomFields": null,
+        "ModData": null
+      },
+      "FrogEgg": {
+        "DisplayName": "青蛙蛋",
+        "Description": "召唤一只跟随你的饥饿青蛙。",
+        "Texture": "TileSheets\\Objects_2",
+        "SheetIndex": 6,
+        "TrinketEffectClass": "StardewValley.Objects.Trinkets.CompanionTrinketEffect",
+        "DropsNaturally": true,
+        "CanBeReforged": true,
+        "CustomFields": null,
+        "ModData": null
+      },
+      "MagicQuiver": {
+        "DisplayName": "魔法箭筒",
+        "Description": "每隔 {0} 秒向附近的敌人射出魔法箭，造成 {1}-{2} 点伤害。",
+        "Texture": "TileSheets\\Objects_2",
+        "SheetIndex": 73,
+        "TrinketEffectClass": "StardewValley.Objects.Trinkets.MagicQuiverTrinketEffect",
+        "DropsNaturally": true,
+        "CanBeReforged": true,
+        "CustomFields": {
+          "IgnoreLocations": "Slime Hutch",
+          "IgnoreMonsters": "Truffle Crab"
+        },
+        "ModData": null
+      },
+      "FairyBox": {
+        "DisplayName": "仙女盒",
+        "Description": "召唤一个跟随你的 {0} 级仙女，战斗时提供治疗。",
+        "Texture": "TileSheets\\Objects_2",
+        "SheetIndex": 74,
+        "TrinketEffectClass": "StardewValley.Objects.Trinkets.FairyBoxTrinketEffect",
+        "DropsNaturally": true,
+        "CanBeReforged": true,
+        "CustomFields": null,
+        "ModData": null
+      },
+      "ParrotEgg": {
+        "DisplayName": "鹦鹉蛋",
+        "Description": "召唤一只跟随你的 {0} 级鹦鹉，使得杀怪时有{1}概率掉落金币。",
+        "Texture": "TileSheets\\Objects_2",
+        "SheetIndex": 2,
+        "TrinketEffectClass": "StardewValley.Objects.Trinkets.TrinketEffect",
+        "DropsNaturally": true,
+        "CanBeReforged": true,
+        "CustomFields": null,
+        "ModData": null
+      },
+      "IceRod": {
+        "DisplayName": "寒冰法杖",
+        "Description": "每隔 {0} 秒发射一个冰球，将路径上的所有敌人冻结 {1} 秒。",
+        "Texture": "TileSheets\\Objects_2",
+        "SheetIndex": 78,
+        "TrinketEffectClass": "StardewValley.Objects.Trinkets.IceOrbTrinketEffect",
+        "DropsNaturally": true,
+        "CanBeReforged": true,
+        "CustomFields": null,
+        "ModData": null
+      },
+      "IridiumSpur": {
+        "DisplayName": "黄金马刺",
+        "Description": "暴击时，获得 {0} 秒加速。",
+        "Texture": "TileSheets\\Objects_2",
+        "SheetIndex": 76,
+        "TrinketEffectClass": "StardewValley.Objects.Trinkets.TrinketEffect",
+        "DropsNaturally": true,
+        "CanBeReforged": true,
+        "CustomFields": null,
+        "ModData": null
+      },
+      "BasiliskPaw": {
+        "DisplayName": "蜥怪的爪子",
+        "Description": "免疫负面效果。",
+        "Texture": "TileSheets\\Objects_2",
+        "SheetIndex": 77,
+        "TrinketEffectClass": "StardewValley.Objects.Trinkets.TrinketEffect",
+        "DropsNaturally": true,
+        "CanBeReforged": false,
+        "CustomFields": null,
+        "ModData": null
+      }
+    }
+  }
+}

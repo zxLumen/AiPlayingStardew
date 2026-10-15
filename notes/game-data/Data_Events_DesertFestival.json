@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/Events/DesertFestival (String): 1 of 1 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/Events/DesertFestival",
+    "entry_type": "table of String",
+    "count_total": 1,
+    "count_returned": 1,
+    "entries": {
+      "PlayerKilled": "none/-100 -100/farmer -2000 -2000 2/pause 1000/showItemsLost/pause 200/end"
+    }
+  }
+}

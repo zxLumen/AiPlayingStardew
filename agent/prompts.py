@@ -8,14 +8,28 @@ import json
 # The one-action-per-turn JSON contract
 # ---------------------------------------------------------------------------
 
-ACTION_SCHEMA = """Reply with ONE action as strict JSON. The arguments go at the TOP LEVEL, next to "action":
+ACTION_SCHEMA = """Reply with a SHORT QUEUE of actions as strict JSON - 1 to 6 of them. The arguments go
+at the TOP LEVEL of each entry, next to its "action":
 
-{"action": "move", "direction": "down", "duration_ms": 400, "reason": "step outside"}
+{"reason": "clear the west patch then sow it", "actions": [
+  {"action": "clear_area", "x": 8, "y": 21, "radius": 4},
+  {"action": "select_slot", "index": 0},
+  {"action": "till_area", "x": 8, "y": 21, "radius": 4}
+]}
 
 More examples:
-{"action": "interact", "reason": "pick up the weeds I am facing"}
-{"action": "menu_click", "name": "Load", "reason": "open the load menu"}
-{"action": "noop", "reason": "wait a moment"}
+{"reason": "go to town and see Pierre", "actions": [
+  {"action": "go_to", "x": 45, "y": 58},
+  {"action": "enter", "target": "SeedShop"}
+]}
+
+{"reason": "stand still and look around", "actions": [{"action": "noop"}]}
+
+Play the way a person does: a person decides "I will clear this patch, then sow it" and then simply
+does it, without re-deciding between the steps. You are asked again when your queue runs out, when
+something fails, or when a supervisor directive arrives - so queue only what you are reasonably
+sure of, and keep it short when the world is uncertain. A queue that fails is fine; a queue that
+wanders is not.
 
 Never nest the arguments inside an "args" object. Never output markdown or prose."""
 
@@ -122,7 +136,12 @@ Other fields worth reading:
 - player.path                target / progress / length. If progress stops rising you are STUCK -
                              call stop and choose a different tile instead of resending go_to.
 - location.warps             every door and warp here, and where it leads.
+- location.work              how much work this place has (tillable / empty_soil / debris / crops)
+                             and example tiles (tillable_at, empty_soil_at). READ THIS BEFORE
+                             planning farm work - do not guess coordinates. If tillable is 0 here,
+                             the ground is not farmable; go where it is.
 - game.minutes_until_2am     how long until you collapse. Leave time to get home and sleep.
+- game.day_of_week           the weekday. Shops have opening hours and closed days.
 
 RULES
 1. If ui.menu_name is not empty, a menu is open and the game is blocked. Handle the menu first:

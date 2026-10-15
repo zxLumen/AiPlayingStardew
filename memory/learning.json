@@ -12,6 +12,10 @@
       "ok": 2,
       "fail": 0
     },
+    "stone|go_to": {
+      "ok": 0,
+      "fail": 1
+    },
     "stone|use_tool_at": {
       "ok": 0,
       "fail": 5

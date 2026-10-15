@@ -1,0 +1,110 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/IncomingPhoneCalls (IncomingPhoneCallData): 8 of 8 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/IncomingPhoneCalls",
+    "entry_type": "table of IncomingPhoneCallData",
+    "count_total": 8,
+    "count_returned": 8,
+    "entries": {
+      "0": {
+        "TriggerCondition": null,
+        "RingCondition": null,
+        "FromNpc": "Vincent",
+        "FromPortrait": null,
+        "FromDisplayName": null,
+        "Dialogue": "喂？#$b#呃……啊……我是文森特。$3#$b#……$3#$b#嗯……你的农场里有小猪吗？$h#$b#……$3#$b#好的，我得走了！（啪嗒）$3",
+        "IgnoreBaseChance": false,
+        "SimpleDialogueSplitBy": null,
+        "MaxCalls": 1,
+        "CustomFields": null
+      },
+      "1": {
+        "TriggerCondition": null,
+        "RingCondition": null,
+        "FromNpc": "Lewis",
+        "FromPortrait": null,
+        "FromDisplayName": null,
+        "Dialogue": "@，你好。#$b#我只是想跟你通个电话，也看看%farm农场经营得怎么样。#$b#$y '一切都好吗？_很不错！我在这里很自在！_那我就放心了。*你在我们的社区里真的很重要，我相信大家都这么觉得。*你的祖父一定会对你的成就感到自豪。*嗯，我就不耽误你的活了。再见！_挺好的！农作物长势很好。_那我就放心了！*你的农场确实促进了我们这里的经济发展，对大家都有好处。我们都很感谢你的辛勤工作！*我觉得你的祖父应该会对你所取得的成就感到自豪。*嗯，我就不耽误你的活了。再见！_不算很好……_啊……那挺糟糕的，不过没关系。$s*呃……继续努力，我相信会好起来的……*嗯，我就不耽误你的活了……如何？之后再聊吧。再见。$s_我知道你的秘密，刘易斯。_你说什么？电话是不是坏了，我什么也没听见……算了，那我就挂掉吧。再见。$3'",
+        "IgnoreBaseChance": false,
+        "SimpleDialogueSplitBy": null,
+        "MaxCalls": 1,
+        "CustomFields": null
+      },
+      "2": {
+        "TriggerCondition": null,
+        "RingCondition": null,
+        "FromNpc": "Pierre",
+        "FromPortrait": null,
+        "FromDisplayName": null,
+        "Dialogue": "@，你好。是我，皮埃尔。#$b#你最近怎么样？过得不错？那就好。#$b#嗯，我只是想感谢你这么照顾我的生意。而且我想提醒你一下，皮埃尔杂货店里都是最~好的种子和农产品。#$b#希望你能快快来光顾我的商店。拜拜！（啪嗒） ",
+        "IgnoreBaseChance": false,
+        "SimpleDialogueSplitBy": null,
+        "MaxCalls": 1,
+        "CustomFields": null
+      },
+      "3": {
+        "TriggerCondition": null,
+        "RingCondition": null,
+        "FromNpc": null,
+        "FromPortrait": null,
+        "FromDisplayName": null,
+        "Dialogue": "这是一段用别国语言说的预留录音。你完全听不懂。",
+        "IgnoreBaseChance": false,
+        "SimpleDialogueSplitBy": "#",
+        "MaxCalls": 1,
+        "CustomFields": null
+      },
+      "4": {
+        "TriggerCondition": "PLAYER_HAS_SEEN_EVENT Any 2120303",
+        "RingCondition": "PLAYER_HAS_SEEN_EVENT Current 2120303",
+        "FromNpc": null,
+        "FromPortrait": "Portraits\\Bear",
+        "FromDisplayName": "熊",
+        "Dialogue": "（嗅嗅）$2#$b#吼哦哦哦哦哦哦！$3#$b#……是你吗？#$b#（呼噜）……那个什么酱我还留着一点呢，朋友。#$b#那个很好吃，我特别特别开心。（呼噜）$1#$b#我只是想说声谢谢……拜拜，朋友。（啪嗒）",
+        "IgnoreBaseChance": false,
+        "SimpleDialogueSplitBy": null,
+        "MaxCalls": 1,
+        "CustomFields": null
+      },
+      "5": {
+        "TriggerCondition": null,
+        "RingCondition": null,
+        "FromNpc": null,
+        "FromPortrait": null,
+        "FromDisplayName": null,
+        "Dialogue": "电话里传来尖细的声音：#嘿哟波克！窝卖吼帽子。波克，来吧，带点金闭。窝爱金闭。（啪嗒）",
+        "IgnoreBaseChance": false,
+        "SimpleDialogueSplitBy": "#",
+        "MaxCalls": 1,
+        "CustomFields": null
+      },
+      "6": {
+        "TriggerCondition": "PLAYER_HAS_MAIL Any cursed_doll",
+        "RingCondition": "PLAYER_HAS_MAIL Current cursed_doll",
+        "FromNpc": null,
+        "FromPortrait": null,
+        "FromDisplayName": null,
+        "Dialogue": "你把听筒放在耳边，只听见粗糙混乱的静电声。#等等……掩盖在杂乱的声音下，似乎能听到什么……是灵异的声音……#“你——抛——弃——了——我——们——”",
+        "IgnoreBaseChance": false,
+        "SimpleDialogueSplitBy": "#",
+        "MaxCalls": 1,
+        "CustomFields": null
+      },
+      "7": {
+        "TriggerCondition": null,
+        "RingCondition": null,
+        "FromNpc": null,
+        "FromPortrait": null,
+        "FromDisplayName": null,
+        "Dialogue": "电话里传来机械的声音。#恭喜……你有。一份。Joja 的。10,000 金的。返款。未领取……请把。你的。信用卡。号码。邮寄到。祖祖市。冈格尔街。北。133 号。领取。返款……（啪嗒）",
+        "IgnoreBaseChance": false,
+        "SimpleDialogueSplitBy": "#",
+        "MaxCalls": 1,
+        "CustomFields": null
+      }
+    }
+  }
+}

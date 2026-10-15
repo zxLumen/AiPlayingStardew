@@ -61,6 +61,9 @@ public static class ActionProcessor
                 if (action == "scan")
                     return Scan(root);
 
+                if (action == "game_data")
+                    return GameData(root, monitor);
+
                 (bool ok, string detail) = action switch
                 {
                     "select_slot" => SelectSlot(root),
@@ -84,6 +87,7 @@ public static class ActionProcessor
                     "go_to" => GoTo(root),
                     "sleep" => Sleep(),
                     "new_day" => NewDay(),
+                    "clear_event" => ClearEvent(),
                     "stop" => StopMove(),
                     "press_key" => PressKey(root),
                     "focus_window" => FocusWindow(),
@@ -492,6 +496,140 @@ public static class ActionProcessor
         return (false,
             $"cannot plant at ({x},{y}) - that tile is '{kind}', not empty tilled soil. " +
             "till it first (till_area) and confirm it became hoe_dirt.");
+    }
+
+
+    /// <summary>
+    /// Returns the game's own data, by name.
+    ///
+    /// Call it with what="catalog" to list every data asset the game ships. Nothing about Stardew
+    /// Valley's rules lives in this mod - the agent reads the same tables the game itself reads, and
+    /// works the rules out from them.
+    /// </summary>
+    private static (bool ok, string detail, Dictionary<string, object?>? data) GameData(JsonElement root, IMonitor monitor)
+    {
+        string wanted = GetString(root, "what").Trim();
+
+        if (wanted.Length == 0 || wanted.Equals("catalog", StringComparison.OrdinalIgnoreCase) || wanted.Equals("list", StringComparison.OrdinalIgnoreCase))
+        {
+            List<string> all = GameContent.Catalog(monitor);
+
+            var listing = new Dictionary<string, object?>
+            {
+                ["count"] = all.Count,
+                ["assets"] = all,
+            };
+
+            return (true, $"{all.Count} data assets available - ask for any of them by name", listing);
+        }
+
+        List<string> catalog = GameContent.Catalog(monitor);
+
+        string? asset =
+            catalog.FirstOrDefault(a => a.Equals(wanted, StringComparison.OrdinalIgnoreCase))
+            ?? catalog.FirstOrDefault(a => a.EndsWith("/" + wanted, StringComparison.OrdinalIgnoreCase))
+            ?? catalog.FirstOrDefault(a => Path.GetFileName(a).Equals(wanted, StringComparison.OrdinalIgnoreCase))
+            ?? catalog.FirstOrDefault(a => a.Contains(wanted, StringComparison.OrdinalIgnoreCase));
+
+        if (asset == null)
+        {
+            string near = string.Join(", ", catalog.Where(a => a.Contains(wanted, StringComparison.OrdinalIgnoreCase)).Take(12));
+            return (false, $"no data called '{wanted}'. Closest: {(near.Length > 0 ? near : "ask for \"catalog\"")}", null);
+        }
+
+        (object? loaded, string typeName) = GameContent.Load(asset, monitor);
+
+        if (loaded == null)
+            return (false, $"could not read {asset}: {GameContent.LastError}", null);
+
+        string key = GetString(root, "key").Trim();
+        string query = GetString(root, "query").Trim();
+        int limit = TryGetInt(root, "limit", out int value) ? Math.Clamp(value, 1, 500) : (query.Length > 0 ? 25 : 30);
+
+        if (loaded is System.Collections.IDictionary dictionary)
+        {
+            var picked = new Dictionary<string, object?>();
+            int taken = 0;
+
+            foreach (System.Collections.DictionaryEntry entry in dictionary)
+            {
+                string entryKey = entry.Key?.ToString() ?? "";
+                if (key.Length > 0 && !entryKey.Equals(key, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (query.Length > 0 && !Mentions(entryKey, entry.Value, query))
+                    continue;
+
+                picked[entryKey] = entry.Value;
+                if (++taken >= limit)
+                    break;
+            }
+
+            var data = new Dictionary<string, object?>
+            {
+                ["asset"] = asset,
+                ["entry_type"] = $"table of {typeName}",
+                ["count_total"] = dictionary.Count,
+                ["count_returned"] = picked.Count,
+                ["entries"] = GameContent.ExpandTokens(picked),
+            };
+
+            return (true, $"{asset} ({typeName}): {picked.Count} of {dictionary.Count} entries", data);
+        }
+
+        if (loaded is System.Collections.IEnumerable list and not string)
+        {
+            var items = list.Cast<object?>().ToList();
+
+            var matched = query.Length == 0
+                ? items
+                : items.Where(item => Mentions("", item, query)).ToList();
+
+            var picked = matched.Take(limit).ToList();
+
+            var data = new Dictionary<string, object?>
+            {
+                ["asset"] = asset,
+                ["entry_type"] = $"list of {typeName}",
+                ["count_total"] = matched.Count,
+                ["count_returned"] = picked.Count,
+                ["entries"] = GameContent.ExpandTokens(picked),
+            };
+
+            return (true, $"{asset} (list of {typeName}): {picked.Count} of {matched.Count} items", data);
+        }
+
+        var single = new Dictionary<string, object?>
+        {
+            ["asset"] = asset,
+            ["entry_type"] = typeName,
+            ["value"] = GameContent.ExpandTokens(loaded),
+        };
+
+        return (true, $"{asset} ({typeName}): a single object", single);
+    }
+
+
+    /// <summary>
+    /// Whether an entry mentions some text, in its key or anywhere in its content.
+    ///
+    /// Without this an agent can only read data it already knows the identifier for, which is the
+    /// same problem as not having the data at all - it can see that crops exist but not find one.
+    /// </summary>
+    private static bool Mentions(string entryKey, object? value, string query)
+    {
+        if (entryKey.Contains(query, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        try
+        {
+            string json = JsonSerializer.Serialize(value, new JsonSerializerOptions { IncludeFields = true });
+            return json.Contains(query, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
 
@@ -1258,8 +1396,86 @@ public static class ActionProcessor
             return (false, "no active save");
 
         MovementController.Stop();
+
+        // A raw new-day started on top of a live cutscene leaves Game1.eventUp set with no event
+        // behind it, and the farmer can then never act again on any later day. End the event first.
+        string leftover = ReleaseStuckEvent();
+
         Game1.NewDay(0f);
-        return (true, "the day is ending (raw new-day routine)");
+
+        return (true, "the day is ending (raw new-day routine)"
+                      + (leftover.Length > 0 ? $" after {leftover}" : ""));
+    }
+
+
+    /// <summary>
+    /// Ends a cutscene that is holding the farmer, and clears anything left behind by one.
+    ///
+    /// This is recovery, not gameplay: a live event is the one state the game cannot be argued out
+    /// of, and while it is set no action works and the day can never end.
+    /// </summary>
+    private static (bool, string) ClearEvent()
+    {
+        if (Game1.player == null)
+            return (false, "no active save");
+
+        if (Game1.currentLocation?.currentEvent == null && !Game1.eventUp)
+            return (false, "no event is playing");
+
+        string ended = ReleaseStuckEvent();
+        return (true, $"ended the event holding the farmer ({ended})");
+    }
+
+
+    /// <summary>Cleans up a live or abandoned event and the input lock it holds. Returns what it did.</summary>
+    private static string ReleaseStuckEvent()
+    {
+        var done = new List<string>();
+
+        Event? live = Game1.currentLocation?.currentEvent;
+
+        if (live != null)
+        {
+            try
+            {
+                live.cleanup();
+                done.Add("ran the event's own cleanup");
+            }
+            catch (Exception ex)
+            {
+                done.Add($"event cleanup failed: {ex.Message}");
+            }
+        }
+
+        if (Game1.eventUp)
+        {
+            Game1.eventUp = false;
+            done.Add("cleared the event flag");
+        }
+
+        if (Game1.dialogueUp)
+        {
+            Game1.dialogueUp = false;
+            done.Add("cleared the dialogue");
+        }
+
+        try
+        {
+            if (Game1.currentLocation != null)
+                Game1.currentLocation.currentEvent = null;
+        }
+        catch { }
+
+        try
+        {
+            Game1.fadeClear();
+        }
+        catch { }
+
+        if (Game1.player != null)
+            Game1.player.CanMove = true;
+
+        return done.Count > 0 ? string.Join(", ", done) : "nothing was holding it";
     }
 
 

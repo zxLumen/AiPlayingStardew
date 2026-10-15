@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Strings/schedules/Pierre (String): 1 of 1 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Strings/schedules/Pierre",
+    "entry_type": "table of String",
+    "count_total": 1,
+    "count_returned": 1,
+    "entries": {
+      "Fri.000": "我整周都很卖力。周五晚上放松一下有何不可。"
+    }
+  }
+}

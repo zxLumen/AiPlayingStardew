@@ -1,0 +1,577 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/JukeboxTracks (JukeboxTrackData): 111 of 111 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/JukeboxTracks",
+    "entry_type": "table of JukeboxTrackData",
+    "count_total": 111,
+    "count_returned": 111,
+    "entries": {
+      "_disabled_": {
+        "Name": "Invalid",
+        "Available": false,
+        "AlternativeTrackIds": [
+          "buglevelloop",
+          "coin",
+          "communityCenter",
+          "jojaOfficeSoundscape",
+          "nightTime",
+          "ocean",
+          "title_day"
+        ]
+      },
+      "spring1": {
+        "Name": "春天（外面的世界很精彩）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "spring2": {
+        "Name": "春天（山谷再次充满生机）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "spring3": {
+        "Name": "春季（野生辣根酱）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "50s": {
+        "Name": "愉快的回忆",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "ragtime": {
+        "Name": "腌菜罐",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "abigailflute": {
+        "Name": "寂静雨中独奏",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "abigailfluteduet": {
+        "Name": "寂静雨中二重奏",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "aerobics": {
+        "Name": "有氧健身课",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "winter1": {
+        "Name": "冬季（冰之夜曲）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "winter2": {
+        "Name": "冬季（风声依旧）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "winter3": {
+        "Name": "冬季（远古）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "near the planet core": {
+        "Name": "矿井（探索未知的访客）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "summer1": {
+        "Name": "夏季（自然渐强）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "summer2": {
+        "Name": "夏季（霞光漫天）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "summer3": {
+        "Name": "夏季（热带）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "fall1": {
+        "Name": "秋季（蘑菇的味道）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "fall2": {
+        "Name": "秋季（鬼魂混音）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "fall3": {
+        "Name": "秋季（乌鸦的祖先）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "breezy": {
+        "Name": "绿地和黄金土地",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "christmasTheme": {
+        "Name": "冬季庆典",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "cloth": {
+        "Name": "矿井（布）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "cloudcountry": {
+        "Name": "多云的乡村",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "of dwarves": {
+        "Name": "矿井（熔岩居民）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "grandpas_theme": {
+        "Name": "祖父的主题",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "flowerdance": {
+        "Name": "花舞节",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "fallfest": {
+        "Name": "星露谷展会主题",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "icicles": {
+        "Name": "矿井（冰柱）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "xor": {
+        "Name": "矿井（冻骨木琴）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "wizardsong": {
+        "Name": "别世一瞥",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "woodstheme": {
+        "Name": "从林深处",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "wedding": {
+        "Name": "婚礼主题曲",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "tribal": {
+        "Name": "矿井（危险！）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "tinymusicbox": {
+        "Name": "音乐盒之歌",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "ticktock": {
+        "Name": "节日游戏",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "starshoot": {
+        "Name": "射星",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "springtown": {
+        "Name": "鹈鹕镇",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "spirits_eve": {
+        "Name": "万灵节",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "spacemusic": {
+        "Name": "观星者",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "shimmeringbastion": {
+        "Name": "山姆的乐队（电子）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "heavy": {
+        "Name": "山姆乐队（重金属）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "settlingin": {
+        "Name": "安顿",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "secret gnomes": {
+        "Name": "矿井（星块状）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "sampractice": {
+        "Name": "乐队练习",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "saloon1": {
+        "Name": "星之果实酒吧",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "sadpiano": {
+        "Name": "过去的暗角",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "poppy": {
+        "Name": "山姆的乐队（流行）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "playful": {
+        "Name": "好玩的",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "overcast": {
+        "Name": "矿井（神奇的鞋）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "moonlightjellies": {
+        "Name": "月光水母之舞",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "marnieshop": {
+        "Name": "乡村商店",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "marlonstheme": {
+        "Name": "马龙的主题曲",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "maintheme": {
+        "Name": "星露谷酒液序曲",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "title_night": {
+        "Name": "加载游戏主题",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "librarytheme": {
+        "Name": "图书馆和博物馆",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "junimostarsong": {
+        "Name": "金色明星的诞生",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "kindadumbautumn": {
+        "Name": "葡萄柚的天空",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "jaunty": {
+        "Name": "轻松活泼",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "honkytonky": {
+        "Name": "山姆乐队（蓝草）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "gusviolin": {
+        "Name": "小提琴独奏",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "event1": {
+        "Name": "欢乐节",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "sweet": {
+        "Name": "毛茛旋律",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "event2": {
+        "Name": "卢奥节",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "elliottpiano": {
+        "Name": "钢琴独奏",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "echos": {
+        "Name": "回声",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "distantbanjo": {
+        "Name": "远方传来的班卓琴声",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "desolate": {
+        "Name": "一个悲伤的故事",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "crystal bells": {
+        "Name": "矿井（水晶钟）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "cowboy_overworld": {
+        "Name": "普瑞尔国王的旅程（主世界）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "cowboy_outlawsong": {
+        "Name": "普瑞尔国王的旅程（逃犯）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "cowboy_undead": {
+        "Name": "普瑞尔国王的旅程（亡灵）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "cowboy_boss": {
+        "Name": "普瑞尔国王的旅程（工头）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "cowboy_singing": {
+        "Name": "普瑞尔国王的旅程（结束）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "cavern": {
+        "Name": "矿井（深处的闪光）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "wavy": {
+        "Name": "卡利科沙漠",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "jojaofficesoundscape": {
+        "Name": "Joja 办公气氛",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "shanetheme": {
+        "Name": "谢恩的主题曲",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "emilytheme": {
+        "Name": "羽毛之歌",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "emilydance": {
+        "Name": "艾米丽之舞",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "emilydream": {
+        "Name": "梦幻",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "musicboxsong": {
+        "Name": "音乐盒之歌",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "buglevelloop": {
+        "Name": "虫子突变的气氛",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "night_market": {
+        "Name": "夜市",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "submarine_song": {
+        "Name": "潜艇",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "mermaidsong": {
+        "Name": "美人鱼",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "sam_acoustic1": {
+        "Name": "欢乐祝尼魔主题",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "sam_acoustic2": {
+        "Name": "山姆的吉他乱奏",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "harveys_theme_jazz": {
+        "Name": "葡萄柚天空（春之意面混音）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "movie_classic": {
+        "Name": "祖祖城特快列车主题",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "movie_nature": {
+        "Name": "探索我们充满活力的世界",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "movie_wumbus": {
+        "Name": "温布斯主题",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "movietheater": {
+        "Name": "电影院",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "movietheaterafter": {
+        "Name": "电影院（闭院时间）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "crane_game": {
+        "Name": "抓娃娃机",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "junimokart": {
+        "Name": "祝尼魔赛车（主题曲）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "junimokart_mushroommusic": {
+        "Name": "祝尼魔赛车（荧光菇洞穴）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "junimokart_slimemusic": {
+        "Name": "祝尼魔赛车（巨怪压顶）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "junimokart_whalemusic": {
+        "Name": "祝尼魔赛车（宝石海巨人）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "junimokart_ghostmusic": {
+        "Name": "祝尼魔赛车（恐怖大帆船）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "crane_game_fast": {
+        "Name": "抓娃娃机（抓到了！）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "sunroom": {
+        "Name": "独自休息，享用清茶",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "islandmusic": {
+        "Name": "姜岛",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "fieldofficetentmusic": {
+        "Name": "蜗牛教授的收音机",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "volcanomines1": {
+        "Name": "火山矿场（熔火胶冻）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "volcanomines2": {
+        "Name": "火山矿场（遗忘的世界）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "caldera": {
+        "Name": "火山口之谜",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "frogcave": {
+        "Name": "饕餮洞穴",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "sad_kid": {
+        "Name": "雷欧之歌",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "pirate_theme": {
+        "Name": "海盗主题曲",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "pirate_theme(muffled)": {
+        "Name": "海盗主题曲（低沉）",
+        "Available": null,
+        "AlternativeTrackIds": null
+      },
+      "end_credits": {
+        "Name": "永远的星露谷",
+        "Available": null,
+        "AlternativeTrackIds": null
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/Events/Tent (String): 0 of 0 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/Events/Tent",
+    "entry_type": "table of String",
+    "count_total": 0,
+    "count_returned": 0,
+    "entries": {}
+  }
+}

@@ -76,6 +76,78 @@ if (mode == "--search")
     return 0;
 }
 
+if (mode == "--types")
+{
+    // List data-model type names, so we can map an asset path to its value type.
+    foreach (string path in paths.Distinct(StringComparer.OrdinalIgnoreCase))
+    {
+        Assembly other;
+        try { other = mlc.LoadFromAssemblyPath(path); }
+        catch { continue; }
+
+        Type[] all;
+        try { all = SafeGetTypes(other).ToArray(); }
+        catch { continue; }
+
+        var hits = all
+            .Where(t => t.FullName != null && t.FullName.Contains(query, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(t => t.FullName)
+            .ToList();
+
+        if (hits.Count == 0)
+            continue;
+
+        Console.WriteLine($"### {Path.GetFileName(path)}");
+        foreach (Type t in hits)
+            Console.WriteLine($"   {t.FullName}");
+    }
+    return 0;
+}
+
+if (mode == "--any")
+{
+    // Search every dll next to the game, not just Stardew Valley.dll - ShopData and other
+    // GameData types live in StardewValley.GameData.dll.
+    foreach (string path in paths.Distinct(StringComparer.OrdinalIgnoreCase))
+    {
+        Assembly other;
+        try { other = mlc.LoadFromAssemblyPath(path); }
+        catch { continue; }
+
+        Type? hit = null;
+        try { hit = other.GetType(query); } catch { }
+
+        if (hit == null)
+        {
+            try
+            {
+                hit = SafeGetTypes(other)
+                    .FirstOrDefault(t => t.Name.Equals(query, StringComparison.OrdinalIgnoreCase));
+            }
+            catch { }
+        }
+
+        if (hit == null)
+            continue;
+
+        Console.WriteLine($"### type {hit.FullName}   (in {Path.GetFileName(path)})");
+        if (hit.BaseType != null)
+            Console.WriteLine($"    base: {hit.BaseType.FullName}");
+
+        const BindingFlags anyFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+        foreach (MemberInfo m in hit.GetMembers(anyFlags).OrderBy(m => m.Name).ThenBy(m => m.MemberType))
+        {
+            if (m is MethodBase mb && mb.IsPrivate)
+                continue;
+            Console.WriteLine($"   {m.MemberType}: {Describe(m)}");
+        }
+        return 0;
+    }
+
+    Console.WriteLine($"type '{query}' not found in any dll");
+    return 1;
+}
+
 if (mode == "--type")
 {
     Type? type = asm.GetType(query);

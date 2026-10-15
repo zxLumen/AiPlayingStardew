@@ -18,6 +18,16 @@ public class ModEntry : Mod
 {
     public const string ApiVersion = "1";
 
+    /// <summary>
+    /// Serializer for action replies. IncludeFields is essential: the game's own data types keep
+    /// their content in public fields, so a property-only serializer renders them empty.
+    /// </summary>
+    private static readonly JsonSerializerOptions ActionJson = new()
+    {
+        IncludeFields = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never,
+    };
+
     private ModConfig _config = new();
     private HttpApiServer? _server;
     private readonly ConcurrentQueue<IGameThreadTask> _tasks = new();
@@ -185,6 +195,8 @@ public class ModEntry : Mod
                     (bool ok, string detail, Dictionary<string, object?>? data) =
                         ActionProcessor.Execute(body, _config.EnableActions, Monitor);
 
+                    // IncludeFields matters: most of the game's data types expose their content as
+                    // public fields, not properties, and a field-blind serializer reports them as {}.
                     string json = JsonSerializer.Serialize(new ActionResult
                     {
                         Ok = ok,
@@ -192,9 +204,9 @@ public class ModEntry : Mod
                         Detail = detail,
                         ReasonCode = ActionProcessor.ClassifyFailure(ok, detail),
                         Data = data,
-                    });
+                    }, ActionJson);
                     return ApiResponse.Json(ok ? 200 : 400, json);
-                }, timeoutMs: 5000);
+                }, timeoutMs: 20000);
 
             default:
                 return ApiResponse.Json(404, $"{{\"error\":\"unknown path '{path}'\"}}");

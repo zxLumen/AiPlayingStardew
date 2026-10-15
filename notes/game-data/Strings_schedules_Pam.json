@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Strings/schedules/Pam (String): 2 of 2 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Strings/schedules/Pam",
+    "entry_type": "table of String",
+    "count_total": 2,
+    "count_returned": 2,
+    "entries": {
+      "spring_25.000": "*嘟囔*……自以为无所不知的医生……*嘟囔*$4",
+      "spring_25.001": "我每天喝了多少酒？这算哪门子问题？$u"
+    }
+  }
+}

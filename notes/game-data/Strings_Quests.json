@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Strings/Quests (String): 2 of 2 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Strings/Quests",
+    "entry_type": "table of String",
+    "count_total": 2,
+    "count_returned": 2,
+    "entries": {
+      "MessageFoundLostItem": "你找到了{0}。最好把它还给{1}。",
+      "ObjectiveReturnToNPC": "回去找{0}。"
+    }
+  }
+}

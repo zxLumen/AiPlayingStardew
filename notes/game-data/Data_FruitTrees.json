@@ -1,0 +1,294 @@
+{
+  "ok": true,
+  "action": "game_data",
+  "detail": "Data/FruitTrees (FruitTreeData): 8 of 8 entries",
+  "reason_code": "",
+  "data": {
+    "asset": "Data/FruitTrees",
+    "entry_type": "table of FruitTreeData",
+    "count_total": 8,
+    "count_returned": 8,
+    "entries": {
+      "628": {
+        "DisplayName": "樱桃",
+        "Seasons": [
+          0
+        ],
+        "Fruit": [
+          {
+            "Season": null,
+            "Chance": 1,
+            "Condition": null,
+            "Id": "Default",
+            "ItemId": "(O)638",
+            "RandomItemId": null,
+            "MaxItems": null,
+            "MinStack": -1,
+            "MaxStack": -1,
+            "Quality": -1,
+            "ObjectInternalName": null,
+            "ObjectDisplayName": null,
+            "ObjectColor": null,
+            "ToolUpgradeLevel": -1,
+            "IsRecipe": false,
+            "StackModifiers": null,
+            "StackModifierMode": 0,
+            "QualityModifiers": null,
+            "QualityModifierMode": 0,
+            "ModData": null,
+            "PerItemCondition": null
+          }
+        ],
+        "Texture": "TileSheets\\fruitTrees",
+        "TextureSpriteRow": 0,
+        "CustomFields": null,
+        "PlantableLocationRules": null
+      },
+      "629": {
+        "DisplayName": "杏子",
+        "Seasons": [
+          0
+        ],
+        "Fruit": [
+          {
+            "Season": null,
+            "Chance": 1,
+            "Condition": null,
+            "Id": "Default",
+            "ItemId": "(O)634",
+            "RandomItemId": null,
+            "MaxItems": null,
+            "MinStack": -1,
+            "MaxStack": -1,
+            "Quality": -1,
+            "ObjectInternalName": null,
+            "ObjectDisplayName": null,
+            "ObjectColor": null,
+            "ToolUpgradeLevel": -1,
+            "IsRecipe": false,
+            "StackModifiers": null,
+            "StackModifierMode": 0,
+            "QualityModifiers": null,
+            "QualityModifierMode": 0,
+            "ModData": null,
+            "PerItemCondition": null
+          }
+        ],
+        "Texture": "TileSheets\\fruitTrees",
+        "TextureSpriteRow": 1,
+        "CustomFields": null,
+        "PlantableLocationRules": null
+      },
+      "630": {
+        "DisplayName": "橙子",
+        "Seasons": [
+          1
+        ],
+        "Fruit": [
+          {
+            "Season": null,
+            "Chance": 1,
+            "Condition": null,
+            "Id": "Default",
+            "ItemId": "(O)635",
+            "RandomItemId": null,
+            "MaxItems": null,
+            "MinStack": -1,
+            "MaxStack": -1,
+            "Quality": -1,
+            "ObjectInternalName": null,
+            "ObjectDisplayName": null,
+            "ObjectColor": null,
+            "ToolUpgradeLevel": -1,
+            "IsRecipe": false,
+            "StackModifiers": null,
+            "StackModifierMode": 0,
+            "QualityModifiers": null,
+            "QualityModifierMode": 0,
+            "ModData": null,
+            "PerItemCondition": null
+          }
+        ],
+        "Texture": "TileSheets\\fruitTrees",
+        "TextureSpriteRow": 2,
+        "CustomFields": null,
+        "PlantableLocationRules": null
+      },
+      "631": {
+        "DisplayName": "桃子",
+        "Seasons": [
+          1
+        ],
+        "Fruit": [
+          {
+            "Season": null,
+            "Chance": 1,
+            "Condition": null,
+            "Id": "Default",
+            "ItemId": "(O)636",
+            "RandomItemId": null,
+            "MaxItems": null,
+            "MinStack": -1,
+            "MaxStack": -1,
+            "Quality": -1,
+            "ObjectInternalName": null,
+            "ObjectDisplayName": null,
+            "ObjectColor": null,
+            "ToolUpgradeLevel": -1,
+            "IsRecipe": false,
+            "StackModifiers": null,
+            "StackModifierMode": 0,
+            "QualityModifiers": null,
+            "QualityModifierMode": 0,
+            "ModData": null,
+            "PerItemCondition": null
+          }
+        ],
+        "Texture": "TileSheets\\fruitTrees",
+        "TextureSpriteRow": 3,
+        "CustomFields": null,
+        "PlantableLocationRules": null
+      },
+      "632": {
+        "DisplayName": "石榴",
+        "Seasons": [
+          2
+        ],
+        "Fruit": [
+          {
+            "Season": null,
+            "Chance": 1,
+            "Condition": null,
+            "Id": "Default",
+            "ItemId": "(O)637",
+            "RandomItemId": null,
+            "MaxItems": null,
+            "MinStack": -1,
+            "MaxStack": -1,
+            "Quality": -1,
+            "ObjectInternalName": null,
+            "ObjectDisplayName": null,
+            "ObjectColor": null,
+            "ToolUpgradeLevel": -1,
+            "IsRecipe": false,
+            "StackModifiers": null,
+            "StackModifierMode": 0,
+            "QualityModifiers": null,
+            "QualityModifierMode": 0,
+            "ModData": null,
+            "PerItemCondition": null
+          }
+        ],
+        "Texture": "TileSheets\\fruitTrees",
+        "TextureSpriteRow": 4,
+        "CustomFields": null,
+        "PlantableLocationRules": null
+      },
+      "633": {
+        "DisplayName": "苹果",
+        "Seasons": [
+          2
+        ],
+        "Fruit": [
+          {
+            "Season": null,
+            "Chance": 1,
+            "Condition": null,
+            "Id": "Default",
+            "ItemId": "(O)613",
+            "RandomItemId": null,
+            "MaxItems": null,
+            "MinStack": -1,
+            "MaxStack": -1,
+            "Quality": -1,
+            "ObjectInternalName": null,
+            "ObjectDisplayName": null,
+            "ObjectColor": null,
+            "ToolUpgradeLevel": -1,
+            "IsRecipe": false,
+            "StackModifiers": null,
+            "StackModifierMode": 0,
+            "QualityModifiers": null,
+            "QualityModifierMode": 0,
+            "ModData": null,
+            "PerItemCondition": null
+          }
+        ],
+        "Texture": "TileSheets\\fruitTrees",
+        "TextureSpriteRow": 5,
+        "CustomFields": null,
+        "PlantableLocationRules": null
+      },
+      "69": {
+        "DisplayName": "香蕉",
+        "Seasons": [
+          1
+        ],
+        "Fruit": [
+          {
+            "Season": null,
+            "Chance": 1,
+            "Condition": null,
+            "Id": "Default",
+            "ItemId": "(O)91",
+            "RandomItemId": null,
+            "MaxItems": null,
+            "MinStack": -1,
+            "MaxStack": -1,
+            "Quality": -1,
+            "ObjectInternalName": null,
+            "ObjectDisplayName": null,
+            "ObjectColor": null,
+            "ToolUpgradeLevel": -1,
+            "IsRecipe": false,
+            "StackModifiers": null,
+            "StackModifierMode": 0,
+            "QualityModifiers": null,
+            "QualityModifierMode": 0,
+            "ModData": null,
+            "PerItemCondition": null
+          }
+        ],
+        "Texture": "TileSheets\\fruitTrees",
+        "TextureSpriteRow": 7,
+        "CustomFields": null,
+        "PlantableLocationRules": null
+      },
+      "835": {
+        "DisplayName": "芒果",
+        "Seasons": [
+          1
+        ],
+        "Fruit": [
+          {
+            "Season": null,
+            "Chance": 1,
+            "Condition": null,
+            "Id": "Default",
+            "ItemId": "(O)834",
+            "RandomItemId": null,
+            "MaxItems": null,
+            "MinStack": -1,
+            "MaxStack": -1,
+            "Quality": -1,
+            "ObjectInternalName": null,
+            "ObjectDisplayName": null,
+            "ObjectColor": null,
+            "ToolUpgradeLevel": -1,
+            "IsRecipe": false,
+            "StackModifiers": null,
+            "StackModifierMode": 0,
+            "QualityModifiers": null,
+            "QualityModifierMode": 0,
+            "ModData": null,
+            "PerItemCondition": null
+          }
+        ],
+        "Texture": "TileSheets\\fruitTrees",
+        "TextureSpriteRow": 8,
+        "CustomFields": null,
+        "PlantableLocationRules": null
+      }
+    }
+  }
+}
