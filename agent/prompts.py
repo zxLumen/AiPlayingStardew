@@ -143,6 +143,13 @@ Other fields worth reading:
                              and example tiles (tillable_at, empty_soil_at). READ THIS BEFORE
                              planning farm work - do not guess coordinates. If tillable is 0 here,
                              the ground is not farmable; go where it is.
+- chore_last                 what the last reflex macro ACTUALLY achieved, e.g.
+                             "water_all: 0 done, 33 given up of 33 in 134s - blocked". A macro
+                             that reports "queued" has done nothing yet; chore_last is the outcome.
+                             If it says 0 done, that macro cannot do this job here - change
+                             approach instead of sending it again.
+- inventory[].charges        how much a tool still holds. -1 means it does not run out.
+                             A watering can at 0 waters NOTHING - refill before watering.
 - game.minutes_until_2am     how long until you collapse. Leave time to get home and sleep.
 - game.day_of_week           the weekday. Shops have opening hours and closed days.
 
