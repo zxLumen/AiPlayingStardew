@@ -1,0 +1,10 @@
+{
+  "Name": "StateBridge",
+  "Author": "AI Livestream",
+  "Version": "0.1.0",
+  "Description": "Expose Stardew Valley game state as a JSON HTTP API and accept actions for AI control.",
+  "UniqueID": "AILivestream.StateBridge",
+  "EntryDll": "StateBridge.dll",
+  "MinimumApiVersion": "4.1.10",
+  "UpdateKeys": []
+}

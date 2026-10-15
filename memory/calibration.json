@@ -1,0 +1,33 @@
+[
+  {
+    "id": "leave_farmhouse",
+    "situation": "你在 FarmHouse 里，游戏没被菜单挡住，你要到外面农场去。",
+    "expect_action": "exit_building",
+    "why": "农舍的门格不可寻路；exit_building 直接使用建筑自己的出口。"
+  },
+  {
+    "id": "plant_seed_flow",
+    "situation": "你面前有一格已翻好的土（hoe_dirt），手里拿着种子，要把它种下去。",
+    "expect_action": "interact_at",
+    "why": "拿着种子时 use_tool_at 会失败（不是工具）；播种是 interact_at。"
+  },
+  {
+    "id": "go_to_no_path",
+    "situation": "go_to 返回 ok=false，detail 说 no walkable path to (67,19)。",
+    "expect_action": "go_to",
+    "expect_arg": "different_target",
+    "why": "目标不可达时不要重试同一个格子，改瞄准相邻空格或换目标。"
+  },
+  {
+    "id": "menu_blocks_world",
+    "situation": "ui.menu_name 不是空的（比如 LoadGameMenu 或 DialogueBox）。",
+    "expect_action": "menu_click",
+    "why": "菜单打开时游戏被挡住，必须先处理菜单。"
+  },
+  {
+    "id": "waiting",
+    "situation": "你刚发出 go_to，还没走到。",
+    "expect_action": "<wait>",
+    "why": "框架会自动等待动作结束，不要用 noop 轮询。"
+  }
+]

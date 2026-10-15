@@ -1,0 +1,1348 @@
+using System.Reflection;
+using System.Text.Json;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using StardewModdingAPI;
+using StardewValley;
+using StardewValley.Menus;
+using StardewValley.Objects;
+using StardewValley.Pathfinding;
+using StardewValley.TerrainFeatures;
+using xTile.Dimensions;
+
+namespace StateBridge.Utils;
+
+/// <summary>
+/// Executes agent actions against the live game. Must only be called on the game thread.
+/// </summary>
+public static class ActionProcessor
+{
+    /// <summary>The route a go_to is currently walking, so progress can be reported to the agent.</summary>
+    internal readonly record struct PlannedRoute(int TargetX, int TargetY, int PlannedSteps);
+
+    /// <summary>Set while a go_to route is active; null when nothing is planned.</summary>
+    internal static PlannedRoute? PlannedPath;
+
+    public static (bool ok, string detail, Dictionary<string, object?>? data) Execute(string? body, bool actionsEnabled, IMonitor monitor)
+    {
+        if (!actionsEnabled)
+            return (false, "actions are disabled (enable_actions=false in config.json)", null);
+
+        if (string.IsNullOrWhiteSpace(body))
+            return (false, "empty request body", null);
+
+        JsonDocument doc;
+        try
+        {
+            doc = JsonDocument.Parse(body);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"invalid JSON: {ex.Message}", null);
+        }
+
+        using (doc)
+        {
+            JsonElement root = doc.RootElement;
+            string action = root.TryGetProperty("action", out JsonElement actionEl)
+                ? actionEl.GetString() ?? ""
+                : "";
+
+            monitor.Log($"Action received: {action}", LogLevel.Debug);
+
+            try
+            {
+                // observe answers with a structured payload rather than a plain sentence.
+                if (action == "observe")
+                    return Observe(root);
+
+                (bool ok, string detail) = action switch
+                {
+                    "select_slot" => SelectSlot(root),
+                    "use_tool" => UseTool(),
+                    "use_tool_at" => UseToolAt(root),
+                    "interact" => Interact(),
+                    "interact_at" => InteractAt(root),
+                    "exit_building" => ExitBuilding(),
+                    "pause_time" => PauseTime(root),
+                    "move" => Move(root),
+                    "go_to" => GoTo(root),
+                    "sleep" => Sleep(),
+                    "new_day" => NewDay(),
+                    "stop" => StopMove(),
+                    "press_key" => PressKey(root),
+                    "focus_window" => FocusWindow(),
+                    "set_display" => SetDisplay(root),
+                    "warp" => Warp(root),
+                    "menu_click" => MenuClick(root),
+                    "title_button" => TitleButton(root),
+                    "skip_intro" => SkipIntro(),
+                    "new_game" => NewGame(root),
+                    "create_character" => NewGame(root),
+                    "set_appearance" => SetAppearance(root),
+                    "set_text" => SetText(root),
+                    "dialogue_choose" => DialogueChoose(root),
+                    "dialogue_advance" => DialogueAdvance(),
+                    "noop" => (true, "noop"),
+                    _ => (false, $"unknown action '{action}'"),
+                };
+
+                return (ok, detail, null);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"action '{action}' threw: {ex.Message}", null);
+            }
+        }
+    }
+
+
+    /// <summary>
+    /// Turns a failure sentence into a stable code an agent can branch on. An agent that learns
+    /// needs to tell "wrong tool" apart from "nothing there"; prose is not enough.
+    /// </summary>
+    public static string ClassifyFailure(bool ok, string detail)
+    {
+        if (ok)
+            return "";
+
+        string text = detail ?? "";
+
+        if (text.Contains("no walkable path")) return "NO_PATH";
+        if (text.Contains("not free")) return "NOT_FREE";
+        if (text.Contains("current item is not a tool")) return "WRONG_TOOL";
+        if (text.Contains("no menu is open")) return "NO_MENU";
+        if (text.Contains("no button")) return "NO_SUCH_BUTTON";
+        if (text.Contains("out of range")) return "OUT_OF_RANGE";
+        if (text.Contains("not adjacent")) return "NOT_ADJACENT";
+        if (text.Contains("already outdoors")) return "ALREADY_OUTDOORS";
+        if (text.Contains("no bed here")) return "NO_BED";
+        if (text.Contains("missing '")) return "BAD_ARGS";
+        if (text.Contains("unknown action")) return "UNKNOWN_ACTION";
+        if (text.Contains("could not read")) return "NOT_AVAILABLE";
+        if (text.Contains("is not open yet") || text.Contains("not ready yet")) return "NOT_READY";
+        if (text.Contains("did nothing")) return "NOTHING_DONE";
+        if (text.Contains("no active save")) return "NO_SAVE";
+        if (text.Contains("invalid JSON")) return "BAD_JSON";
+        if (text.Contains("disabled")) return "DISABLED";
+        if (text.Contains("threw")) return "EXCEPTION";
+
+        return "FAILED";
+    }
+
+
+    /// <summary>
+    /// Reports what a single tile contains: whether it can be walked on, what object or crop
+    /// stands there, and who is on it. This is the agent's sense organ for exploring.
+    /// </summary>
+    private static (bool ok, string detail, Dictionary<string, object?>? data) Observe(JsonElement root)
+    {
+        if (Game1.player == null || Game1.currentLocation == null)
+            return (false, "no active save", null);
+
+        if (!TryGetInt(root, "x", out int x) || !TryGetInt(root, "y", out int y))
+            return (false, "missing 'x' / 'y'", null);
+
+        GameLocation location = Game1.currentLocation;
+        var tile = new Vector2(x, y);
+
+        var info = new Dictionary<string, object?>
+        {
+            ["x"] = x,
+            ["y"] = y,
+            ["location"] = location.Name,
+            ["distance"] = Math.Abs(x - (int)Game1.player.Tile.X) + Math.Abs(y - (int)Game1.player.Tile.Y),
+        };
+
+        try { info["passable"] = location.isTilePassable(tile); } catch { }
+        try { info["water"] = location.isWaterTile(x, y); } catch { }
+        try { info["buildable"] = location.isBuildable(tile, false); } catch { }
+        try { info["diggable"] = location.doesTileHaveProperty(x, y, "Diggable", "Back", false) != null; } catch { }
+
+        try
+        {
+            foreach (KeyValuePair<Vector2, StardewValley.Object> pair in location.objects.Pairs)
+            {
+                if (pair.Key.X != x || pair.Key.Y != y || pair.Value == null)
+                    continue;
+
+                StardewValley.Object obj = pair.Value;
+                info["object"] = obj.DisplayName ?? obj.Name ?? "";
+                info["object_craftable"] = obj.bigCraftable.Value;
+                try { info["object_ready"] = obj.readyForHarvest.Value; } catch { }
+                try { info["object_is_weed"] = obj.IsWeeds(); } catch { }
+                try { info["object_is_twig"] = obj.IsTwig(); } catch { }
+                break;
+            }
+        }
+        catch { }
+
+        try
+        {
+            TerrainFeature? feature = FindTerrainFeature(location, tile);
+            if (feature is HoeDirt dirt)
+            {
+                info["ground"] = "hoe_dirt";
+                info["watered"] = dirt.isWatered();
+                if (dirt.crop != null)
+                {
+                    info["crop_ready"] = dirt.readyForHarvest();
+                    info["crop_dead"] = dirt.crop.dead.Value;
+                    try { info["crop"] = ItemRegistry.GetDataOrErrorItem(dirt.crop.indexOfHarvest.Value).DisplayName; } catch { }
+                }
+            }
+            else if (feature != null)
+            {
+                info["ground"] = feature.GetType().Name;
+            }
+        }
+        catch { }
+
+        try
+        {
+            foreach (NPC npc in location.characters)
+            {
+                if (npc != null && (int)npc.Tile.X == x && (int)npc.Tile.Y == y)
+                {
+                    info["character"] = npc.displayName ?? npc.Name ?? "";
+                    break;
+                }
+            }
+        }
+        catch { }
+
+        return (true, $"tile ({x},{y}) in {location.Name}", info);
+    }
+
+
+    private static TerrainFeature? FindTerrainFeature(GameLocation location, Vector2 tile)
+    {
+        foreach (SerializableDictionary<Vector2, TerrainFeature> chunk in location.terrainFeatures)
+        {
+            if (chunk != null && chunk.TryGetValue(tile, out TerrainFeature? feature))
+                return feature;
+        }
+        return null;
+    }
+
+
+    private static (bool, string) SelectSlot(JsonElement root)
+    {
+        if (!root.TryGetProperty("index", out JsonElement idxEl))
+            return (false, "missing 'index'");
+
+        int index = idxEl.GetInt32();
+        Farmer f = Game1.player;
+        if (f?.Items == null)
+            return (false, "no inventory");
+
+        if (index < 0 || index >= f.Items.Count)
+            return (false, $"index {index} out of range (0..{f.Items.Count - 1})");
+
+        if (f.Items[index] == null)
+            return (false, $"slot {index} is empty");
+
+        f.CurrentToolIndex = index;
+        string name = f.Items[index]?.DisplayName ?? "?";
+        return (true, $"selected slot {index}: {name}");
+    }
+
+
+    private static (bool, string) UseTool()
+    {
+        (bool ok, string why) = RequireFreePlayer();
+        if (!ok)
+            return (false, why);
+
+        Farmer f = Game1.player;
+        if (f.CurrentItem is not Tool tool)
+            return (false, "current item is not a tool");
+
+        (int x, int y) = GameQuery.FacingTile(f);
+        bool started = tool.beginUsing(Game1.currentLocation, x, y, f);
+        return (started, started
+            ? $"used {tool.DisplayName} at ({x}, {y})"
+            : $"{tool.DisplayName} could not start using at ({x}, {y})");
+    }
+
+
+    private static (bool, string) Interact()
+    {
+        (bool ok, string why) = RequireFreePlayer();
+        if (!ok)
+            return (false, why);
+
+        Farmer f = Game1.player;
+        (int x, int y) = GameQuery.FacingTile(f);
+        bool handled = Game1.currentLocation.checkAction(new Location(x, y), Game1.viewport, f);
+        return (handled, $"checkAction at ({x}, {y}) -> {handled}");
+    }
+
+
+    /// <summary>Faces a specific tile and swings the held tool at it. The building block for chores.</summary>
+    private static (bool, string) UseToolAt(JsonElement root)
+    {
+        (bool ok, string why) = RequireFreePlayer();
+        if (!ok)
+            return (false, why);
+
+        if (!TryGetInt(root, "x", out int x) || !TryGetInt(root, "y", out int y))
+            return (false, "missing 'x' / 'y'");
+
+        Farmer farmer = Game1.player;
+        FaceTowards(farmer, x, y);
+
+        if (farmer.CurrentItem is not Tool tool)
+            return (false, "current item is not a tool");
+
+        bool started = tool.beginUsing(Game1.currentLocation, x, y, farmer);
+        return (started,
+            started ? $"used {tool.DisplayName} on ({x},{y})" : $"{tool.DisplayName} did nothing at ({x},{y})");
+    }
+
+
+    /// <summary>Faces a specific tile and interacts with it (harvest, forage, talk, open).</summary>
+    private static (bool, string) InteractAt(JsonElement root)
+    {
+        (bool ok, string why) = RequireFreePlayer();
+        if (!ok)
+            return (false, why);
+
+        if (!TryGetInt(root, "x", out int x) || !TryGetInt(root, "y", out int y))
+            return (false, "missing 'x' / 'y'");
+
+        Farmer farmer = Game1.player;
+        FaceTowards(farmer, x, y);
+
+        bool handled = Game1.currentLocation.checkAction(new Location(x, y), Game1.viewport, farmer);
+        return (handled, $"interacted with ({x},{y}) -> {handled}");
+    }
+
+
+    /// <summary>
+    /// Leaves the current building by taking its own outgoing warp, arriving outside.
+    /// Much more reliable than trying to walk onto a door tile, which is not pathable.
+    /// </summary>
+    private static (bool, string) ExitBuilding()
+    {
+        if (Game1.player == null || Game1.currentLocation == null)
+            return (false, "no active save");
+
+        (bool free, string why) = RequireFreePlayer();
+        if (!free)
+            return (false, why);
+
+        GameLocation location = Game1.currentLocation;
+        if (location.IsOutdoors)
+            return (false, "already outdoors");
+
+        foreach (Warp warp in location.warps)
+        {
+            if (warp == null)
+                continue;
+
+            string target = warp.TargetName ?? "";
+            if (string.IsNullOrWhiteSpace(target) || target == location.Name || target == "null")
+                continue;
+
+            int targetX = warp.TargetX;
+            int targetY = warp.TargetY;
+
+            Game1.warpFarmer(target, targetX, targetY, 2);
+            MovementController.Stop();
+            return (true, $"left {location.Name} -> {target} ({targetX},{targetY})");
+        }
+
+        return (false, $"no exit warp found in {location.Name}");
+    }
+
+
+    /// <summary>Freezes or resumes the in-game clock.</summary>
+    private static (bool, string) PauseTime(JsonElement root)
+    {
+        bool paused = !root.TryGetProperty("paused", out JsonElement el) || el.ValueKind != JsonValueKind.False;
+        Game1.isTimePaused = paused;
+        return (true, paused ? "the in-game clock is frozen" : "the in-game clock is running again");
+    }
+
+
+    /// <summary>Points the farmer at a tile so use_tool_at / interact_at hit the right thing.</summary>
+    private static void FaceTowards(Farmer farmer, int targetX, int targetY)
+    {
+        int dx = targetX - (int)farmer.Tile.X;
+        int dy = targetY - (int)farmer.Tile.Y;
+
+        if (Math.Abs(dx) >= Math.Abs(dy))
+            farmer.FacingDirection = dx > 0 ? 1 : 3;
+        else
+            farmer.FacingDirection = dy > 0 ? 2 : 0;
+    }
+
+
+    private static (bool, string) Move(JsonElement root)
+    {
+        string direction = root.TryGetProperty("direction", out JsonElement dirEl)
+            ? (dirEl.GetString() ?? "").ToLowerInvariant()
+            : "";
+
+        bool valid = direction is "up" or "down" or "left" or "right";
+        if (!valid)
+            return (false, $"invalid direction '{direction}' (use up/down/left/right)");
+
+        (bool ok, string why) = RequireFreePlayer();
+        if (!ok)
+            return (false, why);
+
+        int durationMs = 400;
+        if (root.TryGetProperty("duration_ms", out JsonElement durEl))
+            durationMs = Math.Clamp(durEl.GetInt32(), 50, 10_000);
+
+        MovementController.Start(direction, durationMs);
+        return (true, $"moving {direction} for {durationMs}ms");
+    }
+
+
+    private static (bool, string) StopMove()
+    {
+        MovementController.Stop();
+        return (true, "movement stopped");
+    }
+
+
+    /// <summary>
+    /// Walks the farmer to a tile using the game's own pathfinder, stepping around walls and
+    /// furniture. Far more reliable than issuing raw direction moves.
+    /// </summary>
+    private static (bool, string) GoTo(JsonElement root)
+    {
+        (bool ok, string why) = RequireFreePlayer();
+        if (!ok)
+            return (false, why);
+
+        if (!root.TryGetProperty("x", out JsonElement xEl) || !root.TryGetProperty("y", out JsonElement yEl))
+            return (false, "missing 'x' / 'y'");
+
+        int x = xEl.GetInt32();
+        int y = yEl.GetInt32();
+        int facing = root.TryGetProperty("facing", out JsonElement facingEl) ? facingEl.GetInt32() : 2;
+
+        Farmer farmer = Game1.player;
+        GameLocation? location = Game1.currentLocation;
+        if (location == null)
+            return (false, "no current location");
+
+        if (farmer.Tile.X == x && farmer.Tile.Y == y)
+            return (true, $"already at ({x},{y})");
+
+        MovementController.Stop();
+
+        try
+        {
+            var controller = new PathFindController(farmer, location, new Point(x, y), facing);
+            farmer.controller = controller;
+
+            // A failed pathfind leaves an empty route. Without this check we would report
+            // "walking there" while the farmer never moves - which is exactly what makes an
+            // agent retry the same hopeless command forever.
+            if (controller.pathToEndPoint == null || controller.pathToEndPoint.Count == 0)
+            {
+                farmer.controller = null;
+                PlannedPath = null;
+                return (false,
+                    $"no walkable path to ({x},{y}) - it is probably blocked. " +
+                    $"The farmer is at ({(int)farmer.Tile.X},{(int)farmer.Tile.Y}); " +
+                    "aim at an adjacent free tile instead.");
+            }
+
+            PlannedPath = new PlannedRoute(x, y, controller.pathToEndPoint.Count);
+        }
+        catch (Exception ex)
+        {
+            farmer.controller = null;
+            PlannedPath = null;
+            return (false, $"could not start pathfinding to ({x},{y}): {ex.Message}");
+        }
+
+        return (true, $"walking to ({x},{y}) - {PlannedPath?.PlannedSteps ?? 0} steps");
+    }
+
+
+    private static (bool, string) PressKey(JsonElement root)
+    {
+        string key = root.TryGetProperty("key", out JsonElement keyEl)
+            ? (keyEl.GetString() ?? "").ToLowerInvariant()
+            : "";
+
+        if (!NativeInput.TryGetVirtualKey(key, out byte vk))
+            return (false, $"unsupported key '{key}'");
+
+        NativeInput.PressAndRelease(vk);
+        return (true, $"pressed key '{key}' (needs the game window focused)");
+    }
+
+
+    /// <summary>
+    /// Ends the day the legitimate way: walk into bed, lie down and answer "yes" to the game's
+    /// sleep prompt. Falls back to the raw new-day routine if the bed interaction does not take.
+    /// </summary>
+    private static (bool, string) Sleep()
+    {
+        if (Game1.player == null || Game1.currentLocation == null)
+            return (false, "no active save");
+
+        (bool free, string why) = RequireFreePlayer();
+        if (!free)
+            return (false, why);
+
+        MovementController.Stop();
+        GameLocation location = Game1.currentLocation;
+        BedFurniture? bed = FindBed(location);
+
+        if (bed == null)
+            return (false, "there is no bed here - go to the farmhouse first");
+
+        Point spot = bed.GetBedSpot();
+        Game1.warpFarmer(location.Name, spot.X, spot.Y, 0);
+        Game1.player.isInBed.Value = true;
+
+        string note = "";
+        try
+        {
+            // Ask the bed to run its own "sleep?" flow, then accept it.
+            location.checkAction(new Location(spot.X, spot.Y), Game1.viewport, Game1.player);
+            location.answerDialogueAction("Sleep_Yes", null);
+            note = "answered yes";
+        }
+        catch (Exception ex)
+        {
+            note = $"bed dialogue failed: {ex.Message}";
+        }
+
+        return (true, $"going to sleep at ({spot.X},{spot.Y}) - {note}");
+    }
+
+
+    /// <summary>Raw day rollover, used as an escape hatch when the bed flow does not trigger.</summary>
+    private static (bool, string) NewDay()
+    {
+        if (Game1.player == null)
+            return (false, "no active save");
+
+        MovementController.Stop();
+        Game1.NewDay(0f);
+        return (true, "the day is ending (raw new-day routine)");
+    }
+
+
+    private static BedFurniture? FindBed(GameLocation location)
+    {
+        try
+        {
+            Vector2 remembered = Game1.player?.mostRecentBed ?? Vector2.Zero;
+            if (remembered != Vector2.Zero)
+            {
+                BedFurniture? rememberedBed = BedFurniture.GetBedAtTile(location, (int)remembered.X, (int)remembered.Y);
+                if (rememberedBed != null)
+                    return rememberedBed;
+            }
+
+            foreach (Furniture furniture in location.furniture)
+            {
+                if (furniture is BedFurniture bed)
+                    return bed;
+            }
+        }
+        catch
+        {
+            // fall through to "no bed"
+        }
+
+        return null;
+    }
+
+
+    private static (bool, string) FocusWindow()
+    {
+        bool focused = NativeInput.FocusGameWindow();
+        return (focused, focused ? "game window focused" : "could not focus the game window");
+    }
+
+
+    /// <summary>
+    /// Adjusts how the game is rendered: zoom level (how large/sharp the world looks) and UI
+    /// scale. Deliberately never touches the window itself - preferredResolutionX/Y, fullscreen
+    /// and borderless are left exactly as they are.
+    /// </summary>
+    private static (bool, string) SetDisplay(JsonElement root)
+    {
+        Options options = Game1.options;
+        var applied = new List<string>();
+
+        if (TryGetFloat(root, "zoom_level", out float zoom))
+        {
+            float clamped = Math.Clamp(zoom, 0.5f, 3f);
+            options.desiredBaseZoomLevel = clamped;
+            applied.Add($"zoom_level={clamped:0.##}");
+        }
+
+        if (TryGetFloat(root, "ui_scale", out float uiScale))
+        {
+            float clamped = Math.Clamp(uiScale, 0.5f, 3f);
+            options.desiredUIScale = clamped;
+            applied.Add($"ui_scale={clamped:0.##}");
+        }
+
+        // Resolution setting only. SDV normally resizes the window when this changes, so we write
+        // the stored preference without applying it - the window keeps its current size.
+        if (root.TryGetProperty("resolution", out JsonElement resolutionEl))
+        {
+            int? width = null;
+            int? height = null;
+
+            if (resolutionEl.ValueKind == JsonValueKind.String)
+            {
+                string wanted = (resolutionEl.GetString() ?? "").Trim().ToLowerInvariant();
+                if (wanted is "max" or "max resolution" or "highest")
+                {
+                    DisplayMode mode = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode;
+                    width = mode.Width;
+                    height = mode.Height;
+                }
+            }
+            else if (resolutionEl.ValueKind == JsonValueKind.Array && resolutionEl.GetArrayLength() == 2)
+            {
+                width = resolutionEl[0].GetInt32();
+                height = resolutionEl[1].GetInt32();
+            }
+
+            if (width.HasValue && height.HasValue)
+            {
+                options.preferredResolutionX = width.Value;
+                options.preferredResolutionY = height.Value;
+                applied.Add($"resolution={width}x{height} stored, window NOT resized");
+            }
+        }
+
+        if (applied.Count == 0)
+            return (false, "nothing to change - pass zoom_level, ui_scale and/or resolution");
+
+        return (true, "applied " + string.Join(", ", applied) +
+                      $" (now zoom={options.zoomLevel:0.##} ui={options.uiScale:0.##}, window untouched)");
+    }
+
+
+    private static bool TryGetFloat(JsonElement root, string name, out float value)
+    {
+        value = 0f;
+        return root.TryGetProperty(name, out JsonElement el)
+            && el.ValueKind == JsonValueKind.Number
+            && el.TryGetSingle(out value);
+    }
+
+
+    private static (bool, string) Warp(JsonElement root)
+    {
+        string location = root.TryGetProperty("location", out JsonElement locEl)
+            ? locEl.GetString() ?? ""
+            : "";
+
+        if (string.IsNullOrWhiteSpace(location))
+            return (false, "missing 'location'");
+
+        if (!root.TryGetProperty("x", out JsonElement xEl) || !root.TryGetProperty("y", out JsonElement yEl))
+            return (false, "missing 'x' / 'y'");
+
+        int x = xEl.GetInt32();
+        int y = yEl.GetInt32();
+        int facing = 2;
+        if (root.TryGetProperty("facing", out JsonElement fEl))
+            facing = fEl.GetInt32();
+
+        Game1.warpFarmer(location, x, y, facing);
+        MovementController.Stop();
+        return (true, $"warped to {location} ({x}, {y})");
+    }
+
+
+    /// <summary>Clicks a button in the currently open menu, addressed by its /state name.</summary>
+    private static (bool, string) MenuClick(JsonElement root)
+    {
+        IClickableMenu? active = Game1.activeClickableMenu;
+        if (active == null)
+            return (false, "no menu is open");
+
+        // Descend into TitleMenu's submenu (e.g. LoadGameMenu) when one is open.
+        IClickableMenu menu = UiStateBuilder.GetEffectiveMenu() ?? active;
+
+        string name = root.TryGetProperty("name", out JsonElement nameEl)
+            ? (nameEl.GetString() ?? "")
+            : "";
+
+        if (string.IsNullOrWhiteSpace(name))
+            return (false, "missing 'name'");
+
+        ClickableComponent? target = UiStateBuilder.FindComponent(menu, name);
+        if (target == null)
+        {
+            List<string> available = UiStateBuilder.AvailableNames(menu);
+            return (false, $"no button '{name}' in {menu.GetType().Name} " +
+                           $"(available: {string.Join(", ", available.Take(25))})");
+        }
+
+        // Some menus lay buttons out lazily; a zero-sized target means it is not ready yet.
+        if (target.bounds.Width <= 0 || target.bounds.Height <= 0)
+            return (false, $"button '{name}' has no bounds yet (menu still animating in)");
+
+        int cx = target.bounds.Center.X;
+        int cy = target.bounds.Center.Y;
+
+        // Route through the top-level menu so it can forward into its submenu,
+        // which is how real mouse input reaches a TitleMenu submenu.
+        (ReferenceEquals(menu, active) ? menu : active).receiveLeftClick(cx, cy, true);
+
+        string via = ReferenceEquals(menu, active) ? "" : $" (via {active.GetType().Name})";
+        return (true, $"clicked '{name}' at ({cx},{cy}) in {menu.GetType().Name}{via}");
+    }
+
+
+    /// <summary>Title-menu specific shortcut: invokes performButtonAction(which) directly.</summary>
+    private static (bool, string) TitleButton(JsonElement root)
+    {
+        if (Game1.activeClickableMenu is not TitleMenu title)
+            return (false, "no TitleMenu open");
+
+        string which = root.TryGetProperty("which", out JsonElement whichEl)
+            ? (whichEl.GetString() ?? "")
+            : "";
+
+        if (string.IsNullOrWhiteSpace(which))
+            return (false, "missing 'which' (e.g. Load, New, Coop, Options, Exit)");
+
+        title.performButtonAction(which);
+        return (true, $"title button '{which}' invoked");
+    }
+
+
+    /// <summary>Skips the title-screen intro animation so buttons become clickable.</summary>
+    private static (bool, string) SkipIntro()
+    {
+        if (Game1.activeClickableMenu is not TitleMenu title)
+            return (false, "no TitleMenu open");
+
+        title.skipToTitleButtons();
+        return (true, "title intro skipped");
+    }
+
+
+    /// <summary>
+    /// Creates a brand new save: opens the character creation screen, fills in the name boxes,
+    /// picks a farm type and confirms. Used so the agent plays its own farm, never the player's.
+    /// </summary>
+    private static (bool, string) NewGame(JsonElement root)
+    {
+        string name = GetString(root, "name");
+        string farmName = GetString(root, "farm_name");
+        string favoriteThing = GetString(root, "favorite_thing");
+        string farmType = GetString(root, "farm_type");
+
+        bool skipIntro = !root.TryGetProperty("skip_intro", out JsonElement skipEl)
+                      || skipEl.ValueKind != JsonValueKind.False;
+
+        // Open character creation from the title screen if it is not open yet. TitleMenu only
+        // reveals the submenu on the following tick, so remember the request and finish it then.
+        IClickableMenu? menu = UiStateBuilder.GetEffectiveMenu();
+        if (menu is TitleMenu title)
+        {
+            _pendingNewGameJson = root.GetRawText();
+            _pendingNewGameTicks = 0;
+            title.performButtonAction("New");
+            return (true, "character creation opened; it will be filled in and confirmed automatically");
+        }
+
+        if (menu is not CharacterCustomization customization)
+            return (false, $"character creation is not open (current menu: {menu?.GetType().Name ?? "none"})");
+
+        // nameBox / farmnameBox / favThingBox / skipIntro are private, so reach them reflectively.
+        TextBox? nameBox = ReadField<TextBox>(customization, "nameBox");
+        TextBox? farmBox = ReadField<TextBox>(customization, "farmnameBox");
+        TextBox? favBox = ReadField<TextBox>(customization, "favThingBox");
+
+        if (nameBox == null)
+            return (false, "could not read the name box from the character creation menu");
+
+        if (!string.IsNullOrWhiteSpace(name))
+            nameBox.Text = ClampField(name);
+
+        if (!string.IsNullOrWhiteSpace(farmName) && farmBox != null)
+            farmBox.Text = ClampField(farmName);
+
+        if (!string.IsNullOrWhiteSpace(favoriteThing) && favBox != null)
+            favBox.Text = ClampField(favoriteThing);
+
+        WriteField(customization, "skipIntro", skipIntro);
+
+        // Optional appearance randomisation: the streamer AI chooses how many times to roll.
+        int randomClicks = 0;
+        if (root.TryGetProperty("random_appearance_clicks", out JsonElement randomEl)
+            && randomEl.TryGetInt32(out int randomValue))
+        {
+            randomClicks = Math.Clamp(randomValue, 0, 20);
+        }
+
+        ClickableTextureComponent? randomButton = ReadField<ClickableTextureComponent>(customization, "randomButton");
+        for (int i = 0; i < randomClicks && randomButton != null && randomButton.bounds.Width > 0; i++)
+        {
+            ClickComponent(customization, randomButton);
+        }
+
+        string gender = GetString(root, "gender").ToLowerInvariant();
+        string genderNote = gender switch
+        {
+            "male" or "m" or "man" or "boy" => ClickGender(customization, 0),
+            "female" or "f" or "woman" or "girl" => ClickGender(customization, 1),
+            _ => "",
+        };
+
+        string typeNote = "default";
+        if (!string.IsNullOrWhiteSpace(farmType))
+        {
+            int index = -1;
+            if (int.TryParse(farmType, out int parsed))
+            {
+                index = parsed;
+            }
+            else
+            {
+                List<ClickableTextureComponent> types = customization.farmTypeButtons;
+                for (int i = 0; i < types.Count; i++)
+                {
+                    if (string.Equals(types[i]?.name, farmType, StringComparison.OrdinalIgnoreCase))
+                    {
+                        index = i;
+                        break;
+                    }
+                }
+            }
+
+            if (index >= 0 && customization.farmTypeButtons != null && index < customization.farmTypeButtons.Count)
+            {
+                ClickableTextureComponent button = customization.farmTypeButtons[index];
+                ClickComponent(customization, button);
+                typeNote = button.name;
+            }
+            else
+            {
+                typeNote = $"'{farmType}' not found, kept default";
+            }
+        }
+
+        ClickableTextureComponent ok = customization.okButton;
+        if (ok == null || ok.bounds.Width <= 0)
+            return (false, "OK button is not ready yet");
+
+        // Confirming must wait one tick so the menu has applied the edits above.
+        QueueClick(customization, ok);
+
+        return (true, $"new game started: name='{nameBox.Text}' farm='{farmBox?.Text}' " +                      $"type={typeNote}{(genderNote.Length > 0 ? $" gender={genderNote}" : "")} " +
+                      $"appearance_rolls={randomClicks} skip_intro={skipIntro}");
+    }
+
+
+    /// <summary>genderButtons[0] is male, [1] is female.</summary>
+    private static string ClickGender(CharacterCustomization customization, int index)
+    {
+        List<ClickableComponent>? buttons = ReadField<List<ClickableComponent>>(customization, "genderButtons");
+        if (buttons == null || index < 0 || index >= buttons.Count || buttons[index] == null)
+            return "";
+
+        ClickableComponent button = buttons[index];
+        ClickComponent(customization, button);
+        return index == 0 ? "male" : "female";
+    }
+
+
+    /// <summary>
+    /// Clicks a component owned by <paramref name="owner"/>.
+    ///
+    /// SDV 1.6 keeps TitleMenu submenus (LoadGameMenu, CharacterCustomization, ...) in a static
+    /// field while Game1.activeClickableMenu stays the TitleMenu. Clicks must be delivered to the
+    /// top-level menu, which forwards them into the submenu; calling the submenu directly is
+    /// silently ignored.
+    /// </summary>
+    private static void ClickComponent(IClickableMenu owner, ClickableComponent component)
+    {
+        IClickableMenu? active = Game1.activeClickableMenu;
+        IClickableMenu receiver = active != null && !ReferenceEquals(owner, active) ? active : owner;
+        receiver.receiveLeftClick(component.bounds.Center.X, component.bounds.Center.Y, true);
+    }
+
+
+    private static readonly List<(IClickableMenu Owner, ClickableComponent Component)> PendingClicks = new();
+
+    /// <summary>
+    /// A create_character request that arrived while the character creation screen was still
+    /// opening. Replayed once the menu exists; cleared after too many ticks.
+    /// </summary>
+    private static string? _pendingNewGameJson;
+    private static int _pendingNewGameTicks;
+
+    private const int PendingNewGameTimeoutTicks = 180;
+
+
+    /// <summary>
+    /// Finishes a create_character request that had to wait for the character creation screen.
+    /// Called once per tick from UpdateTicked.
+    /// </summary>
+    internal static void ProcessPendingNewGame(IMonitor monitor)
+    {
+        if (_pendingNewGameJson == null)
+            return;
+
+        if (UiStateBuilder.GetEffectiveMenu() is not CharacterCustomization)
+        {
+            if (++_pendingNewGameTicks > PendingNewGameTimeoutTicks)
+            {
+                monitor.Log("deferred create_character gave up: character creation never opened", LogLevel.Warn);
+                _pendingNewGameJson = null;
+            }
+            return;
+        }
+
+        string request = _pendingNewGameJson;
+        _pendingNewGameJson = null;
+        _pendingNewGameTicks = 0;
+
+        (bool ok, string detail, _) = Execute(request, actionsEnabled: true, monitor);
+        monitor.Log($"deferred create_character: ok={ok} | {detail}", LogLevel.Info);
+    }
+
+    /// <summary>
+    /// Queues a click for the next game tick.
+    ///
+    /// Character creation edits (name boxes, gender, farm type) only become valid once the menu
+    /// has run its own update, so confirming in the same tick the fields were written is ignored
+    /// by the game. Everything else can be clicked immediately.
+    /// </summary>
+    private static void QueueClick(IClickableMenu owner, ClickableComponent component)
+    {
+        PendingClicks.Add((owner, component));
+    }
+
+
+    /// <summary>Runs clicks queued on the previous tick. Called from UpdateTicked before task processing.</summary>
+    internal static void ProcessPendingClicks(IMonitor monitor)
+    {
+        if (PendingClicks.Count == 0)
+            return;
+
+        var due = PendingClicks.ToArray();
+        PendingClicks.Clear();
+
+        foreach ((IClickableMenu owner, ClickableComponent component) in due)
+        {
+            try
+            {
+                ClickComponent(owner, component);
+            }
+            catch (Exception ex)
+            {
+                monitor.Log($"queued click failed: {ex.Message}", LogLevel.Warn);
+            }
+        }
+    }
+
+
+    /// <summary>Reads a private/protected instance field by name, walking up the type hierarchy.</summary>
+    private static T? ReadField<T>(object target, string fieldName) where T : class
+    {
+        for (Type? type = target.GetType(); type != null; type = type.BaseType)
+        {
+            FieldInfo? field = type.GetField(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field != null)
+                return field.GetValue(target) as T;
+        }
+        return null;
+    }
+
+
+    /// <summary>Writes a private/protected instance field by name, walking up the type hierarchy.</summary>
+    private static void WriteField(object target, string fieldName, object value)
+    {
+        for (Type? type = target.GetType(); type != null; type = type.BaseType)
+        {
+            FieldInfo? field = type.GetField(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field != null)
+            {
+                field.SetValue(target, value);
+                return;
+            }
+        }
+    }
+
+
+    /// <summary>Sets one of the character-creation text boxes.</summary>
+    private static (bool, string) SetText(JsonElement root)
+    {
+        if (UiStateBuilder.GetEffectiveMenu() is not CharacterCustomization customization)
+            return (false, "no character creation menu open");
+
+        string field = GetString(root, "field").ToLowerInvariant();
+        string value = GetString(root, "value");
+
+        TextBox? box = field switch
+        {
+            "name" or "character_name" => ReadField<TextBox>(customization, "nameBox"),
+            "farm_name" or "farm" => ReadField<TextBox>(customization, "farmnameBox"),
+            "favorite_thing" or "favorite" or "fav" => ReadField<TextBox>(customization, "favThingBox"),
+            _ => null,
+        };
+
+        if (box == null)
+            return (false, $"unknown field '{field}' (use name, farm_name, favorite_thing)");
+
+        box.Text = ClampField(value);
+        return (true, $"{field} = '{box.Text}'");
+    }
+
+
+    /// <summary>
+    /// Adjusts the look of the character being designed. The streamer AI picks these values;
+    /// they are applied to the menu's display farmer, which is what character creation saves.
+    /// </summary>
+    private static (bool, string) SetAppearance(JsonElement root)
+    {
+        if (UiStateBuilder.GetEffectiveMenu() is not CharacterCustomization customization)
+            return (false, "no character creation menu open");
+
+        Farmer? farmer;
+        try { farmer = customization.GetOrCreateDisplayFarmer(); }
+        catch (Exception ex) { return (false, $"could not get the display farmer: {ex.Message}"); }
+
+        if (farmer == null)
+            return (false, "the display farmer is not available yet");
+
+        var applied = new List<string>();
+
+        if (TryGetText(root, "gender", out string gender))
+        {
+            string g = gender.ToLowerInvariant();
+            if (g.StartsWith('m')) { farmer.changeGender(true); applied.Add("gender=male"); }
+            else if (g.StartsWith('f')) { farmer.changeGender(false); applied.Add("gender=female"); }
+        }
+
+        if (TryGetInt(root, "skin", out int skin)) { farmer.changeSkinColor(skin, true); applied.Add($"skin={skin}"); }
+        if (TryGetInt(root, "hair_style", out int hair)) { farmer.changeHairStyle(hair); applied.Add($"hair_style={hair}"); }
+        if (TryGetInt(root, "accessory", out int accessory)) { farmer.changeAccessory(accessory); applied.Add($"accessory={accessory}"); }
+
+        if (TryGetText(root, "shirt", out string shirt)) { farmer.changeShirt(shirt); applied.Add($"shirt={shirt}"); }
+        if (TryGetText(root, "pants", out string pants)) { farmer.changePantStyle(pants); applied.Add($"pants={pants}"); }
+
+        if (TryGetColor(root, "hair_color", out Color hairColor)) { farmer.changeHairColor(hairColor); applied.Add($"hair_color={Rgb(hairColor)}"); }
+        if (TryGetColor(root, "eye_color", out Color eyeColor)) { farmer.changeEyeColor(eyeColor); applied.Add($"eye_color={Rgb(eyeColor)}"); }
+        if (TryGetColor(root, "pants_color", out Color pantsColor)) { farmer.changePantsColor(pantsColor); applied.Add($"pants_color={Rgb(pantsColor)}"); }
+
+        return (true, applied.Count == 0
+            ? "no appearance fields supplied"
+            : "applied: " + string.Join(", ", applied));
+    }
+
+
+    private static string Rgb(Color c) => $"{c.R},{c.G},{c.B}";
+
+
+    private static bool TryGetInt(JsonElement root, string name, out int value)
+    {
+        value = 0;
+        return root.TryGetProperty(name, out JsonElement el)
+            && el.ValueKind == JsonValueKind.Number
+            && el.TryGetInt32(out value);
+    }
+
+
+    private static bool TryGetText(JsonElement root, string name, out string value)
+    {
+        value = "";
+        if (root.TryGetProperty(name, out JsonElement el) && el.ValueKind == JsonValueKind.String)
+        {
+            value = el.GetString() ?? "";
+            return value.Length > 0;
+        }
+        return false;
+    }
+
+
+    /// <summary>Accepts [r,g,b] or "r,g,b".</summary>
+    private static bool TryGetColor(JsonElement root, string name, out Color color)
+    {
+        color = Color.White;
+
+        if (!root.TryGetProperty(name, out JsonElement el))
+            return false;
+
+        if (el.ValueKind == JsonValueKind.Array && el.GetArrayLength() == 3)
+        {
+            color = new Color(
+                Math.Clamp(el[0].GetInt32(), 0, 255),
+                Math.Clamp(el[1].GetInt32(), 0, 255),
+                Math.Clamp(el[2].GetInt32(), 0, 255));
+            return true;
+        }
+
+        if (el.ValueKind == JsonValueKind.String)
+        {
+            string[] parts = (el.GetString() ?? "").Split(',');
+            if (parts.Length == 3
+                && byte.TryParse(parts[0], out byte r)
+                && byte.TryParse(parts[1], out byte g)
+                && byte.TryParse(parts[2], out byte b))
+            {
+                color = new Color(r, g, b);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    /// <summary>Character names are capped in the UI; keep programmatic input inside the same limit.</summary>
+    private static string ClampField(string value)
+    {
+        string trimmed = value.Trim();
+        return trimmed.Length <= 15 ? trimmed : trimmed[..15];
+    }
+
+
+    private static string GetString(JsonElement root, string property)
+    {
+        return root.TryGetProperty(property, out JsonElement el) && el.ValueKind == JsonValueKind.String
+            ? el.GetString() ?? ""
+            : "";
+    }
+
+
+    /// <summary>Selects one of the responses on a question dialogue.</summary>
+    private static (bool, string) DialogueChoose(JsonElement root)
+    {
+        if (Game1.activeClickableMenu is not DialogueBox box)
+            return (false, "no dialogue box open");
+
+        if (!root.TryGetProperty("index", out JsonElement indexEl))
+            return (false, "missing 'index'");
+
+        int index = indexEl.GetInt32();
+        Response[]? responses = box.responses;
+        if (responses == null || responses.Length == 0)
+            return (false, "this dialogue has no responses to choose");
+
+        if (index < 0 || index >= responses.Length)
+            return (false, $"index {index} out of range (0..{responses.Length - 1})");
+
+        box.selectedResponse = index;
+
+        // Prefer clicking the response's own component; fall back to confirming with Enter.
+        List<ClickableComponent>? responseComponents = box.responseCC;
+        if (responseComponents != null && index < responseComponents.Count && responseComponents[index] != null)
+        {
+            int cx = responseComponents[index].bounds.Center.X;
+            int cy = responseComponents[index].bounds.Center.Y;
+            box.receiveLeftClick(cx, cy, true);
+        }
+        else
+        {
+            box.receiveKeyPress(Microsoft.Xna.Framework.Input.Keys.Enter);
+        }
+
+        return (true, $"chose response {index}: {responses[index].responseText}");
+    }
+
+
+    /// <summary>Advances or closes a non-question dialogue.</summary>
+    private static (bool, string) DialogueAdvance()
+    {
+        if (Game1.activeClickableMenu is not DialogueBox box)
+            return (false, "no dialogue box open");
+
+        if (box.responses is { Length: > 0 })
+            return (false, "dialogue is waiting for a choice; use dialogue_choose {index}");
+
+        box.receiveKeyPress(Microsoft.Xna.Framework.Input.Keys.Enter);
+
+        // If the key press did not move it along, click inside the box.
+        if (ReferenceEquals(Game1.activeClickableMenu, box))
+        {
+            int cx = box.x + box.width / 2;
+            int cy = box.y + box.height - 24;
+            box.receiveLeftClick(cx, cy, true);
+        }
+
+        return (true, "dialogue advanced");
+    }
+
+
+    private static (bool, string) RequireFreePlayer()
+    {
+        if (Game1.player == null)
+            return (false, "no active save");
+        if (GameQuery.IsPlayerFree())
+            return (true, "");
+
+        return (false, $"player not free: {GameQuery.BlockedReason()}");
+    }
+}
+
+
+/// <summary>
+/// Steps the farmer every game tick while a move action is active.
+/// We set the movement direction and let the farmer's own movement code run one step,
+/// so collision, water and animation all behave normally.
+/// </summary>
+public static class MovementController
+{
+    private static bool _active;
+    private static long _stopAtTick;
+    private static int _direction; // 0=up 1=right 2=down 3=left
+
+    public static bool IsActive => _active;
+
+    public static void Start(string direction, int durationMs)
+    {
+        _direction = direction switch
+        {
+            "up" => 0,
+            "right" => 1,
+            "down" => 2,
+            "left" => 3,
+            _ => 2,
+        };
+
+        long now = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0;
+        _stopAtTick = now + (durationMs * TimeSpan.TicksPerMillisecond);
+        _active = true;
+    }
+
+    public static void Stop()
+    {
+        _active = false;
+        ClearFlags();
+    }
+
+    public static void OnUpdateTicked()
+    {
+        if (!_active)
+            return;
+
+        if (!GameQuery.IsPlayerFree())
+        {
+            Stop();
+            return;
+        }
+
+        long now = Game1.currentGameTime?.TotalGameTime.Ticks ?? 0;
+        if (now >= _stopAtTick)
+        {
+            Stop();
+            return;
+        }
+
+        Farmer f = Game1.player;
+        GameTime? time = Game1.currentGameTime;
+        GameLocation? loc = Game1.currentLocation;
+        if (f == null || time == null || loc == null)
+        {
+            Stop();
+            return;
+        }
+
+        SetDirection(f, true);
+        try
+        {
+            f.MovePosition(time, Game1.viewport, loc);
+        }
+        finally
+        {
+            ClearFlags(f);
+        }
+    }
+
+    private static void SetDirection(Farmer f, bool value)
+    {
+        switch (_direction)
+        {
+            case 0: f.SetMovingUp(value); break;
+            case 1: f.SetMovingRight(value); break;
+            case 2: f.SetMovingDown(value); break;
+            case 3: f.SetMovingLeft(value); break;
+        }
+    }
+
+    private static void ClearFlags(Farmer f)
+    {
+        f.SetMovingUp(false);
+        f.SetMovingRight(false);
+        f.SetMovingDown(false);
+        f.SetMovingLeft(false);
+    }
+
+    private static void ClearFlags()
+    {
+        if (Game1.player != null)
+            ClearFlags(Game1.player);
+    }
+}
+
+
+/// <summary>Maps friendly key names to Win32 virtual-key codes and injects them.</summary>
+public static class NativeInput
+{
+    private const uint KEYEVENTF_KEYUP = 0x0002;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+    private static readonly Dictionary<string, byte> KeyMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["escape"] = 0x1B, ["esc"] = 0x1B,
+        ["space"] = 0x20,
+        ["enter"] = 0x0D, ["return"] = 0x0D,
+        ["tab"] = 0x09,
+        ["backspace"] = 0x08,
+        ["shift"] = 0x10,
+        ["control"] = 0x11, ["ctrl"] = 0x11,
+        ["up"] = 0x26, ["down"] = 0x28, ["left"] = 0x25, ["right"] = 0x27,
+        ["e"] = 0x45, ["f"] = 0x46, ["q"] = 0x51, ["r"] = 0x52, ["w"] = 0x57,
+        ["a"] = 0x41, ["s"] = 0x53, ["d"] = 0x44, ["c"] = 0x43, ["b"] = 0x42,
+        ["y"] = 0x59, ["n"] = 0x4E, ["m"] = 0x4D, ["i"] = 0x49, ["j"] = 0x4A,
+        ["k"] = 0x4B, ["l"] = 0x4C, ["o"] = 0x4F, ["p"] = 0x50, ["t"] = 0x54,
+        ["u"] = 0x55, ["v"] = 0x56, ["x"] = 0x58, ["g"] = 0x47, ["h"] = 0x48,
+        ["1"] = 0x31, ["2"] = 0x32, ["3"] = 0x33, ["4"] = 0x34, ["5"] = 0x35,
+        ["6"] = 0x36, ["7"] = 0x37, ["8"] = 0x38, ["9"] = 0x39, ["0"] = 0x30,
+    };
+
+    public static bool TryGetVirtualKey(string key, out byte vk) => KeyMap.TryGetValue(key, out vk);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    /// <summary>Brings the game window to the front, which keyboard input needs.</summary>
+    public static bool FocusGameWindow()
+    {
+        IntPtr handle = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+        if (handle == IntPtr.Zero)
+            return false;
+
+        const int SW_RESTORE = 9;
+        ShowWindow(handle, SW_RESTORE);
+        return SetForegroundWindow(handle);
+    }
+
+    public static void PressAndRelease(byte vk)
+    {
+        keybd_event(vk, 0, 0, UIntPtr.Zero);
+        Thread.Sleep(30);
+        keybd_event(vk, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+    }
+}
