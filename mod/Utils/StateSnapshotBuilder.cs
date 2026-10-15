@@ -58,6 +58,9 @@ public static class StateSnapshotBuilder
         try { snap.Quests = BuildQuests(); }
         catch (Exception ex) { monitor.Log($"BuildQuests failed: {ex}", LogLevel.Error); }
 
+        try { snap.Chore = ChoreController.Status(); }
+        catch (Exception ex) { monitor.Log($"Chore status failed: {ex}", LogLevel.Error); }
+
         try { snap.Ui = UiStateBuilder.Build(monitor); }
         catch (Exception ex) { monitor.Log($"BuildUi failed: {ex}", LogLevel.Error); }
 
@@ -101,6 +104,8 @@ public static class StateSnapshotBuilder
             Season = Game1.currentSeason,
             Year = Game1.year,
             TimeOfDay = Game1.timeOfDay,
+            DayOfWeek = SafeDayOfWeek(),
+            TotalDays = SafeTotalDays(),
             IsRaining = Game1.isRaining,
             IsLightning = Game1.isLightning,
             IsSnowing = Game1.isSnowing,
@@ -114,8 +119,40 @@ public static class StateSnapshotBuilder
             IsGamePaused = Game1.paused,
             IsPlayerFree = GameQuery.IsPlayerFree(),
             HasSave = Game1.player != null && Game1.currentLocation != null,
+            MinutesUntilMorning = MinutesUntilTwoAm(),
             BlockedReason = GameQuery.BlockedReason(),
         };
+    }
+
+
+    /// <summary>The game's own weekday. Read from its calendar rather than computed, so mods that shift the calendar stay correct.</summary>
+    private static string SafeDayOfWeek()
+    {
+        try { return Game1.Date.DayOfWeek.ToString(); }
+        catch { return ""; }
+    }
+
+
+    private static int SafeTotalDays()
+    {
+        try { return Game1.Date.TotalDays; }
+        catch { return 0; }
+    }
+
+
+    /// <summary>In-game minutes left before the 2:00 AM collapse.</summary>
+    private static int MinutesUntilTwoAm()
+    {
+        int now = Game1.timeOfDay;
+        if (now < 600)
+            return 0;
+
+        const int collapse = 2600;
+        int left = collapse - now;
+        if (left <= 0)
+            return 0;
+
+        return (left / 100) * 60 + (left % 100);
     }
 
 
@@ -127,7 +164,7 @@ public static class StateSnapshotBuilder
 
         (int tx, int ty) = GameQuery.TileOf(f);
 
-        return new PlayerInfo
+        var info = new PlayerInfo
         {
             Name = f.Name ?? "",
             Money = f.Money,
@@ -144,9 +181,31 @@ public static class StateSnapshotBuilder
             IsRidingHorse = f.isRidingHorse(),
             SelectedSlotIndex = f.CurrentToolIndex,
             IsAutoMoving = f.controller != null,
+            IsMoving = f.isMoving(),
             BedTile = new[] { (int)f.mostRecentBed.X, (int)f.mostRecentBed.Y },
             CurrentItem = f.CurrentItem != null ? ToItemInfo(f.CurrentItem) : null,
         };
+
+        // The tile the farmer is facing right now - what an action would act on.
+        GameLocation? here = Game1.currentLocation;
+        if (here != null)
+        {
+            try { info.TileInFront = WorldMapper.BuildTileInFront(here, f); }
+            catch { info.TileInFront = null; }
+        }
+
+        // Pathfinding progress. A progress value that stops rising is how an agent tells
+        // "stuck on something" apart from "still walking".
+        if (f.controller != null && ActionProcessor.PlannedPath is { } route)
+        {
+            int remaining = f.controller.pathToEndPoint?.Count ?? 0;
+            info.PathTargetX = route.TargetX;
+            info.PathTargetY = route.TargetY;
+            info.PathLength = route.PlannedSteps;
+            info.PathProgress = Math.Max(0, route.PlannedSteps - remaining);
+        }
+
+        return info;
     }
 
 
@@ -397,13 +456,32 @@ public static class StateSnapshotBuilder
             try { objective = Truncate(quest.currentObjective, DescriptionMaxLen); }
             catch { objective = ""; }
 
-            result.Add(new QuestInfo
+            var info = new QuestInfo
             {
                 Name = quest.GetName(),
                 Objective = objective,
                 IsCompleted = quest.completed.Value,
-            });
+            };
+
+            try { info.Id = quest.id?.Value ?? ""; } catch { }
+            try { info.Accepted = quest.accepted.Value; } catch { }
+            try { info.IsDaily = quest.dailyQuest.Value; } catch { }
+            try { info.DaysLeft = quest.daysLeft.Value; } catch { }
+
+            result.Add(info);
         }
+
+        // The first unfinished quest is the one the player should be working on. Without this
+        // marker an agent has no thread to follow and just wanders the farm.
+        foreach (QuestInfo info in result)
+        {
+            if (info.IsCompleted || !info.Accepted)
+                continue;
+
+            info.IsPrimary = true;
+            break;
+        }
+
         return result;
     }
 

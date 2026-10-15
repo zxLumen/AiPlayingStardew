@@ -277,6 +277,43 @@ class MemoryStore:
             parts.extend(lessons)
         return "\n".join(parts)
 
+    # -- day records (the track record) ------------------------------------
+
+    def days_path(self) -> Path:
+        return self.base / "days.jsonl"
+
+    def record_day(self, record: dict) -> None:
+        """Append one finished day to the track record."""
+        with self.days_path().open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+    def recent_days(self, limit: int = 5) -> str:
+        """Short text summary of recent days, used to plan the next one."""
+        path = self.days_path()
+        if not path.exists():
+            return ""
+
+        try:
+            lines = [ln for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+        except OSError:
+            return ""
+
+        out: list[str] = []
+        for line in lines[-limit:]:
+            try:
+                day = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            goals = "; ".join(day.get("plan") or [])[:110]
+            out.append(
+                f"- {day.get('label', '?')}: score {day.get('score')} "
+                f"({day.get('verdict', '?')}) - {str(day.get('why', ''))[:110]}"
+                + (f" | planned: {goals}" if goals else "")
+            )
+
+        return "\n".join(out)
+
     # -- calibration -------------------------------------------------------
 
     def load_calibration(self) -> list[dict]:

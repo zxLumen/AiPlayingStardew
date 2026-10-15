@@ -1,0 +1,24 @@
+{
+  "tally": {
+    "big_debris|go_to": {
+      "ok": 0,
+      "fail": 1
+    },
+    "forage|go_to": {
+      "ok": 0,
+      "fail": 2
+    },
+    "forage|interact_at": {
+      "ok": 2,
+      "fail": 0
+    },
+    "stone|use_tool_at": {
+      "ok": 0,
+      "fail": 5
+    },
+    "weed|go_to": {
+      "ok": 0,
+      "fail": 2
+    }
+  }
+}

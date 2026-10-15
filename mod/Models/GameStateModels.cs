@@ -40,7 +40,9 @@ public class GameStateSnapshot
     [JsonPropertyName("nearby_objects")] public List<WorldObjectInfo> NearbyObjects { get; set; } = new();
     [JsonPropertyName("crops")] public List<CropInfo> Crops { get; set; } = new();
     [JsonPropertyName("quests")] public List<QuestInfo> Quests { get; set; } = new();
-    [JsonPropertyName("ui")] public UiInfo? Ui { get; set; }
+
+    /// <summary>Status of the running chore (reflex macro), or "idle". While one runs, don't interfere.</summary>
+    [JsonPropertyName("chore")] public string Chore { get; set; } = "idle";    [JsonPropertyName("ui")] public UiInfo? Ui { get; set; }
     [JsonPropertyName("display")] public DisplayInfo? Display { get; set; }
 }
 
@@ -51,6 +53,12 @@ public class GameInfo
     [JsonPropertyName("season")] public string Season { get; set; } = "";
     [JsonPropertyName("year")] public int Year { get; set; }
     [JsonPropertyName("time_of_day")] public int TimeOfDay { get; set; }
+
+    /// <summary>The game's own weekday, straight from its calendar (shops close on certain days).</summary>
+    [JsonPropertyName("day_of_week")] public string DayOfWeek { get; set; } = "";
+
+    /// <summary>Total days elapsed since the save began - useful for "how far in are we".</summary>
+    [JsonPropertyName("total_days")] public int TotalDays { get; set; }
     [JsonPropertyName("is_raining")] public bool IsRaining { get; set; }
     [JsonPropertyName("is_lightning")] public bool IsLightning { get; set; }
     [JsonPropertyName("is_snowing")] public bool IsSnowing { get; set; }
@@ -218,9 +226,16 @@ public class CropInfo
 
 public class QuestInfo
 {
+    [JsonPropertyName("id")] public string Id { get; set; } = "";
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("objective")] public string Objective { get; set; } = "";
     [JsonPropertyName("is_completed")] public bool IsCompleted { get; set; }
+    [JsonPropertyName("accepted")] public bool Accepted { get; set; }
+    [JsonPropertyName("is_daily")] public bool IsDaily { get; set; }
+    [JsonPropertyName("days_left")] public int DaysLeft { get; set; }
+
+    /// <summary>True for the first unfinished quest - the one the player should be working on.</summary>
+    [JsonPropertyName("is_primary")] public bool IsPrimary { get; set; }
 }
 
 

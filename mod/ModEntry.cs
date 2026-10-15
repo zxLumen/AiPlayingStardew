@@ -57,6 +57,9 @@ public class ModEntry : Mod
         MovementController.OnUpdateTicked();
         ActionProcessor.ProcessPendingNewGame(Monitor);
         ActionProcessor.ProcessPendingClicks(Monitor);
+        ActionProcessor.ProcessPendingWork(Monitor);
+        ActionProcessor.ProcessPendingSleep(Monitor);
+        ChoreController.OnUpdateTicked();
         TrySkipTitleIntro();
         KeepGameRunning();
 

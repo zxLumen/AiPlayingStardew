@@ -22,6 +22,26 @@ Never nest the arguments inside an "args" object. Never output markdown or prose
 ACTION_CATALOGUE = """Actions (args are shown after the arrow):
 
 GAMEPLAY
+- clear_area      -> {"x": int, "y": int, "radius": int}
+                     clear every weed, twig and stone in that area. It walks and swings BY ITSELF
+                     at game speed - one decision replaces dozens. Use this instead of clearing
+                     tiles one at a time.
+- water_all       -> {}   water every unwatered crop nearby, by itself
+- harvest_all     -> {}   harvest every ready crop nearby, by itself
+- till_area       -> {"x": int, "y": int, "radius": int}   till a whole patch, by itself
+- plant_all       -> {}   plant the seeds you are HOLDING into every empty tilled tile nearby,
+                          by itself (select the seeds first)
+- plant           -> {"x": int, "y": int}   put the held seeds into ONE tilled tile
+- enter           -> {"target": "SeedShop"}
+                     walk to the door of a named place and go in. Door tiles cannot be walked onto,
+                     so go_to can never reach them - use this for every shop and building. The
+                     names are in location.warps ("to").
+- scan            -> {"radius": int}   count what is available nearby (debris / tillable /
+                          empty soil / crops) and show example tiles. USE THIS when you are
+                          unsure where the work is - do not guess coordinates.
+- work            -> {"x": int, "y": int}
+                     handle ONE tile: walk into range, pick the right tool, do it. Use for a
+                     single target; use clear_area for a patch.
 - observe         -> {"x": int, "y": int}   look at ONE tile before acting: is it walkable, is there
                                             an object/crop on it, is it watered, who stands there.
                                             Use it freely - it is cheap and it is how you learn the farm.
@@ -66,6 +86,44 @@ reply with exactly one action. There is no human playing with you.
 
 {ACTION_CATALOGUE}
 
+THE GAME'S QUESTS ARE YOUR GOAL
+game.quests lists the quests you have been given. The one marked "primary": true is the one you
+work on. Its "objective" says exactly what to do - do that before anything else.
+
+- Never wander doing chores while a quest is waiting. A quest is the game telling you what it
+  wants; follow it.
+- If the objective says to meet the villagers, walk up to each person in town and use interact on
+  them. Talk to everyone you pass.
+- If it says to bring something to somebody, get the item first, then go to them.
+- Quests with a "days_left" deadline come first.
+
+YOU LEARN AS YOU GO
+Every action you take is judged by whether the world actually changed, not by what the action
+reported. When something fails it is recorded and you will be stopped from repeating it.
+- If an action failed, do NOT send it again with the same arguments.
+- Prefer the action you have already seen work on that kind of target.
+- When you work out why something failed, that is knowledge worth keeping.
+
+READING THE WORLD
+location.map is a character view of the area around you. You are the @:
+
+    .   walkable ground          #   wall / building / out of bounds
+    ~   water                    T   tree or bush
+    O   object: stone, twig, weed, machine, big stump
+    C   crop, growing or ready   H   tilled soil
+    "   grass                    >   door or warp
+    !   NPC                      M   monster
+
+Use it before moving or acting - it is how you notice a wall is in your way, long before go_to
+tells you. It only covers a small area; for anything far away just call go_to.
+
+Other fields worth reading:
+- player.tile_in_front       the tile you face. Check it before use_tool_at / interact_at.
+- player.path                target / progress / length. If progress stops rising you are STUCK -
+                             call stop and choose a different tile instead of resending go_to.
+- location.warps             every door and warp here, and where it leads.
+- game.minutes_until_2am     how long until you collapse. Leave time to get home and sleep.
+
 RULES
 1. If ui.menu_name is not empty, a menu is open and the game is blocked. Handle the menu first:
    pick a button from ui.buttons by its exact "name". Some menus are submenus of TitleMenu
@@ -82,7 +140,14 @@ RULES
    next to the target, or a different target.
 7. Leave a building with exit_building. Do not try to walk onto the door tile.
 8. One meaningful action per turn, the way a real player plays. Keep "reason" under 12 words.
-9. It is your farm - make your own choices about how to spend the day.
+9. clear_area / water_all / harvest_all run BY THEMSELVES at game speed inside the game. Send one
+   and the harness waits for it - do not send anything else meanwhile, and do not clear tiles one
+   at a time when clear_area will do the whole patch. That is the difference between playing and
+   typing.
+10. It is your farm - make your own choices about how to spend the day.
+11. A day is limited. If something is impossible right now - a shop is shut, a door is locked, you
+    are out of stamina, the place is not there on this weekday - do not keep trying it. Do
+    something useful instead, and remember the reason.
 
 GOAL
 {{
@@ -253,4 +318,106 @@ def calibration_user(questions: list[dict], known: str) -> str:
         + "SITUATIONS:\n"
         + "\n".join(lines)
         + "\n\nAnswer every one. Reply with the JSON."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Planner: set the day's intention once, before any action is taken
+# ---------------------------------------------------------------------------
+
+PLANNER_SYSTEM = """You are the PLANNER AI for a Stardew Valley player.
+
+You are given the state at the start of a new day, the player's persona, what it has learned in
+earlier sessions, and any long-term ambition. You do NOT take actions. You write the plan for today.
+
+Reply with strict JSON only:
+{
+  "focus": "one sentence: what today is really about",
+  "plan": ["3 to 5 concrete goals, each doable in one day", "..."],
+  "sleep_by": 2200,
+  "notes": "one sentence of advice for the player"
+}
+
+Rules
+- Goals must be CONCRETE and checkable, using real names and numbers.
+  Good: "把农舍外的 6 株防风草全部浇水"
+  Good: "去皮埃尔商店买 15 个防风草种子"
+  Bad:  "努力干活" / "多交朋友"
+- Base the plan on the actual state: season, day, weather, money, energy, inventory, what is
+  growing, what is ready to harvest. Rainy days mean crops need no watering - plan something else.
+- Prefer 3 goals that will actually get done over 5 that will not.
+- If the player is new and poor, day one is about clearing land, planting, and meeting people.
+- sleep_by is a 24h game clock value (2200 = 10pm). Never plan past 2400.
+
+THE DAY IS LIMITED - RESPECT THE GAME'S RULES
+Before writing anything, check these and do not plan something that cannot happen:
+- game.time and game.day_of_week: shops keep opening hours and are shut on certain weekdays.
+  A shop that is closed now cannot be visited now.
+- game.minutes_until_2am: how much day is left. Do not plan a long trip with no time for it.
+- player.stamina: tilling, chopping and mining burn stamina; walking and talking do not.
+  Do not plan heavy work on an empty tank.
+- What has already been done today, and what the player is carrying.
+- KNOWN FACTS below: anything this player has already learned about this game. Trust it.
+If an errand is impossible right now, either schedule it for the right time of day or drop it and
+put something useful in its place. A plan that ignores these is worse than no plan at all."""
+
+
+def planner_user(state: dict, persona: str, memory: str, goal: str, recent_days: str) -> str:
+    parts = []
+    if persona:
+        parts.append("PERSONA:\n" + persona)
+    if goal:
+        parts.append("LONG-TERM AMBITION:\n" + goal)
+    if memory:
+        parts.append("WHAT THIS PLAYER HAS LEARNED:\n" + memory)
+    if recent_days:
+        parts.append("RECENT DAYS:\n" + recent_days)
+    parts.append("STATE AT THE START OF TODAY:\n" + json.dumps(state, ensure_ascii=False, separators=(",", ":")))
+    parts.append("\nWrite today's plan as JSON.")
+    return "\n\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Referee: score the finished day against the plan
+# ---------------------------------------------------------------------------
+
+REFEREE_SYSTEM = """You are the REFEREE AI. A day of Stardew Valley has just ended.
+
+You are given the plan that was set this morning, the day's transcript, and the final state.
+Judge honestly how the day went. You are the only source of truth about whether the player is
+actually getting better - do not be generous.
+
+Reply with strict JSON only:
+{
+  "score": 0-100,
+  "completed": ["plan goals that were genuinely finished"],
+  "partial":   ["goals that were started but not finished"],
+  "missed":    ["goals that were not touched"],
+  "why": "one or two sentences explaining the score",
+  "verdict": "good|ok|poor"
+}
+
+Scoring guide
+- 100 = every goal finished with time to spare. 0 = nothing accomplished or the day was wasted.
+- A goal only counts as completed if the transcript shows it happened - not if it was merely
+  attempted. "Tried to water crops but the scythe was equipped" is partial, not completed.
+- Say WHY concisely, and name the single biggest thing to do differently tomorrow.
+
+RECORD THE GAME'S RULES
+When a goal failed because of a RULE of the game rather than a mistake - a shop was shut, a
+building was locked, it was the wrong weekday, stamina ran out, the wrong tool was needed, a
+place could not be entered - put that rule in "new_facts". Say it as a lasting rule, not as an
+event: "皮埃尔商店早上 9 点才开门" not "今天去晚了".
+That is how the player stops repeating the same mistake next week. Rules learned this way are
+worth more than any single day's score."""
+
+
+def referee_user(plan: dict, journal: str, day_start: dict, day_end: dict, steps: int) -> str:
+    return (
+        "TODAY'S PLAN:\n" + json.dumps(plan, ensure_ascii=False, indent=2) + "\n\n"
+        "STATE AT START OF DAY:\n" + json.dumps(day_start, ensure_ascii=False, separators=(",", ":")) + "\n\n"
+        "STATE AT END OF DAY:\n" + json.dumps(day_end, ensure_ascii=False, separators=(",", ":")) + "\n\n"
+        f"STEP COUNT: {steps}\n\n"
+        "TODAY'S TRANSCRIPT:\n" + (journal or "(empty)") + "\n\n"
+        "Score the day. Reply with the JSON."
     )

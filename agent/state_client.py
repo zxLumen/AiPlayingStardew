@@ -16,7 +16,9 @@ import httpx
 class StateClient:
     def __init__(self, base_url: str = "http://127.0.0.1:8787", timeout_s: float = 15.0) -> None:
         self.base_url = base_url.rstrip("/")
-        self._client = httpx.Client(timeout=timeout_s)
+        # trust_env=False: never route a localhost request through a system proxy. A proxy in the
+        # middle answers 502 for a target it cannot reach, which looks exactly like the game died.
+        self._client = httpx.Client(timeout=timeout_s, trust_env=False)
 
     # -- lifecycle ---------------------------------------------------------
 
@@ -36,15 +38,35 @@ class StateClient:
         resp.raise_for_status()
         return resp.json()
 
-    def state(self) -> dict:
-        resp = self._client.get(f"{self.base_url}/state")
-        resp.raise_for_status()
-        return resp.json()
+    def state(self, retries: int = 3) -> dict:
+        """Read the state, tolerating a brief blip so one dropped request cannot kill a day."""
+        last: Exception | None = None
+
+        for attempt in range(retries + 1):
+            try:
+                resp = self._client.get(f"{self.base_url}/state")
+                resp.raise_for_status()
+                return resp.json()
+            except Exception as exc:
+                last = exc
+                time.sleep(0.4 * (attempt + 1))
+
+        raise RuntimeError(f"could not read /state after {retries + 1} tries: {last}")
 
     def action(self, action: str, **args: object) -> dict:
         """POST one action. Returns the mod's result envelope (ok/detail)."""
         payload = {"action": action, **args}
-        resp = self._client.post(f"{self.base_url}/action", json=payload)
+        last: Exception | None = None
+
+        for attempt in range(3):
+            try:
+                resp = self._client.post(f"{self.base_url}/action", json=payload)
+                break
+            except Exception as exc:
+                last = exc
+                time.sleep(0.4 * (attempt + 1))
+        else:
+            return {"ok": False, "action": action, "detail": f"transport error: {last}"}
 
         # A rejected action comes back as 400 with a JSON body, so parse either way.
         try:
@@ -82,14 +104,25 @@ class StateClient:
             time.sleep(interval_s)
         return False
 
+    def wait_until_chore_done(self, timeout_s: float = 300.0, poll_s: float = 1.0) -> dict:
+        """Wait for a reflex routine (clear_area / water_all / harvest_all) to finish.
+
+        The routine runs inside the mod at game speed, so this is a few seconds per tile and costs
+        nothing but HTTP polling - no model calls while the farmer works.
+        """
+        deadline = time.monotonic() + timeout_s
+        state = self.state()
+
+        while time.monotonic() < deadline:
+            if (state.get("chore") or "idle") == "idle":
+                break
+            time.sleep(poll_s)
+            state = self.state()
+
+        return state
+
     def wait_until_settled(self, timeout_s: float = 12.0, poll_s: float = 0.2,
                            grace_s: float = 0.15) -> dict:
-        """Poll /state (cheap HTTP, never an LLM call) until the farmer has finished acting.
-
-        This is what replaces "ask the model whether I arrived yet". Awaiting an action costs
-        milliseconds here instead of a whole model round trip, which is the difference between
-        one action per minute and one action per few seconds.
-        """
         deadline = time.monotonic() + timeout_s
         state = self.state()
 

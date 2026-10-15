@@ -33,6 +33,9 @@ def compact_state(state: dict) -> dict:
             "season": game.get("season"),
             "year": game.get("year"),
             "time": game.get("time_of_day"),
+            "day_of_week": game.get("day_of_week"),
+            "total_days": game.get("total_days"),
+            "minutes_until_2am": game.get("minutes_until_morning"),
             "raining": game.get("is_raining"),
             "festival": game.get("is_festival"),
             "has_save": game.get("has_save"),
@@ -60,12 +63,47 @@ def compact_state(state: dict) -> dict:
         ],
     }
 
+    # What the farmer faces right now - the tile an action would act on.
+    front = player.get("tile_in_front")
+    if front:
+        compact["player"]["tile_in_front"] = {
+            k: front.get(k)
+            for k in ("x", "y", "passable", "water", "diggable", "object",
+                      "ground", "crop", "crop_ready", "watered", "character", "can_interact")
+            if front.get(k) not in (None, "", False, [])
+        }
+
+    # Route progress. A number that stops rising means "stuck", not "still walking".
+    if player.get("path_target_x") is not None:
+        compact["player"]["path"] = {
+            "target": [player.get("path_target_x"), player.get("path_target_y")],
+            "progress": player.get("path_progress"),
+            "length": player.get("path_length"),
+        }
+
+    # A reflex routine is running in the game right now - the agent must not pile actions on top.
+    chore = state.get("chore")
+    if chore and chore != "idle":
+        compact["chore_running"] = chore
+
     if location:
         compact["location"] = {
             "name": location.get("name"),
             "outdoors": location.get("is_outdoors"),
             "farm": location.get("is_farm"),
         }
+
+        # The character map - the only way the agent can see walls.
+        ascii_map = location.get("ascii_map")
+        if ascii_map:
+            compact["location"]["map"] = ascii_map
+
+        warps = location.get("warps") or []
+        if warps:
+            compact["location"]["warps"] = [
+                {"at": [w.get("x"), w.get("y")], "to": w.get("target"), "door": w.get("is_door")}
+                for w in warps[:10]
+            ]
 
     crops = [
         {"tile": [c.get("tile_x"), c.get("tile_y")], "name": c.get("name"),

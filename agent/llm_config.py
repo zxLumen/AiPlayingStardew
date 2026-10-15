@@ -88,6 +88,16 @@ def resolve(section: str = "llm") -> Endpoint:
     else:
         api_key, source = str(raw.get("api_key", "")).strip(), str(SECRETS_PATH)
 
+    # A section with no key of its own borrows the main one: one key covers the whole model family.
+    if not api_key and section != "llm":
+        try:
+            fallback_key = str(json.loads(SECRETS_PATH.read_text(encoding="utf-8"))
+                               .get("llm", {}).get("api_key", "")).strip()
+            if fallback_key:
+                api_key, source = fallback_key, f"{SECRETS_PATH} [llm]"
+        except (OSError, json.JSONDecodeError, AttributeError):
+            pass
+
     known = {
         "provider", "base_url", "api_key", "model", "headers",
         "temperature", "max_tokens", "timeout_s", "reasoning_effort",

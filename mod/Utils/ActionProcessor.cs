@@ -8,6 +8,8 @@ using StardewValley.Menus;
 using StardewValley.Objects;
 using StardewValley.Pathfinding;
 using StardewValley.TerrainFeatures;
+using StardewValley.Tools;
+using StateBridge.Models;
 using xTile.Dimensions;
 
 namespace StateBridge.Utils;
@@ -56,11 +58,24 @@ public static class ActionProcessor
                 if (action == "observe")
                     return Observe(root);
 
+                if (action == "scan")
+                    return Scan(root);
+
                 (bool ok, string detail) = action switch
                 {
                     "select_slot" => SelectSlot(root),
                     "use_tool" => UseTool(),
                     "use_tool_at" => UseToolAt(root),
+                    "work" => Work(root),
+                    "plant" => Plant(root),
+                    "enter" => Enter(root),
+                    "clear_area" => ClearArea(root),
+                    "till_area" => TillArea(root),
+                    "plant_all" => PlantAll(),
+                    "water_all" => WaterAll(),
+                    "harvest_all" => HarvestAll(),
+                    "chore" => ChoreStatus(),
+                    "cancel_chore" => ChoreCancel(),
                     "interact" => Interact(),
                     "interact_at" => InteractAt(root),
                     "exit_building" => ExitBuilding(),
@@ -153,6 +168,19 @@ public static class ActionProcessor
             ["location"] = location.Name,
             ["distance"] = Math.Abs(x - (int)Game1.player.Tile.X) + Math.Abs(y - (int)Game1.player.Tile.Y),
         };
+
+        // What this tile is, and what it would take to work it - so an agent knows if it is worth
+        // walking over and whether it has the right tool.
+        try
+        {
+            (string kind, Type? toolType) = ClassifyTarget(location, x, y);
+            info["kind"] = kind;
+            if (toolType != null)
+                info["needs_tool"] = FriendlyToolName(toolType);
+            if (toolType != null && FindToolIndex(Game1.player, toolType) < 0)
+                info["has_tool"] = false;
+        }
+        catch { }
 
         try { info["passable"] = location.isTilePassable(tile); } catch { }
         try { info["water"] = location.isWaterTile(x, y); } catch { }
@@ -279,6 +307,646 @@ public static class ActionProcessor
     }
 
 
+    /// <summary>
+    /// Does the right physical thing to a tile, picking and holding the correct tool itself.
+    ///
+    /// This is muscle memory, not judgement: a real player never thinks "a rock needs a pickaxe",
+    /// they just swing the pickaxe. Putting the game's own rules here means the agent spends its
+    /// (expensive, slow) reasoning on strategy instead of on re-learning the controls.
+    /// </summary>
+    private static (bool, string) Work(JsonElement root)
+    {
+        (bool ok, string why) = RequireFreePlayer();
+        if (!ok)
+            return (false, why);
+
+        if (!TryGetInt(root, "x", out int x) || !TryGetInt(root, "y", out int y))
+            return (false, "missing 'x' / 'y'");
+
+        GameLocation location = Game1.currentLocation;
+        Farmer farmer = Game1.player;
+
+        // Out of reach: walk into range first, then swing on arrival. Reporting success while
+        // standing five tiles away is exactly the kind of lie that makes an agent loop forever.
+        if (!IsAdjacent(farmer, x, y))
+        {
+            Point? stand = FindAdjacentWalkable(location, x, y);
+            if (stand == null)
+                return (false, $"there is nowhere to stand next to ({x},{y})");
+
+            try
+            {
+                var controller = new PathFindController(farmer, location, stand.Value, 2);
+                farmer.controller = controller;
+
+                if (controller.pathToEndPoint == null || controller.pathToEndPoint.Count == 0)
+                {
+                    farmer.controller = null;
+                    return (false, $"cannot reach a tile next to ({x},{y})");
+                }
+
+                PlannedPath = new PlannedRoute(stand.Value.X, stand.Value.Y, controller.pathToEndPoint.Count);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"could not walk to ({x},{y}): {ex.Message}");
+            }
+
+            _pendingAction = ("work", x, y);
+            return (true, $"walking into range of ({x},{y}) - it will be worked on arrival");
+        }
+
+        (string kind, Type? toolType) = ClassifyTarget(location, x, y);
+        FaceTowards(farmer, x, y);
+
+        switch (kind)
+        {
+            case "nothing":
+                return (false, $"nothing to work on at ({x},{y}) - use observe to see the tile");
+
+            case "ready_crop":
+            case "forage":
+            case "ready_machine":
+            case "bush":
+            {
+                bool handled = location.checkAction(new Location(x, y), Game1.viewport, farmer);
+                return (handled, handled
+                    ? $"{kind} handled at ({x},{y})"
+                    : $"{kind} at ({x},{y}) did not respond");
+            }
+
+            case "growing_crop":
+                return (true, $"the crop at ({x},{y}) is watered and still growing - nothing to do");
+        }
+
+        if (toolType == null)
+            return (false, $"do not know how to work a '{kind}' at ({x},{y})");
+
+        if (!HoldTool(farmer, toolType))
+            return (false, $"no {FriendlyToolName(toolType)} in the inventory for this {kind}");
+
+        if (farmer.CurrentItem is not Tool tool)
+            return (false, "could not hold the tool");
+
+        if (!farmer.CanMove)
+            return (false, $"the farmer cannot act right now ({GameQuery.BlockedReason()})");
+
+        // Swing it the way the game itself does. Tool.beginUsing() silently does nothing for the
+        // scythe (a MeleeWeapon), so go through the farmer's own use-tool routine instead: it
+        // works uniformly for every tool and runs the real animation and effect.
+        SwingTool(tool, location, x, y, farmer);
+        return (true, $"{kind}: swung {tool.DisplayName} at ({x},{y})");
+    }
+
+
+    /// <summary>
+    /// Actually applies a tool to a tile.
+    ///
+    /// beginUsing() only starts the swing animation - it does not apply any effect, and it returns
+    /// false outright for the scythe. DoFunction() is what really tills, waters, chops and clears.
+    /// Without it the farmer swings at thin air forever and nothing in the world changes.
+    /// </summary>
+    /// <summary>
+    /// Puts the held seed into a tilled tile.
+    ///
+    /// Planting is NOT checkAction and NOT a tool swing - that is why every earlier attempt failed
+    /// with "interacted -> False" or "current item is not a tool". The game plants through
+    /// HoeDirt.plant(), with the held item's own performUseAction() as a fallback.
+    /// </summary>
+    internal static bool PlantAt(GameLocation location, int x, int y, Farmer farmer)
+    {
+        if (farmer.CurrentItem is not StardewValley.Object held)
+            return false;
+
+        try
+        {
+            if (location.terrainFeatures.TryGetValue(new Vector2(x, y), out TerrainFeature? feature)
+                && feature is HoeDirt dirt)
+            {
+                try { if (dirt.plant(held.QualifiedItemId, farmer, false)) return true; }
+                catch { }
+
+                try { if (dirt.plant(held.ItemId, farmer, false)) return true; }
+                catch { }
+            }
+        }
+        catch { }
+
+        // Fallback: let the item act on whatever the farmer is facing.
+        try { return held.performUseAction(location); }
+        catch { return false; }
+    }
+
+
+    /// <summary>Plants the held seeds into one tile, walking into range first.</summary>
+    private static (bool, string) Plant(JsonElement root)
+    {
+        (bool ok, string why) = RequireFreePlayer();
+        if (!ok)
+            return (false, why);
+
+        if (!TryGetInt(root, "x", out int x) || !TryGetInt(root, "y", out int y))
+            return (false, "missing 'x' / 'y'");
+
+        if (Game1.player.CurrentItem is not StardewValley.Object held)
+            return (false, $"hold the seeds first - currently holding '{Game1.player.CurrentItem?.DisplayName ?? "nothing"}'");
+
+        if (Game1.player.CurrentItem is Tool)
+            return (false, "you are holding a tool - select the seeds first");
+
+        GameLocation location = Game1.currentLocation;
+
+        if (!IsAdjacent(Game1.player, x, y))
+        {
+            Point? stand = FindAdjacentWalkable(location, x, y);
+            if (stand == null)
+                return (false, $"there is nowhere to stand next to ({x},{y})");
+
+            try
+            {
+                var controller = new PathFindController(Game1.player, location, stand.Value, 2);
+                Game1.player.controller = controller;
+                if (controller.pathToEndPoint == null || controller.pathToEndPoint.Count == 0)
+                {
+                    Game1.player.controller = null;
+                    return (false, $"cannot reach a tile next to ({x},{y})");
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, $"could not walk to ({x},{y}): {ex.Message}");
+            }
+
+            _pendingAction = ("plant", x, y);
+            return (true, $"walking into range of ({x},{y}) - the seed goes in on arrival");
+        }
+
+        FaceTowards(Game1.player, x, y);
+        bool planted = PlantAt(location, x, y, Game1.player);
+
+        if (planted)
+            return (true, $"planted {held.DisplayName} at ({x},{y})");
+
+        // Say what the tile actually is, instead of asking a question the agent cannot answer.
+        (string kind, _) = ClassifyTarget(location, x, y);
+        return (false,
+            $"cannot plant at ({x},{y}) - that tile is '{kind}', not empty tilled soil. " +
+            "till it first (till_area) and confirm it became hoe_dirt.");
+    }
+
+
+    /// <summary>Diagnostic: what each collector actually sees, so a stuck chore can be explained.</summary>
+    private static (bool, string, Dictionary<string, object?>?) Scan(JsonElement root)
+    {
+        if (Game1.player == null || Game1.currentLocation == null)
+            return (false, "no active save", null);
+
+        GameLocation location = Game1.currentLocation;
+        int cx = (int)Game1.player.Tile.X;
+        int cy = (int)Game1.player.Tile.Y;
+        int radius = TryGetInt(root, "radius", out int r) ? Math.Clamp(r, 1, 40) : 12;
+
+        var data = new Dictionary<string, object?>
+        {
+            ["at"] = new[] { cx, cy },
+            ["location"] = location.Name,
+            ["radius"] = radius,
+            ["debris"] = ChoreController.CollectDebris(location, cx, cy, radius).Count,
+            ["tillable"] = ChoreController.CollectTillable(location, cx, cy, radius).Count,
+            ["empty_soil"] = ChoreController.CollectEmptySoil(location, cx, cy, radius).Count,
+            ["thirsty_crops"] = ChoreController.CollectThirstyCrops(location, cx, cy, radius).Count,
+            ["ready_crops"] = ChoreController.CollectReadyCrops(location, cx, cy, radius).Count,
+            ["chore"] = ChoreController.Status(),
+        };
+
+        // A few example tiles so the agent knows WHERE the work is, not just how much.
+        try
+        {
+            data["sample_empty_soil"] = ChoreController.CollectEmptySoil(location, cx, cy, radius)
+                .Take(5).Select(t => new[] { (int)t.X, (int)t.Y }).ToArray();
+            data["sample_tillable"] = ChoreController.CollectTillable(location, cx, cy, radius)
+                .Take(5).Select(t => new[] { (int)t.X, (int)t.Y }).ToArray();
+            data["sample_debris"] = ChoreController.CollectDebris(location, cx, cy, radius)
+                .Take(5).Select(t => new[] { (int)t.X, (int)t.Y }).ToArray();
+        }
+        catch { }
+
+        // Independent probe: can we read one tile's terrain feature at all?
+        try
+        {
+            bool found = location.terrainFeatures.TryGetValue(new Vector2(cx, cy), out TerrainFeature? here);
+            data["feature_here"] = found && here != null ? here.GetType().Name : "none";
+        }
+        catch (Exception ex) { data["feature_here"] = "threw: " + ex.Message; }
+
+        return (true, $"scan around ({cx},{cy}) r={radius}", data);
+    }
+
+
+    /// <summary>
+    /// Walks into a building or area by name (e.g. "SeedShop").
+    ///
+    /// Door tiles are not pathable, so go_to can never reach them - that is why the agent kept
+    /// bouncing off Pierre's shop. A door opens through checkAction, not by walking onto it.
+    /// </summary>
+    private static (bool, string) Enter(JsonElement root)
+    {
+        (bool ok, string why) = RequireFreePlayer();
+        if (!ok)
+            return (false, why);
+
+        string target = GetString(root, "target").Trim();
+        if (string.IsNullOrWhiteSpace(target))
+            return (false, "missing 'target' - the place to enter, e.g. SeedShop");
+
+        GameLocation location = Game1.currentLocation;
+
+        // Doors carry the destination name; find the first one that matches.
+        (int x, int y)? door = null;
+
+        try
+        {
+            foreach (KeyValuePair<Point, string> entry in location.doors.Pairs)
+            {
+                if (entry.Value != null &&
+                    entry.Value.Contains(target, StringComparison.OrdinalIgnoreCase))
+                {
+                    door = (entry.Key.X, entry.Key.Y);
+                    break;
+                }
+            }
+        }
+        catch { }
+
+        if (door == null)
+        {
+            // Warps can also lead into a building.
+            try
+            {
+                foreach (Warp warp in location.warps)
+                {
+                    if (warp?.TargetName != null &&
+                        warp.TargetName.Contains(target, StringComparison.OrdinalIgnoreCase))
+                    {
+                        door = (warp.X, warp.Y);
+                        break;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        if (door == null)
+        {
+            List<WarpInfo> known = WorldMapper.BuildWarps(location);
+            string names = string.Join(", ",
+                known.Select(w => w.Target).Where(t => !string.IsNullOrWhiteSpace(t)).Distinct().Take(12));
+            return (false, $"nothing here leads to '{target}'. Known exits: {names}");
+        }
+
+        (int dx, int dy) = door.Value;
+
+        if (!IsAdjacent(Game1.player, dx, dy))
+        {
+            Point? stand = FindAdjacentWalkable(location, dx, dy);
+            if (stand == null)
+                return (false, $"nowhere to stand next to the door at ({dx},{dy})");
+
+            try
+            {
+                var controller = new PathFindController(Game1.player, location, stand.Value, 2);
+                Game1.player.controller = controller;
+                if (controller.pathToEndPoint == null || controller.pathToEndPoint.Count == 0)
+                {
+                    Game1.player.controller = null;
+                    return (false, $"cannot reach the door at ({dx},{dy})");
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, $"could not walk to the door: {ex.Message}");
+            }
+
+            _pendingAction = ("enter", dx, dy);
+            return (true, $"walking to the door of '{target}' - it opens on arrival");
+        }
+
+        FaceTowards(Game1.player, dx, dy);
+        bool opened = location.checkAction(new Location(dx, dy), Game1.viewport, Game1.player);
+        return (opened,
+            opened ? $"entered via the door at ({dx},{dy})"
+                   : $"the door at ({dx},{dy}) would not open - it may be locked or shut at this hour");
+    }
+
+
+    internal static void SwingTool(Tool tool, GameLocation location, int x, int y, Farmer farmer)
+    {
+        try { tool.beginUsing(location, x, y, farmer); }
+        catch { }
+
+        try { tool.DoFunction(location, x, y, 1, farmer); }
+        catch { }
+    }
+
+
+    private static (string Kind, int X, int Y)? _pendingAction;
+
+    private static readonly Point[] AdjacentOffsets =
+    {
+        new Point(0, 1), new Point(0, -1), new Point(1, 0), new Point(-1, 0),
+    };
+
+    /// <summary>
+    /// Clears weeds, twigs and stones in an area, at game speed, with one model decision.
+    /// This is what makes the agent look like a person playing instead of a person typing.
+    /// </summary>
+    private static (bool, string) ClearArea(JsonElement root)
+    {
+        if (Game1.player == null || Game1.currentLocation == null)
+            return (false, "no active save");
+
+        int cx = TryGetInt(root, "x", out int x) ? x : (int)Game1.player.Tile.X;
+        int cy = TryGetInt(root, "y", out int y) ? y : (int)Game1.player.Tile.Y;
+        int radius = TryGetInt(root, "radius", out int r) ? Math.Clamp(r, 1, 60) : 25;
+
+        List<Vector2> targets = ChoreController.CollectDebris(Game1.currentLocation, cx, cy, radius);
+        return ChoreController.Start("clear_area", targets);
+    }
+
+
+    /// <summary>Tills a whole patch at game speed. One decision instead of one per tile.</summary>
+    private static (bool, string) TillArea(JsonElement root)
+    {
+        if (Game1.player == null || Game1.currentLocation == null)
+            return (false, "no active save");
+
+        int cx = TryGetInt(root, "x", out int x) ? x : (int)Game1.player.Tile.X;
+        int cy = TryGetInt(root, "y", out int y) ? y : (int)Game1.player.Tile.Y;
+        int radius = TryGetInt(root, "radius", out int r) ? Math.Clamp(r, 1, 20) : 40;
+
+        List<Vector2> targets = ChoreController.CollectTillable(Game1.currentLocation, cx, cy, radius);
+        return ChoreController.Start("till_area", targets);
+    }
+
+
+    /// <summary>
+    /// Plants the held seeds into every empty tilled tile nearby. Select the seeds first, then call
+    /// this once - it does the walking and the planting at game speed.
+    /// </summary>
+    private static (bool, string) PlantAll()
+    {
+        if (Game1.player == null || Game1.currentLocation == null)
+            return (false, "no active save");
+
+        if (Game1.player.CurrentItem is null || Game1.player.CurrentItem is Tool)
+            return (false, $"hold the seeds first - currently holding '{Game1.player.CurrentItem?.DisplayName ?? "nothing"}'");
+
+        List<Vector2> targets = ChoreController.CollectEmptySoil(
+            Game1.currentLocation, (int)Game1.player.Tile.X, (int)Game1.player.Tile.Y, 60);
+
+        if (targets.Count == 0)
+        {
+            GameLocation here = Game1.currentLocation;
+            int px = (int)Game1.player.Tile.X;
+            int py = (int)Game1.player.Tile.Y;
+
+            return (false,
+                $"no empty tilled soil within 60 of ({px},{py}); " +
+                $"tillable here = {ChoreController.CollectTillable(here, px, py, 60).Count}, " +
+                $"debris = {ChoreController.CollectDebris(here, px, py, 60).Count}. " +
+                "Till some ground first with till_area, or move to the tilled patch.");
+        }
+
+        return ChoreController.Start("plant_all", targets);
+    }
+
+
+    private static (bool, string) WaterAll()
+    {
+        if (Game1.player == null || Game1.currentLocation == null)
+            return (false, "no active save");
+
+        List<Vector2> targets = ChoreController.CollectThirstyCrops(
+            Game1.currentLocation, (int)Game1.player.Tile.X, (int)Game1.player.Tile.Y, 25);
+
+        return ChoreController.Start("water_all", targets);
+    }
+
+
+    private static (bool, string) HarvestAll()
+    {
+        if (Game1.player == null || Game1.currentLocation == null)
+            return (false, "no active save");
+
+        List<Vector2> targets = ChoreController.CollectReadyCrops(
+            Game1.currentLocation, (int)Game1.player.Tile.X, (int)Game1.player.Tile.Y, 25);
+
+        return ChoreController.Start("harvest_all", targets);
+    }
+
+
+    private static (bool, string) ChoreStatus() => (true, ChoreController.Status());
+
+    private static (bool, string) ChoreCancel() => ChoreController.Cancel();
+
+
+    internal static bool IsAdjacent(Farmer farmer, int x, int y)
+    {
+        int dx = Math.Abs((int)farmer.Tile.X - x);
+        int dy = Math.Abs((int)farmer.Tile.Y - y);
+        return dx + dy == 1;
+    }
+
+
+    internal static Point? FindAdjacentWalkable(GameLocation location, int x, int y)
+    {
+        foreach (Point offset in AdjacentOffsets)
+        {
+            int nx = x + offset.X;
+            int ny = y + offset.Y;
+
+            try
+            {
+                if (!location.isTilePassable(new Location(nx, ny), Game1.viewport))
+                    continue;
+
+                if (location.objects.TryGetValue(new Vector2(nx, ny), out StardewValley.Object? obj)
+                    && obj != null && !obj.isPassable())
+                    continue;
+
+                return new Point(nx, ny);
+            }
+            catch { }
+        }
+
+        return null;
+    }
+
+
+    /// <summary>
+    /// Finishes a work request whose walk has completed: swing at the target once we are beside it.
+    /// Called every tick from UpdateTicked.
+    /// </summary>
+    internal static void ProcessPendingWork(IMonitor monitor)
+    {
+        if (_pendingAction is not { } pending)
+            return;
+
+        Farmer? farmer = Game1.player;
+        GameLocation? location = Game1.currentLocation;
+
+        if (farmer == null || location == null || farmer.controller != null)
+            return;
+
+        _pendingAction = null;
+
+        int tx = pending.X;
+        int ty = pending.Y;
+
+        if (!IsAdjacent(farmer, tx, ty))
+            return;   // the walk ended somewhere else; let the caller re-issue
+
+        try
+        {
+            FaceTowards(farmer, tx, ty);
+
+            if (pending.Kind == "plant")
+            {
+                PlantAt(location, tx, ty, farmer);
+            }
+            else if (pending.Kind == "enter")
+            {
+                // A door opens through checkAction, not by standing on it.
+                location.checkAction(new Location(tx, ty), Game1.viewport, farmer);
+            }
+            else if (farmer.CurrentItem is Tool tool)
+            {
+                SwingTool(tool, location, tx, ty, farmer);
+            }
+
+            monitor.Log($"pending {pending.Kind}: acted at ({tx},{ty})", LogLevel.Trace);
+        }
+        catch (Exception ex)
+        {
+            monitor.Log($"pending action failed: {ex.Message}", LogLevel.Warn);
+        }
+    }
+
+
+    /// <summary>What a tile is and which tool it takes. This is the game's own rules, in one place.</summary>
+    internal static (string kind, Type? toolType) ClassifyTarget(GameLocation location, int x, int y)
+    {
+        var tile = new Vector2(x, y);
+
+        try
+        {
+            if (location.terrainFeatures.TryGetValue(tile, out TerrainFeature? feature) && feature != null)
+            {
+                switch (feature)
+                {
+                    case HoeDirt dirt when dirt.crop != null:
+                        if (dirt.readyForHarvest())
+                            return ("ready_crop", null);
+                        return dirt.isWatered() ? ("growing_crop", null) : ("thirsty_crop", typeof(WateringCan));
+
+                    case HoeDirt:
+                        return ("empty_soil", null);
+
+                    case Tree:
+                    case FruitTree:
+                        return ("tree", typeof(Axe));
+
+                    case Grass:
+                        return ("grass", typeof(MeleeWeapon));
+
+                    case Bush:
+                        return ("bush", null);
+                }
+            }
+        }
+        catch { }
+
+        try
+        {
+            if (location.objects.TryGetValue(tile, out StardewValley.Object? obj) && obj != null)
+            {
+                if (obj.IsWeeds()) return ("weed", typeof(MeleeWeapon));
+                if (obj.IsTwig()) return ("twig", typeof(Axe));
+                if (obj.IsBreakableStone()) return ("stone", typeof(Pickaxe));
+
+                bool ready = false;
+                try { ready = obj.readyForHarvest.Value; } catch { }
+                if (ready) return ("ready_machine", null);
+
+                if (obj.isForage() || obj.IsSpawnedObject) return ("forage", null);
+                if (obj.bigCraftable.Value) return ("machine", null);
+
+                if (!obj.isPassable()) return ("blocked_object", typeof(Axe));
+            }
+        }
+        catch { }
+
+        try
+        {
+            foreach (ResourceClump clump in location.resourceClumps)
+            {
+                if (clump != null && clump.occupiesTile(x, y))
+                    return ("big_debris", typeof(Axe));
+            }
+        }
+        catch { }
+
+        try
+        {
+            if (location.doesTileHaveProperty(x, y, "Diggable", "Back", false) != null)
+                return ("tillable", typeof(Hoe));
+        }
+        catch { }
+
+        return ("nothing", null);
+    }
+
+
+    /// <summary>Holds the first matching tool from the inventory. Scythes live on MeleeWeapon.</summary>
+    internal static bool HoldTool(Farmer farmer, Type toolType)
+    {
+        int index = FindToolIndex(farmer, toolType);
+        if (index < 0)
+            return false;
+
+        farmer.CurrentToolIndex = index;
+        return true;
+    }
+
+
+    /// <summary>Index of the matching tool, or -1. Read-only - safe to call while inspecting state.</summary>
+    private static int FindToolIndex(Farmer farmer, Type toolType)
+    {
+        if (farmer?.Items == null)
+            return -1;
+
+        for (int i = 0; i < farmer.Items.Count; i++)
+        {
+            Item? item = farmer.Items[i];
+            if (item == null)
+                continue;
+
+            bool matches = toolType == typeof(MeleeWeapon)
+                ? item is MeleeWeapon weapon && weapon.isScythe()
+                : toolType.IsInstanceOfType(item);
+
+            if (matches)
+                return i;
+        }
+
+        return -1;
+    }
+
+
+    private static string FriendlyToolName(Type toolType) =>
+        toolType == typeof(MeleeWeapon) ? "scythe" : toolType.Name.ToLowerInvariant();
+
+
     /// <summary>Faces a specific tile and swings the held tool at it. The building block for chores.</summary>
     private static (bool, string) UseToolAt(JsonElement root)
     {
@@ -295,9 +963,12 @@ public static class ActionProcessor
         if (farmer.CurrentItem is not Tool tool)
             return (false, "current item is not a tool");
 
-        bool started = tool.beginUsing(Game1.currentLocation, x, y, farmer);
-        return (started,
-            started ? $"used {tool.DisplayName} on ({x},{y})" : $"{tool.DisplayName} did nothing at ({x},{y})");
+        if (!farmer.CanMove)
+            return (false, $"the farmer cannot act right now ({GameQuery.BlockedReason()})");
+
+        // Same reason as `work`: beginUsing() alone never applies the effect.
+        SwingTool(tool, Game1.currentLocation, x, y, farmer);
+        return (true, $"swung {tool.DisplayName} at ({x},{y})");
     }
 
 
@@ -367,7 +1038,7 @@ public static class ActionProcessor
 
 
     /// <summary>Points the farmer at a tile so use_tool_at / interact_at hit the right thing.</summary>
-    private static void FaceTowards(Farmer farmer, int targetX, int targetY)
+    internal static void FaceTowards(Farmer farmer, int targetX, int targetY)
     {
         int dx = targetX - (int)farmer.Tile.X;
         int dy = targetY - (int)farmer.Tile.Y;
@@ -499,13 +1170,71 @@ public static class ActionProcessor
         BedFurniture? bed = FindBed(location);
 
         if (bed == null)
-            return (false, "there is no bed here - go to the farmhouse first");
+        {
+            // Not home yet. Get into the farmhouse so the day can actually end instead of falling
+            // back to the raw new-day routine.
+            int? insideX = null;
+            int? insideY = null;
 
+            try
+            {
+                GameLocation? house = Game1.getLocationFromName("FarmHouse");
+                Warp? back = house?.warps?.FirstOrDefault(w => w != null && w.TargetName == "Farm");
+                if (back != null)
+                {
+                    insideX = back.X;
+                    insideY = back.Y - 1;   // stand just inside the door, not on the warp tile itself
+                }
+            }
+            catch { }
+
+            if (insideX == null || insideY == null)
+                return (false, "there is no bed here and no known way home");
+
+            Game1.warpFarmer("FarmHouse", insideX.Value, insideY.Value, 2);
+            MovementController.Stop();
+            _pendingSleep = true;
+            return (true, "not home - went into the FarmHouse to sleep (it will lie down automatically)");
+        }
+
+        return LieDown(location, bed);
+    }
+
+
+    private static bool _pendingSleep;
+
+    /// <summary>Lies down once the walk home has finished. Called every tick from UpdateTicked.</summary>
+    internal static void ProcessPendingSleep(IMonitor monitor)
+    {
+        if (!_pendingSleep)
+            return;
+
+        if (Game1.player == null || Game1.currentLocation == null)
+        {
+            _pendingSleep = false;
+            return;
+        }
+
+        if (Game1.player.controller != null)
+            return;
+
+        BedFurniture? bed = FindBed(Game1.currentLocation);
+        if (bed == null)
+            return;
+
+        _pendingSleep = false;
+        (bool ok, string detail) = LieDown(Game1.currentLocation, bed);
+        monitor.Log($"pending sleep: ok={ok} {detail}", LogLevel.Trace);
+    }
+
+
+    private static (bool, string) LieDown(GameLocation location, BedFurniture bed)
+    {
         Point spot = bed.GetBedSpot();
         Game1.warpFarmer(location.Name, spot.X, spot.Y, 0);
         Game1.player.isInBed.Value = true;
 
-        string note = "";
+        string note;
         try
         {
             // Ask the bed to run its own "sleep?" flow, then accept it.

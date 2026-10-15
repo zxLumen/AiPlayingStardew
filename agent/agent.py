@@ -20,8 +20,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import game_process  # noqa: E402
+import gaps  # noqa: E402
 import memory as memory_mod  # noqa: E402
+from compact import compact_state  # noqa: E402
+from learning import NOT_ACTIONABLE, TILE_ACTIONS, LearningStore, judge_outcome  # noqa: E402
 from llm import LlmClient  # noqa: E402
+from planner import PlannerAI  # noqa: E402
+from referee import RefereeAI  # noqa: E402
+from runlog import RunLog  # noqa: E402
 from state_client import StateClient  # noqa: E402
 from streamer import StreamerAI  # noqa: E402
 from supervisor import SupervisorAI  # noqa: E402
@@ -176,12 +182,40 @@ def bootstrap(client: StateClient, streamer: StreamerAI, ai_save: dict | None,
 # ---------------------------------------------------------------------------
 
 def session_finished(day_start: dict, game: dict) -> bool:
-    """The day rolled over (or the game returned to a fresh morning)."""
+    """The day rolled over.
+
+    Both values must be real: during a transition the game briefly reports day 0 or a stale day,
+    and treating that as "the day is over" ends the session two steps in.
+    """
     if not game.get("has_save"):
         return False
-    if game.get("day_of_month") != day_start.get("day_of_month"):
-        return True
-    return False
+
+    day = game.get("day_of_month")
+    start = day_start.get("day_of_month")
+    return bool(day) and bool(start) and day != start
+
+
+def stable_day(client: StateClient, tries: int = 20, gap_s: float = 1.5) -> dict:
+    """Wait for the in-game day to settle before playing it."""
+    previous = None
+    state = client.state()
+
+    for _ in range(tries):
+        state = client.state()
+        game = state.get("game") or {}
+        day = game.get("day_of_month")
+        location = (state.get("player") or {}).get("current_location") or ""
+
+        if game.get("has_save") and day and location and day == previous:
+            return state
+
+        previous = day
+        time.sleep(gap_s)
+
+    return state
+
+
+CHORE_ACTIONS = {"clear_area", "till_area", "plant_all", "water_all", "harvest_all"}
 
 
 def settle_timeout(action: str, args: dict) -> float:
@@ -202,12 +236,13 @@ def settle_timeout(action: str, args: dict) -> float:
 
 
 def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
-         max_steps: int, store: "memory_mod.MemoryStore") -> tuple[str, str]:
+         max_steps: int, store: "memory_mod.MemoryStore",
+         learning: LearningStore, runlog: RunLog) -> tuple[str, str, int]:
     history: list[str] = []
     directive: str | None = None
     total_llm = total_action = total_watch = 0.0
 
-    first = client.state()
+    first = stable_day(client)
     day_start = first.get("game") or {}
     label = memory_mod.day_label(day_start)
     log(f"[day] starting {day_start.get('season')} {day_start.get('day_of_month')}, "
@@ -227,7 +262,7 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
 
         if session_finished(day_start, game):
             log(f"[day] COMPLETE - day {day_start.get('day_of_month')} -> {game.get('day_of_month')}")
-            return "day_complete", label
+            return "day_complete", label, step
 
         if supervisor.should_review(step, history):
             started = time.perf_counter()
@@ -236,10 +271,12 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
 
             directive = (verdict.get("directive") or "").strip() or None
             note = str(verdict.get("note") or "")
+            runlog.agent("supervisor", day=label, step=step, status=verdict.get("status"),
+                         note=note, directive=directive or "")
             log(f"[监工] status={verdict.get('status')}" + (f" - {note}" if note else "")
                 + (f" | directive: {directive}" if directive else ""))
             if verdict.get("status") == "done":
-                return "supervisor_done", label
+                return "supervisor_done", label, step
 
         started = time.perf_counter()
         decision = streamer.decide(state, history, directive)
@@ -252,15 +289,46 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         args: dict = dict(nested) if isinstance(nested, dict) else {}
         args.update({k: v for k, v in decision.items() if k not in ("action", "reason", "args")})
 
+        # --- learning: look at the target, let experience correct the action, then judge what
+        # actually happened. All of this is cheap HTTP; it never costs an extra model call.
+        tx, ty = args.get("x"), args.get("y")
+        tracking = (action in TILE_ACTIONS or action == "go_to") and isinstance(tx, int) and isinstance(ty, int)
+        before = observe_tile(client, tx, ty) if tracking else None
+        kind = (before or {}).get("kind")
+
+        action, args, note = learning.gatekeep(action, args, kind)
+        if note:
+            runlog.agent("gatekeeper", day=label, step=step, action=action, args=args,
+                         kind=kind, note=note)
+            log(f"[守门] {note}")
+
         started = time.perf_counter()
         result = client.action(action, **args)
-        if settle_timeout(action, args) > 0:
+        if action in CHORE_ACTIONS:
+            # A reflex routine is running inside the game. Wait for it by polling state.
+            client.wait_until_chore_done()
+        elif settle_timeout(action, args) > 0:
             # Wait for the world to finish, by polling state - NOT by asking the model.
             client.wait_until_settled(timeout_s=settle_timeout(action, args))
         action_s = time.perf_counter() - started
 
         total_llm += llm_s
         total_action += action_s
+
+        # Judge by whether the world changed, not by what the action claimed.
+        if tracking:
+            after = observe_tile(client, tx, ty) if action in TILE_ACTIONS else None
+            worked = judge_outcome(action, args, before, after, result, client.state())
+
+            if worked is not None and kind not in NOT_ACTIONABLE:
+                learning.record(kind, action, worked)
+                runlog.agent("learning", day=label, step=step, kind=kind, action=action,
+                             worked=worked, ok=learning.rate(kind, action).ok,
+                             total=learning.rate(kind, action).total)
+                if worked:
+                    learning.clear_failures()
+                else:
+                    learning.remember_failure(action, args)
 
         detail = str(result.get("detail", ""))
         history.append(f"{action} {json.dumps(args, ensure_ascii=False)} -> ok={result.get('ok')} {detail}")
@@ -274,13 +342,18 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         flag = "OK " if result.get("ok") else "ERR"
         # On failure the detail is the whole point - show it instead of the reason.
         tail = reason if result.get("ok") else f"! {detail[:80]}"
+        runlog.agent("streamer", day=label, step=step, action=action, args=args,
+                     reason=str(decision.get("reason", "")), ok=bool(result.get("ok")),
+                     reason_code=str(result.get("reason_code") or ""), detail=detail,
+                     kind=kind, llm_s=round(llm_s, 2), act_s=round(action_s, 2),
+                     directive=directive or "")
         log(f"[主播 {step:>3}] {action:<15} {json.dumps(args, ensure_ascii=False)[:44]:<44} {flag} "
             f"llm {llm_s:4.1f}s act {action_s:4.1f}s  {tail}")
 
     elapsed = total_llm + total_action + total_watch
     log(f"[perf] steps={max_steps} total={elapsed:.0f}s | llm={total_llm:.0f}s "
         f"action={total_action:.0f}s supervisor={total_watch:.0f}s")
-    return "steps_exhausted", label
+    return "steps_exhausted", label, max_steps
 
 
 # ---------------------------------------------------------------------------
@@ -323,7 +396,37 @@ def run_calibration(supervisor: SupervisorAI, store: "memory_mod.MemoryStore", k
     return {"right": right, "total": total, "missed": missed}
 
 
-def reflect(supervisor: SupervisorAI, store: "memory_mod.MemoryStore", known: str, label: str) -> None:
+def observe_tile(client: StateClient, x: int, y: int) -> dict | None:
+    """Read one tile. Cheap HTTP, never an LLM call - this is how outcomes get measured."""
+    result = client.action("observe", x=x, y=y)
+    data = result.get("data")
+    return data if isinstance(data, dict) else None
+
+
+def enforce_day_end(client: StateClient) -> None:
+    """If the play loop ran out of steps without sleeping, end the day anyway.
+
+    Without this an unattended run can sit on day 1 forever, which is exactly the failure mode
+    that makes an overnight run worthless.
+    """
+    result = client.action("sleep")
+    if result.get("ok"):
+        log(f"[run ] forced sleep -> {result.get('detail')}")
+        return
+
+    log(f"[run ] sleep unavailable ({result.get('detail')}) - using the raw new-day routine")
+    raw = client.action("new_day")
+    log(f"[run ] new_day -> ok={raw.get('ok')} {raw.get('detail')}")
+
+
+def write_progress(path: Path, header: str, rows: list[str]) -> None:
+    """Keep a human-readable progress file so the morning check is a single read."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(header + "\n\n" + "\n".join(rows) + "\n", encoding="utf-8")
+
+
+def reflect(supervisor: SupervisorAI, store: "memory_mod.MemoryStore", known: str,
+            label: str, runlog: RunLog) -> None:
     """Ask the supervisor to turn today's transcript into facts and lessons for next time."""
     journal = store.read_journal(label)
     if not journal.strip():
@@ -347,19 +450,226 @@ def reflect(supervisor: SupervisorAI, store: "memory_mod.MemoryStore", known: st
     summary = str(result.get("summary") or "")
     if summary:
         log(f"[mem ] {summary}")
+
+    runlog.agent("reflection", day=label, summary=summary,
+                 facts_added=report["added"], facts_updated=report["updated"],
+                 facts_dropped=report["dropped"], facts_total=report["total"],
+                 lessons=result.get("lessons") or [], new_facts=result.get("new_facts") or [])
+    runlog.line(f"\n### 复盘 {label}\n")
+    runlog.line(f"- 总结：{summary}")
+    runlog.line(f"- 事实：+{report['added']} ~{report['updated']} -{report['dropped']}（共 {report['total']}）")
+    runlog.line(f"- 教训：+{lessons}")
+    for item in (result.get("new_facts") or [])[:6]:
+        if isinstance(item, dict) and item.get("claim"):
+            runlog.line(f"  - 新事实：{item['claim']}")
+
     log(f"[mem ] facts: +{report['added']} ~{report['updated']} -{report['dropped']} "
         f"(total {report['total']}) | lessons: +{lessons}")
 
 
+def ensure_game(client: StateClient, streamer: StreamerAI, ai_save: dict | None,
+                timeout_s: int = 300) -> bool:
+    """Make sure the game is up and the AI's OWN save is loaded. Relaunches the game if needed."""
+    if not client.wait_until_up(timeout_s=45):
+        log("[run ] game not responding - relaunching it")
+        try:
+            game_process.stop()
+        except Exception:
+            pass
+        time.sleep(6)
+        game_process.launch()
+        if not client.wait_until_up(timeout_s=timeout_s):
+            log("[run ] game never came back")
+            return False
+
+    state = client.state()
+    game = state.get("game") or {}
+
+    if game.get("has_save"):
+        expected = str((ai_save or {}).get("character_name", "")).strip()
+        actual = str((state.get("player") or {}).get("name", "")).strip()
+        if expected and actual != expected:
+            log(f"[run ] save in game is '{actual}', the AI is '{expected}' - restarting to title")
+            try:
+                game_process.stop()
+            except Exception:
+                pass
+            time.sleep(6)
+            game_process.launch()
+            if not client.wait_until_up(timeout_s=timeout_s):
+                return False
+        else:
+            return True
+
+    log("[run ] driving menus to the AI's own save...")
+    bootstrap(client, streamer, ai_save, force_new=False, max_iterations=90)
+    return bool(((client.state().get("game") or {}).get("has_save")))
+
+
+def run_forever(args: argparse.Namespace) -> int:
+    """Unattended loop: play day after day, recover from anything, and keep a progress file."""
+    started = time.time()
+    deadline = started + args.max_hours * 3600
+    store = memory_mod.MemoryStore()
+    learning = LearningStore(memory_mod.PROJECT_ROOT / "memory" / "learning.json", log=log)
+    runlog = RunLog(memory_mod.PROJECT_ROOT, log=log)
+
+    runlog.line(f"- 开始时间：{time.strftime('%Y-%m-%d %H:%M:%S')}")
+    runlog.line(f"- 限制：最多 {args.max_hours} 小时 / {args.max_days} 个循环 / 每循环 {args.steps} 步")
+    runlog.line("- 存档：AI 自己的档（不会碰玩家的存档）")
+    runlog.line("- 宏观目标：尽可能多、尽可能好地完成每一天（通关需要 300~500 游戏日）")
+    runlog.line("- 逐 agent 原始日志：`logs/agents/{planner,streamer,supervisor,referee,learning,gatekeeper,reflection}.jsonl`")
+    runlog.line("")
+    runlog.table_header(["游戏日", "分数", "评级", "步数", "裁判点评"])
+
+    cycle = 0
+    days_done = 0
+
+    with StateClient(args.base_url) as client, LlmClient("llm") as smart, LlmClient("fast") as fast:
+        log(f"[llm ] fast brain = {fast.endpoint.model} (every step) | "
+            f"smart brain = {smart.endpoint.model} (plan / judge / reflect)")
+        ai_save = load_ai_save()
+        known = store.cheat_sheet()
+        streamer = StreamerAI(fast, args.goal, persona=(ai_save or {}).get("persona", ""),
+                              memory_block=known)
+        supervisor = SupervisorAI(smart)
+        planner = PlannerAI(smart)
+        referee = RefereeAI(smart)
+
+        while time.time() < deadline and cycle < args.max_days:
+            cycle += 1
+            elapsed = time.time() - started
+            log(f"\n{'=' * 72}\n[run ] cycle {cycle} | elapsed {elapsed / 60:.0f} min | "
+                f"days completed {days_done}\n{'=' * 72}")
+
+            # Capability audit: work out which actions are not doing anything and stop using them.
+            # This is the difference between "burnt another night on the same wall" and "the wall
+            # got named, quoted and removed from the action set".
+            audited = gaps.analyse(
+                gaps.load_journal_events(memory_mod.PROJECT_ROOT / "memory" / "journal")
+                + gaps.load_agent_events(memory_mod.PROJECT_ROOT / "logs" / "agents", "streamer")
+            )
+            try:
+                (memory_mod.PROJECT_ROOT / "logs" / "capability-gaps.md").write_text(
+                    gaps.report(audited), encoding="utf-8")
+            except OSError:
+                pass
+
+            for gap in audited:
+                if gap.verdict not in ("BROKEN", "LYING", "NOOP"):
+                    continue
+                reason = (f"{gap.verdict}: {gap.attempts} 次尝试 / 报 OK {gap.ok_count} 次 / "
+                          f"空转 {gap.noop} 次")
+                if learning.blacklist(gap.action, reason):
+                    runlog.agent("gaps", action=gap.action, verdict=gap.verdict,
+                                 attempts=gap.attempts, ok_count=gap.ok_count, noop=gap.noop,
+                                 reasons=gap.reasons, examples=gap.examples)
+                    runlog.line(f"- [缺口] `{gap.action}` **{gap.verdict}** — {reason}")
+                    runlog.history_line(f"\n- **{time.strftime('%m-%d %H:%M')}** 缺口："
+                                        f"`{gap.action}` **{gap.verdict}** — {reason}\n")
+
+            try:
+                if not ensure_game(client, streamer, ai_save):
+                    log("[run ] game unavailable - waiting 60s")
+                    time.sleep(60)
+                    continue
+
+                start_state = client.state()
+                label_hint = memory_mod.day_label(start_state.get("game") or {})
+                plan = planner.plan_day(start_state, persona=streamer.persona, memory=known,
+                                        goal=streamer.goal, recent_days=store.recent_days())
+                goals = plan.get("plan") or []
+                runlog.agent("planner", day=label_hint, focus=plan.get("focus", ""), goals=goals,
+                             notes=plan.get("notes", ""), sleep_by=plan.get("sleep_by"))
+                log(f"[规划] {plan.get('focus', '')}")
+                for goal in goals:
+                    log(f"[规划]   - {goal}")
+                streamer.set_plan(plan)
+
+                outcome, label, steps = play(client, streamer, supervisor, args.steps, store,
+                                             learning, runlog)
+
+                # Never let the run sit on the same day forever.
+                if outcome == "steps_exhausted":
+                    log("[run ] step budget ran out without sleeping - ending the day")
+                    runlog.agent("run", event="forced_day_end", day=label, outcome=outcome)
+                    enforce_day_end(client)
+                    time.sleep(25)
+
+                end_state = client.state()
+                verdict = referee.score_day(plan, store.read_journal(label),
+                                            compact_state(start_state), compact_state(end_state), steps)
+
+                log(f"[裁判] score={verdict.get('score')} ({verdict.get('verdict')}) - {verdict.get('why')}")
+
+                store.record_day({
+                    "label": label, "date": time.strftime("%Y-%m-%d %H:%M"),
+                    "score": verdict.get("score"), "verdict": verdict.get("verdict"),
+                    "why": verdict.get("why"), "plan": goals, "focus": plan.get("focus", ""),
+                    "completed": verdict.get("completed"), "missed": verdict.get("missed"),
+                    "steps": steps, "outcome": outcome,
+                })
+                reflect(supervisor, store, known, label, runlog)
+
+                known = store.cheat_sheet()
+                streamer.memory_block = known
+                days_done += 1
+
+                runlog.agent("referee", day=label, score=verdict.get("score"),
+                             verdict=verdict.get("verdict"), why=verdict.get("why"),
+                             completed=verdict.get("completed"), partial=verdict.get("partial"),
+                             missed=verdict.get("missed"), steps=steps, outcome=outcome)
+                runlog.table_row([label, verdict.get("score"), verdict.get("verdict"), steps,
+                                  str(verdict.get("why", ""))[:180]])
+                runlog.line(f"\n### {label} 计划\n")
+                for goal in goals:
+                    runlog.line(f"- {goal}")
+
+            except Exception as exc:
+                log(f"[run ] cycle {cycle} crashed: {type(exc).__name__}: {exc}")
+                runlog.agent("run", event="crash", cycle=cycle, error=type(exc).__name__,
+                             message=str(exc))
+                runlog.table_row(["—", "—", "CRASH", "—", f"{type(exc).__name__}: {str(exc)[:130]}"])
+                try:
+                    game_process.stop()
+                except Exception:
+                    pass
+                time.sleep(10)
+                try:
+                    game_process.launch()
+                except Exception:
+                    pass
+                time.sleep(30)
+
+    stats = store.stats()
+    log(f"\n[run ] finished: {days_done} day(s) in {(time.time() - started) / 60:.0f} min | "
+        f"memory now {stats['facts']} facts / {stats['lessons']} lessons")
+    runlog.section("结束")
+    runlog.line(f"- 完成 {days_done} 天，用时 {(time.time() - started) / 60:.0f} 分钟")
+    runlog.line(f"- 记忆库：{stats['facts']} 条事实 / {stats['lessons']} 条教训 / {stats['journals']} 篇日记")
+    runlog.line(f"- 学习层统计：{learning.summary() or '(空)'}")
+    log(f"[run ] report: {runlog.report}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="主播AI + 监工AI for Stardew Valley")
-    parser.add_argument("--steps", type=int, default=120, help="max decisions this session")
+    parser.add_argument("--steps", type=int, default=120, help="max decisions per day")
     parser.add_argument("--goal", default=DEFAULT_GOAL)
     parser.add_argument("--base-url", default="http://127.0.0.1:8787")
     parser.add_argument("--no-launch", action="store_true", help="do not start the game process")
     parser.add_argument("--new-game", action="store_true", help="force a brand new AI save")
     parser.add_argument("--max-boot", type=int, default=90, help="max menu steps during bootstrap")
+    parser.add_argument("--forever", action="store_true",
+                        help="unattended: play day after day, recovering from anything")
+    parser.add_argument("--max-hours", type=float, default=9.0,
+                        help="with --forever: stop after this many hours")
+    parser.add_argument("--max-days", type=int, default=200,
+                        help="with --forever: stop after this many day cycles")
     args = parser.parse_args()
+
+    if args.forever:
+        return run_forever(args)
 
     if not args.no_launch:
         started = game_process.ensure_running()
@@ -372,8 +682,9 @@ def main() -> int:
             return 1
         log("[api ] StateBridge is up")
 
-        with LlmClient() as llm:
-            log(f"[llm ] {llm.endpoint.provider} / {llm.endpoint.model}")
+        with LlmClient("llm") as smart, LlmClient("fast") as fast:
+            log(f"[llm ] fast brain = {fast.endpoint.model} (every step) | "
+                f"smart brain = {smart.endpoint.model} (plan / judge / reflect)")
 
             ai_save = load_ai_save()
             if ai_save:
@@ -382,15 +693,17 @@ def main() -> int:
                 log("[save] no AI save yet - the streamer will create its own")
 
             store = memory_mod.MemoryStore()
+            learning = LearningStore(memory_mod.PROJECT_ROOT / "memory" / "learning.json", log=log)
+            runlog = RunLog(memory_mod.PROJECT_ROOT, log=log)
             stats = store.stats()
             log(f"[mem ] memory: {stats['facts']} facts ({stats['high_confidence']} high-confidence), "
                 f"{stats['lessons']} lessons, {stats['journals']} journal(s)")
 
             known = store.cheat_sheet()
 
-            streamer = StreamerAI(llm, args.goal, persona=(ai_save or {}).get("persona", ""),
+            streamer = StreamerAI(fast, args.goal, persona=(ai_save or {}).get("persona", ""),
                                   memory_block=known)
-            supervisor = SupervisorAI(llm)
+            supervisor = SupervisorAI(smart)
 
             log("[boot] driving menus to the AI's own save...")
             created = bootstrap(client, streamer, ai_save, args.new_game, args.max_boot)
@@ -419,10 +732,62 @@ def main() -> int:
 
             run_calibration(supervisor, store, known)
 
-            outcome, label = play(client, streamer, supervisor, args.steps, store)
+            # --- planner: set today's intention (one call per day, never per step) ---
+            start_state = client.state()
+            plan = PlannerAI(smart).plan_day(
+                start_state,
+                persona=streamer.persona,
+                memory=known,
+                goal=streamer.goal,
+                recent_days=store.recent_days(),
+            )
+
+            goals = plan.get("plan") or []
+            if goals:
+                log(f"[规划] {plan.get('focus', '')}")
+                for goal in goals:
+                    log(f"[规划]   - {goal}")
+                if plan.get("notes"):
+                    log(f"[规划]   note: {plan['notes']}")
+            else:
+                log(f"[规划] no plan for today ({plan.get('notes', '')})")
+            streamer.set_plan(plan)
+
+            outcome, label, steps_used = play(client, streamer, supervisor, args.steps, store,
+                                              learning, runlog)
             log(f"[done] session ended: {outcome}")
 
-            reflect(supervisor, store, known, label)
+            # --- referee: score the day, then the supervisor writes it up as memory ---
+            end_state = client.state()
+            verdict = RefereeAI(smart).score_day(
+                plan,
+                store.read_journal(label),
+                compact_state(start_state),
+                compact_state(end_state),
+                steps_used,
+            )
+
+            log(f"[裁判] score={verdict.get('score')} ({verdict.get('verdict')}) - {verdict.get('why')}")
+            for key in ("completed", "partial", "missed"):
+                items = verdict.get(key) or []
+                if items:
+                    log(f"[裁判]   {key}: " + "; ".join(items))
+
+            store.record_day({
+                "label": label,
+                "date": time.strftime("%Y-%m-%d %H:%M"),
+                "score": verdict.get("score"),
+                "verdict": verdict.get("verdict"),
+                "why": verdict.get("why"),
+                "plan": goals,
+                "focus": plan.get("focus", ""),
+                "completed": verdict.get("completed"),
+                "missed": verdict.get("missed"),
+                "steps": steps_used,
+                "outcome": outcome,
+            })
+
+            reflect(supervisor, store, known, label, runlog)
             return 0 if outcome in ("day_complete", "supervisor_done") else 4
 
 
