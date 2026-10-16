@@ -1,9 +1,16 @@
 {
   "entries": {
     "dialogue_advance@Farm|dialogue_advance": {
-      "works": 34,
-      "fails": 16,
+      "works": 38,
+      "fails": 17,
       "says": "你打算收养这只猫吗？",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@Town|go_to": {
+      "works": 24,
+      "fails": 14,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -14,16 +21,9 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@Town|go_to": {
-      "works": 21,
-      "fails": 9,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "door:BusStop|enter": {
-      "works": 22,
-      "fails": 6,
+      "works": 23,
+      "fails": 7,
       "says": "BusStop",
       "note": "",
       "last": "2026-10-17"
@@ -35,24 +35,24 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Town:exit_building|exit_building": {
-      "works": 23,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "tile:empty|interact_at": {
-      "works": 7,
-      "fails": 16,
-      "says": "你身上有青草的味道。",
+      "works": 8,
+      "fails": 17,
+      "says": "嗯。我才想起我好像需要做某件事……但又不记得是什么事了。",
       "note": "",
       "last": "2026-10-17"
     },
     "tile:something|interact_at": {
       "works": 20,
-      "fails": 3,
-      "says": "等到皮埃尔经营店铺的时候再回来。",
+      "fails": 4,
+      "says": "上锁了……（营业时间：9:00~21:00）",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Town:exit_building|exit_building": {
+      "works": 23,
+      "fails": 0,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -70,31 +70,31 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "menu:upperRightCloseButton|menu_click": {
-      "works": 19,
-      "fails": 0,
-      "says": "upperRightCloseButton",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "press_key@Farm|press_key": {
-      "works": 11,
+      "works": 12,
       "fails": 8,
-      "says": "space",
+      "says": "嗨，Juniper！",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|harvest_all": {
-      "works": 3,
+      "works": 4,
       "fails": 15,
       "says": "它可能是喜欢这里！唔……你不觉得这个农场需要养只好猫吗？",
       "note": "",
       "last": "2026-10-17"
     },
     "door:Town|enter": {
-      "works": 14,
+      "works": 16,
       "fails": 3,
       "says": "Town",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "menu:upperRightCloseButton|menu_click": {
+      "works": 19,
+      "fails": 0,
+      "says": "upperRightCloseButton",
       "note": "",
       "last": "2026-10-17"
     },
@@ -105,6 +105,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "Farm:patch|water_all": {
+      "works": 10,
+      "fails": 4,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "door:Farm|enter": {
       "works": 10,
       "fails": 4,
@@ -112,31 +119,31 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|water_all": {
-      "works": 9,
-      "fails": 4,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:exit_building|exit_building": {
-      "works": 11,
+    "select_slot@Farm|select_slot": {
+      "works": 13,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "select_slot@Farm|select_slot": {
-      "works": 11,
+    "Farm:exit_building|exit_building": {
+      "works": 12,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "DialogueBox:doneNamingButton|menu_click": {
-      "works": 10,
+      "works": 11,
       "fails": 0,
       "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|refill": {
+      "works": 6,
+      "fails": 4,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -154,22 +161,15 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|refill": {
-      "works": 4,
-      "fails": 4,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "dialogue_choose@Farm|dialogue_choose": {
-      "works": 4,
+      "works": 5,
       "fails": 2,
       "says": "我看到它坐在你的农场门口！它可能是无家可归了……可怜的小东西。",
       "note": "",
       "last": "2026-10-17"
     },
     "go_to@BusStop|go_to": {
-      "works": 6,
+      "works": 7,
       "fails": 0,
       "says": "",
       "note": "",
@@ -448,6 +448,13 @@
       "note": "the cat adoption NamingMenu confirms with doneNamingButton once the text box holds a name",
       "last": "2026-10-17"
     },
+    "namingmenu|menu_click_donenamingbutton": {
+      "works": 0,
+      "fails": 0,
+      "says": "NamingMenu",
+      "note": "naming the adopted cat uses NamingMenu with doneNamingButton to confirm",
+      "last": "2026-10-17"
+    },
     "seedshop_door|enter": {
       "works": 0,
       "fails": 0,
@@ -460,6 +467,13 @@
       "fails": 0,
       "says": "the whole click changed nothing - not money, not the bag, not either hand",
       "note": "今天 forSaleButtons.0 四连点全部零变化（钱 240 未动），买种子失败可能因为 HOTBAR FULL 或假点击；钱够但没买到，先回农场干活",
+      "last": "2026-10-17"
+    },
+    "seedshop_hours_vs_morning|interact_at": {
+      "works": 0,
+      "fails": 0,
+      "says": "上锁了……（营业时间：9:00~21:00）",
+      "note": "9点前别去敲皮埃尔的门，7:40~9:00 这段时间用来在 Forest 找野菜",
       "last": "2026-10-17"
     },
     "seedshop_shopmenu|menu_click_forsalebuttons_0": {
@@ -544,20 +558,6 @@
       "fails": 0,
       "says": "clicked '6' - nothing changed",
       "note": "包满时点商店货架没有意义：先在 ShopMenu 里点一次 inventory.N 把物品拿到手上，再点 dropItemInvisibleButton 丢掉腾出格子，然后才买种子",
-      "last": "2026-10-17"
-    },
-    "shopmenu_购买|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "the real click changed nothing (aimed at (1060,235)...)",
-      "note": "热键栏（槽位 0-11）已满会阻止商店购买 - 点击标记有 sells_for 的槽位来出售物品并腾出一个空位，然后再次点击 forSaleButtons.N",
-      "last": "2026-10-17"
-    },
-    "shopmenu_购买|menu_click_forsalebuttons_0": {
-      "works": 0,
-      "fails": 0,
-      "says": "the whole click changed nothing - not money, not the bag, not either hand",
-      "note": "背包 hotbar 满时买种子点了也没反应——进店前必须先腾空格子，否则别去商店",
       "last": "2026-10-17"
     }
   }

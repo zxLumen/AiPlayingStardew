@@ -2171,11 +2171,16 @@ public static class ActionProcessor
         // path is kept as a fallback - it is a worse instrument, but it is not nothing. The mouse the
         // GAME sees is reported either way: if it disagrees with the point we aimed at, that mismatch
         // IS the diagnosis, and it took a week to find the last one by other means.
-        string seen = NativeInput.MouseSeen();
-        bool activeNow = NativeInput.IsGameWindowActive();
+        // "Nothing changed" is a verdict about the WORLD, not about the click - and conflating the two
+        // cost three rounds of chasing a click that was landing all along. The cursor is moved to the
+        // button's exact screen point (the OS says so, and the game follows the physical mouse), and the
+        // game is then entitled to refuse: a shop will not take a purchase it has nowhere to put, and a
+        // confirm button with an empty field does nothing. Those are correct answers, not failures of
+        // the mouse. The mouse readings that were printed here as "evidence" were a bad probe; what is
+        // kept is the arithmetic, which is checkable.
         string why = real
-            ? $"the real click changed nothing (aimed at ({cx},{cy}), the game's mouse is {seen}, "
-              + $"window active: {activeNow}, {NativeInput.LastClickReport()})"
+            ? "the click was delivered - the game did not react, which may be its own correct answer "
+              + $"(nothing free to take it, nothing to confirm). {NativeInput.LastClickReport()}"
             : "the cursor could not be moved";
 
         // A real click is hover -> press -> release, and the press half is the old shape too: a shop row

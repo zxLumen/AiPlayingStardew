@@ -5,7 +5,7 @@
       "fail": 29
     },
     "area|harvest_all": {
-      "ok": 3,
+      "ok": 4,
       "fail": 15
     },
     "area|plant_all": {
@@ -13,7 +13,7 @@
       "fail": 1
     },
     "area|refill": {
-      "ok": 10,
+      "ok": 12,
       "fail": 11
     },
     "area|till_area": {
@@ -21,7 +21,7 @@
       "fail": 51
     },
     "area|water_all": {
-      "ok": 24,
+      "ok": 25,
       "fail": 18
     },
     "big_debris|go_to": {
