@@ -161,6 +161,13 @@ Other fields worth reading:
 - player.tile_in_front       the tile you face. Check it before use_tool_at / interact_at.
 - player.path                target / progress / length. If progress stops rising you are STUCK -
                              call stop and choose a different tile instead of resending go_to.
+- ui.buttons                each one has a "name" (what menu_click takes), and when the game draws
+                             something on it, "shows" - what it is. "sells_for": true means the game
+                             will BUY that item from you right here, so in a shop that is how you sell:
+                             click the slot showing the thing you want rid of. A button with no
+                             "shows" is a plain control (a close button, an arrow).
+- player.bag                how full your bag is, and which slot is free. A shop cannot take a
+                             purchase it has nowhere to put - make room first.
 - location.warps             every door and warp here, and where it leads.
 - location.shops             a shop whose door shuts outside opening hours, with the hours taken off
                              the door tile itself: where the door is, which shop it leads into, its

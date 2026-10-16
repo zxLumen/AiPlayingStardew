@@ -2168,8 +2168,13 @@ public static class ActionProcessor
         }
 
         // Either the machine could not move the cursor, or the game did nothing with the click. The old
-        // path is kept as a fallback - it is a worse instrument, but it is not nothing.
-        string why = real ? "the real click changed nothing" : "the cursor could not be moved";
+        // path is kept as a fallback - it is a worse instrument, but it is not nothing. The mouse the
+        // GAME sees is reported either way: if it disagrees with the point we aimed at, that mismatch
+        // IS the diagnosis, and it took a week to find the last one by other means.
+        string seen = NativeInput.MouseSeen();
+        string why = real
+            ? $"the real click changed nothing (aimed at ({cx},{cy}), the game's mouse is {seen})"
+            : "the cursor could not be moved";
 
         // A real click is hover -> press -> release, and the press half is the old shape too: a shop row
         // that is picked up and never put down was one missing release, with four symptoms.
@@ -3620,9 +3625,13 @@ public static class NativeInput
         if (!IsGameWindowActive())
             FocusGameWindow();
 
+        float scale = UiScale();
+        int screenX = origin.Value.X + (int)Math.Round(clientX * scale);
+        int screenY = origin.Value.Y + (int)Math.Round(clientY * scale);
+
         try
         {
-            SetCursorPos(origin.Value.X + clientX, origin.Value.Y + clientY);
+            SetCursorPos(screenX, screenY);
 
             // Give the game a frame to see the cursor before the press: the hover matters, because a
             // menu highlights by position and some of them do their work in performHoverAction.
@@ -3634,5 +3643,45 @@ public static class NativeInput
             return true;
         }
         catch { return false; }
+    }
+
+
+    /// <summary>
+    /// Window pixels per unit of the game's UI coordinate.
+    ///
+    /// A menu's component bounds are in the game's OWN UI space (`Game1.uiViewport`), not in window
+    /// pixels - they are only the same thing when the window happens to match the internal resolution
+    /// one to one. Move the mouse by the UI coordinates alone and every click lands at the wrong
+    /// place, at a fraction of the distance, which is exactly what "the real click changed nothing"
+    /// turned out to mean for every single click.
+    /// </summary>
+    private static float UiScale()
+    {
+        try
+        {
+            IntPtr handle = GameWindowHandle();
+            if (handle == IntPtr.Zero || !GetClientRect(handle, out RECT client))
+                return 1f;
+
+            int uiWidth = Game1.uiViewport.Width;
+            if (uiWidth <= 0 || client.Right <= 0)
+                return 1f;
+
+            return (float)client.Right / uiWidth;
+        }
+        catch { return 1f; }
+    }
+
+
+    /// <summary>
+    /// Where the GAME thinks the mouse is, in the same coordinates a menu uses.
+    ///
+    /// For the click witness: after moving the real cursor it must agree with the point we aimed at,
+    /// and if it does not, the two numbers are the diagnosis instead of another guess.
+    /// </summary>
+    public static string MouseSeen()
+    {
+        try { return $"({Game1.getMouseX()},{Game1.getMouseY()})"; }
+        catch { return "?"; }
     }
 }

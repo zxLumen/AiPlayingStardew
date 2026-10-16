@@ -1,86 +1,107 @@
 {
   "entries": {
-    "Town:exit_building|exit_building": {
-      "works": 13,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "tile:something|interact_at": {
-      "works": 12,
-      "fails": 1,
-      "says": "等到皮埃尔经营店铺的时候再回来。",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "door:SeedShop|enter": {
-      "works": 11,
-      "fails": 1,
-      "says": "SeedShop",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "dialogue_advance@Farm|dialogue_advance": {
-      "works": 10,
-      "fails": 1,
+      "works": 14,
+      "fails": 3,
       "says": "你打算收养这只猫吗？",
       "note": "",
       "last": "2026-10-17"
     },
     "door:BusStop|enter": {
-      "works": 7,
-      "fails": 4,
+      "works": 10,
+      "fails": 5,
       "says": "BusStop",
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@SeedShop|go_to": {
-      "works": 11,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "go_to@Town|go_to": {
-      "works": 9,
+    "tile:something|interact_at": {
+      "works": 13,
       "fails": 2,
-      "says": "",
+      "says": "等到皮埃尔经营店铺的时候再回来。",
       "note": "",
       "last": "2026-10-17"
     },
     "ShopMenu:shelf row|menu_click": {
       "works": 0,
-      "fails": 10,
+      "fails": 14,
       "says": "forSaleButtons.0",
       "note": "",
       "last": "2026-10-17"
     },
-    "menu:upperRightCloseButton|menu_click": {
-      "works": 10,
+    "Town:exit_building|exit_building": {
+      "works": 14,
       "fails": 0,
-      "says": "upperRightCloseButton",
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:SeedShop|enter": {
+      "works": 13,
+      "fails": 1,
+      "says": "SeedShop",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@SeedShop|go_to": {
+      "works": 12,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@Town|go_to": {
+      "works": 10,
+      "fails": 2,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "tile:empty|interact_at": {
-      "works": 1,
-      "fails": 8,
-      "says": "嗯。我才想起我好像需要做某件事……但又不记得是什么事了。",
+      "works": 3,
+      "fails": 9,
+      "says": "他们财大气粗，可以先亏本销售，搞倒我这种小本生意……然后再抬高价格割韭菜！",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|clear_area": {
       "works": 2,
-      "fails": 6,
+      "fails": 9,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
+    "menu:upperRightCloseButton|menu_click": {
+      "works": 11,
+      "fails": 0,
+      "says": "upperRightCloseButton",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "door:Farm|enter": {
-      "works": 4,
+      "works": 6,
       "fails": 4,
       "says": "Farm",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|till_area": {
+      "works": 5,
+      "fails": 4,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:Town|enter": {
+      "works": 7,
+      "fails": 1,
+      "says": "Town",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|harvest_all": {
+      "works": 1,
+      "fails": 6,
+      "says": "我看到它坐在你的农场门口！它可能是无家可归了……可怜的小东西。",
       "note": "",
       "last": "2026-10-17"
     },
@@ -91,52 +112,52 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|harvest_all": {
-      "works": 0,
-      "fails": 6,
-      "says": "我看到它坐在你的农场门口！它可能是无家可归了……可怜的小东西。",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "door:Town|enter": {
-      "works": 5,
-      "fails": 1,
-      "says": "Town",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "press_key@Farm|press_key": {
-      "works": 2,
+      "works": 3,
       "fails": 3,
-      "says": "space",
+      "says": "嗨，Juniper！",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:exit_building|exit_building": {
+      "works": 5,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|water_all": {
       "works": 4,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@BusStop|go_to": {
+      "works": 5,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "DialogueBox:doneNamingButton|menu_click": {
-      "works": 3,
+      "works": 4,
       "fails": 0,
       "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|till_area": {
-      "works": 1,
-      "fails": 2,
-      "says": "",
+    "dialogue_choose@Farm|dialogue_choose": {
+      "works": 3,
+      "fails": 1,
+      "says": "我看到它坐在你的农场门口！它可能是无家可归了……可怜的小东西。",
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|water_all": {
-      "works": 3,
+    "door:FarmHouse|enter": {
+      "works": 4,
       "fails": 0,
-      "says": "",
+      "says": "FarmHouse",
       "note": "",
       "last": "2026-10-17"
     },
@@ -147,26 +168,19 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "door:FarmHouse|enter": {
-      "works": 3,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "go_to@BusStop|go_to": {
-      "works": 3,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-16"
-    },
     "move@BusStop|move": {
       "works": 1,
       "fails": 2,
       "says": "",
       "note": "",
       "last": "2026-10-16"
+    },
+    "select_slot@Farm|select_slot": {
+      "works": 3,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
     },
     "select_slot@Town|select_slot": {
       "works": 3,
@@ -178,6 +192,13 @@
     "tile:Junimo|interact_at": {
       "works": 0,
       "fails": 3,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|refill": {
+      "works": 2,
+      "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -196,13 +217,6 @@
       "note": "",
       "last": "2026-10-16"
     },
-    "dialogue_choose@Farm|dialogue_choose": {
-      "works": 2,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "go_to@CommunityCenter|go_to": {
       "works": 2,
       "fails": 0,
@@ -213,13 +227,6 @@
     "CommunityCenter:exit_building|exit_building": {
       "works": 0,
       "fails": 1,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:patch|refill": {
-      "works": 1,
-      "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -238,6 +245,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "interact@SeedShop|interact": {
+      "works": 0,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "move@Town|move": {
       "works": 0,
       "fails": 1,
@@ -245,9 +259,16 @@
       "note": "",
       "last": "2026-10-16"
     },
-    "select_slot@Farm|select_slot": {
-      "works": 1,
-      "fails": 0,
+    "select_slot@SeedShop|select_slot": {
+      "works": 0,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:hoe_dirt|interact_at": {
+      "works": 0,
+      "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -287,11 +308,32 @@
       "note": "Junimo 本体不可交互，旁边的可交互物（如墙上的纸）才是调查目标",
       "last": "2026-10-17"
     },
+    "cutscene_block|dialogue_advance": {
+      "works": 0,
+      "fails": 0,
+      "says": "no dialogue box open while blocked_reason=cutscene/event playing",
+      "note": "a cutscene without a visible dialogue box blocks the player; a choice cutscene needs dialogue_choose instead",
+      "last": "2026-10-17"
+    },
     "farm_crops|scan": {
       "works": 0,
       "fails": 0,
       "says": "全部防风草 watered:true，无 ready",
       "note": "第20天早上作物已浇过水且未成熟，不必重复 water_all，白天可做别的事",
+      "last": "2026-10-17"
+    },
+    "farm_东侧_78_19_79_19|till_area": {
+      "works": 0,
+      "fails": 0,
+      "says": "tillable at (78,19) would not budge",
+      "note": "这两格虽然列为 tillable 但锄不动，换 work 列表里的其他点如 (74,18)",
+      "last": "2026-10-17"
+    },
+    "farm_东侧_79_19_一带|till_area": {
+      "works": 0,
+      "fails": 0,
+      "says": "0 done, 2 given up ((tillable at (78,19) would not budge))",
+      "note": "(78,19)/(79,19) 附近的格子锄不动，别再在那儿下锄；(74,18) 半径 2 一次锄成 3 格",
       "last": "2026-10-17"
     },
     "forsalebuttons_0_purchase|menu_click": {
@@ -311,9 +353,9 @@
     "namingmenu|menu_click": {
       "works": 0,
       "fails": 0,
-      "says": "doneNamingButton",
-      "note": "NamingMenu（命名弹窗，比如给作物/动物取名）卡住时会挡住 harvest_all 等 chore，用 menu_click doneNamingButton 确认即可关闭",
-      "last": "2026-10-16"
+      "says": "文本框里是'味噌'",
+      "note": "NamingMenu for the cat has doneNamingButton to confirm; text field is 'textBoxCC'",
+      "last": "2026-10-17"
     },
     "seedshop_door|enter": {
       "works": 0,
@@ -332,9 +374,9 @@
     "seedshop_购买|menu_click": {
       "works": 0,
       "fails": 0,
-      "says": "forSaleButtons.0 点击后钱不变、手不变",
-      "note": "钱从 500 已降到 240 说明此前点击确实买了；本回合点击'无变化'多半是钱已不足或已买满本回合额度，点两次没效果就立即关菜单走人",
-      "last": "2026-10-16"
+      "says": "点了 4 次 forSaleButtons.0，钱和背包都没变",
+      "note": "钱只有 240 且热键栏全满时，商店点击不会再买到东西——背包满了就别进店买",
+      "last": "2026-10-17"
     },
     "seedshop购买|menu_click": {
       "works": 0,
@@ -383,6 +425,13 @@
       "fails": 0,
       "says": "你打算收养这只猫吗？",
       "note": "回应的是/否要用 dialogue_choose 而不是 dialogue_advance",
+      "last": "2026-10-17"
+    },
+    "背包已满时的商店|menu_click_forsalebuttons_0": {
+      "works": 0,
+      "fails": 0,
+      "says": "the real click changed nothing - not money, not the bag",
+      "note": "背包满时买种子点了也不生效，必须先腾格子或回家种完再买",
       "last": "2026-10-17"
     },
     "背包满时买种|enter": {

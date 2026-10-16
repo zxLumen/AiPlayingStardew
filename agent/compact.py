@@ -17,6 +17,19 @@ def _buttons(ui: dict) -> list[dict]:
         entry["xywh"] = [button.get("x"), button.get("y"), button.get("width"), button.get("height")]
         if button.get("visible") is False:
             entry["hidden"] = True
+
+        # What the control is SHOWING, and whether the game would take it from here.
+        #
+        # Without these the agent sees a grid of buttons called "8", "12", "inventory.0" - names, and a
+        # name is not a thing. It asked to "go and sell the parsnips to make room" and had nothing to
+        # click, because the one slot that holds a parsnip was described only by its number. The bridge
+        # has known what is in each slot since the shop rows were joined onto their goods; this is the
+        # last step of that, and it is the difference between a list and something you can see.
+        if button.get("item"):
+            entry["shows"] = button["item"]
+            if button.get("sellable"):
+                entry["sells_for"] = True
+
         out.append(entry)
     return out
 
