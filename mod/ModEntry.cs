@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
@@ -33,6 +34,13 @@ public class ModEntry : Mod
     private readonly ConcurrentQueue<IGameThreadTask> _tasks = new();
     private bool _titleIntroSkipped;
 
+    /// <summary>Ticks left in the window-maximise burst, and when it last tried.</summary>
+    private int _maximizeTries;
+    private long _lastMaximizeAt;
+
+    /// <summary>Roughly when config.json was last re-read, in units of two seconds.</summary>
+    private long _configReloadAt;
+
     public override void Entry(IModHelper helper)
     {
         _config = helper.ReadConfig<ModConfig>();
@@ -42,21 +50,47 @@ public class ModEntry : Mod
         helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         helper.Events.Display.RenderedHud += OnRenderedHud;
+        // The same drawing again, after the menu. See OnRenderedActiveMenu.
+        helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
     }
 
 
-    /// <summary>Draws the agent activity panel over the game, for anyone watching.</summary>
-    private void OnRenderedHud(object? sender, RenderedHudEventArgs e)
+    /// <summary>Draws the audience panels. Safe every frame; does nothing when switched off.</summary>
+    private void DrawPanels(SpriteBatch b)
     {
         try
         {
-            OverlayPanel.Draw(e.SpriteBatch, _config);
+            OverlayPanel.Draw(b, _config);
         }
         catch (Exception ex)
         {
             // A drawing error must never take the game down mid-stream.
             Monitor.Log($"overlay draw failed: {ex.Message}", LogLevel.Trace);
         }
+    }
+
+
+    /// <summary>Draws the agent activity panel over the game, for anyone watching.</summary>
+    private void OnRenderedHud(object? sender, RenderedHudEventArgs e)
+    {
+        if (Game1.activeClickableMenu != null)
+            return;             // the menu draws next and would cover us - the other handler has it
+
+        DrawPanels(e.SpriteBatch);
+    }
+
+
+    /// <summary>
+    /// The same panels, drawn after the current menu instead of before it.
+    ///
+    /// RenderedHud fires after the HUD but *before* the active menu is drawn, and Stardew draws the
+    /// menu on top of everything - so the agents' board, the subtitles and the room all disappeared
+    /// behind a shop or the bag. Drawing in both places puts them above the menu when there is one
+    /// and above the HUD when there is not, with exactly one of the two running per frame.
+    /// </summary>
+    private void OnRenderedActiveMenu(object? sender, RenderedActiveMenuEventArgs e)
+    {
+        DrawPanels(e.SpriteBatch);
     }
 
 
@@ -75,11 +109,71 @@ public class ModEntry : Mod
         {
             Monitor.Log($"Failed to start StateBridge HTTP server: {ex}", LogLevel.Error);
         }
+
+        MaximizeWhenReady();
+    }
+
+
+    /// <summary>
+    /// Fills the screen with the game window, keeping it a window.
+    ///
+    /// Not done in one shot. Stardew creates, positions and then re-fits the window several times
+    /// during start-up and again when a save loads, and each of those undoes the last maximise. So
+    /// this arms a short burst of re-applications instead of firing once and hoping.
+    /// </summary>
+    private void MaximizeWhenReady()
+    {
+        if (!_config.MaximizeWindow)
+            return;
+
+        _maximizeTries = 240;             // keep asking for a while - the load re-fits the window too
+        _lastMaximizeAt = 0;
     }
 
 
     private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
+        // Re-read config.json about once a second. Panel geometry, scroll speed and which panels are
+        // on are all things you want to try a few values of, and reading the file is far cheaper
+        // than rebuilding the mod and restarting the game to move a rectangle.
+        if (e.IsMultipleOf(30) && _configReloadAt != DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 2)
+        {
+            _configReloadAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 2;
+            try
+            {
+                ModConfig latest = Helper.ReadConfig<ModConfig>();
+                latest.Port = _config.Port;
+                latest.BindAddress = _config.BindAddress;
+                latest.EnableActions = _config.EnableActions;
+                _config = latest;
+            }
+            catch { /* a malformed file must not take the game down */ }
+        }
+
+        // Ask for the window manager's maximise, and only that. It touches no graphics device, so it
+        // is safe while Stardew is still starting or loading - and it is idempotent (asking again for
+        // a maximised window does nothing), so a long run of attempts costs nothing and covers the
+        // re-fit that happens when a save loads.
+        //
+        // NOT gated on Context.IsWorldReady: the title screen and the save loader are exactly where a
+        // small window is most annoying, and waiting for the world meant the window was left alone for
+        // the whole time the player is looking at a menu.
+        if (_maximizeTries > 0 && e.IsMultipleOf(15))
+        {
+            _maximizeTries--;
+
+            if (NativeInput.MaximizeOnTargetMonitor(out string why))
+            {
+                _maximizeTries = 0;
+                Monitor.Log("window: maximised (IsZoomed=true)", LogLevel.Info);
+            }
+            else if (_maximizeTries == 0)
+            {
+                // Say so, loudly and once. Silence was how "it does not work" stayed unanswerable.
+                Monitor.Log($"window: could NOT maximise - {why}", LogLevel.Warn);
+            }
+        }
+
         MovementController.OnUpdateTicked();
         ActionProcessor.ProcessPendingNewGame(Monitor);
         ActionProcessor.ProcessPendingClicks(Monitor);
@@ -158,6 +252,10 @@ public class ModEntry : Mod
             $"Save loaded: {f?.Name} | {Game1.dayOfMonth} {Game1.currentSeason} y{Game1.year} | " +
             $"@{(f != null ? $"{(int)f.Tile.X},{(int)f.Tile.Y}" : "?")} in {Game1.currentLocation?.Name}",
             LogLevel.Info);
+
+        // Stardew re-fits the window to its own preferred resolution once a save loads, so the
+        // maximise applied at launch gets undone here. This is the moment that sticks.
+        MaximizeWhenReady();
     }
 
 

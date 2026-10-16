@@ -105,6 +105,12 @@ public static class UiStateBuilder
         try { ui.CharacterDesign = BuildCharacterDesign(menu); }
         catch (Exception ex) { monitor.Log($"UiStateBuilder character design failed: {ex.Message}", LogLevel.Warn); }
 
+        try { ui.Shop = BuildShop(menu); }
+        catch (Exception ex) { monitor.Log($"UiStateBuilder shop failed: {ex.Message}", LogLevel.Warn); }
+
+        try { ui.HeldItem = DescribeHeld(menu); }
+        catch (Exception ex) { monitor.Log($"UiStateBuilder held item failed: {ex.Message}", LogLevel.Warn); }
+
         return ui;
     }
 
@@ -418,5 +424,307 @@ public static class UiStateBuilder
         {
             return "";
         }
+    }
+
+
+    /// <summary>
+    /// Joins a shop's clickable rows onto the things actually for sale.
+    ///
+    /// ShopMenu keeps three parallel structures - the rows (`forSaleButtons`), the ordered goods
+    /// (`forSale`, offset by `currentItemIndex` as the shelf scrolls) and a price/stock table keyed
+    /// by item (`itemPriceAndStock`). The rows themselves carry no label whatsoever, so without
+    /// this join the agent is handed a column of blank rectangles named "0", "1", "2", ... and has
+    /// no way to tell a parsnip seed from a scythe. That is not a reason to skip the purchase; it is
+    /// a reason to guess, which is how money gets spent on the wrong thing.
+    ///
+    /// Where the join cannot be trusted the row is left BLANK on purpose: a shop row with no name
+    /// reads as "unknown" and stops an agent from acting on a confident lie.
+    /// </summary>
+    private static List<ShopItemInfo> BuildShop(IClickableMenu? menu)
+    {
+        var rows = new List<ShopItemInfo>();
+        if (menu is not ShopMenu)
+            return rows;
+
+        // Find the shelf, the prices and the clickable rows by SHAPE, not by name.
+        //
+        // The names were guessed once (forSale / itemPriceAndStock) and were wrong, which produced a
+        // shelf of blanks. Blanks are safe - they cannot make an agent buy the wrong thing - but they
+        // are useless, and a name that drifts turns a working bridge into a lying one with no warning.
+        // Shapes do not drift: the goods are the sequence of ISalable, the prices are the int[] table
+        // keyed by them, and the rows are the clickable components that carry a number for a name.
+        List<object?> shelf = new();
+        List<object?> rowsFound = new();
+        IDictionary? prices = null;
+
+        foreach (FieldInfo field in AllFieldsOn(menu))
+        {
+            object? value;
+            try { value = field.GetValue(menu); }
+            catch { continue; }
+            if (value == null || value is string)
+                continue;
+
+            if (prices == null && value is IDictionary table && LooksLikePrices(table))
+            {
+                prices = table;
+                continue;
+            }
+
+            if (value is not System.Collections.IEnumerable sequence)
+                continue;
+
+            List<object?> items = ToList(sequence);
+            if (items.Count == 0)
+                continue;
+
+            if (shelf.Count == 0 && AllAre(items, x => x is StardewValley.ISalable))
+                shelf = items;
+            else if (rowsFound.Count == 0 && AllAre(items, x => x is ClickableComponent))
+                rowsFound = items;
+        }
+
+        if (prices == null || shelf.Count == 0 || rowsFound.Count == 0)
+            return rows;        // nothing trustworthy to join: blank rows, never guesses
+
+        // The shelf scrolls, so the visible rows are an offset into the goods. That offset is not
+        // guessed either - the price table settles it, because a correct join finds its item in it
+        // and a wrong one does not.
+        int offset = ChooseOffset(menu, rowsFound, shelf, prices);
+        int money = Game1.player?.Money ?? 0;
+
+        for (int i = 0; i < rowsFound.Count; i++)
+        {
+            if (rowsFound[i] is not ClickableComponent button)
+                continue;
+
+            var row = new ShopItemInfo
+            {
+                Slot = string.IsNullOrWhiteSpace(button.name) ? i.ToString() : button.name,
+            };
+
+            int index = offset + i;
+            if (index >= 0 && index < shelf.Count && shelf[index] is { } item)
+            {
+                try
+                {
+                    if (prices.Contains(item))
+                    {
+                        (int price, int stock) = ReadPrice(prices[item]);
+                        if (price > 0)
+                        {
+                            row.Item = Describe(item);
+                            row.ItemId = IdOf(item);
+                            row.Price = price;
+                            row.Stock = stock;
+                            row.Affordable = money >= row.Price;
+                        }
+                    }
+                }
+                catch { /* leave the row blank rather than guess */ }
+            }
+
+            rows.Add(row);
+        }
+
+        return rows;
+    }
+
+
+    /// <summary>Which slice of the shelf the visible rows are showing. The price table decides.</summary>
+    private static int ChooseOffset(IClickableMenu menu, List<object?> rows, List<object?> shelf,
+                                    IDictionary prices)
+    {
+        var candidates = new List<int> { 0 };
+        int current = ReadInt(menu, "currentItemIndex");
+        if (current > 0)
+            candidates.Add(current);
+
+        int best = candidates[0];
+        int bestHits = -1;
+
+        foreach (int candidate in candidates)
+        {
+            int hits = 0;
+            for (int i = 0; i < rows.Count; i++)
+            {
+                int index = candidate + i;
+                if (index < 0 || index >= shelf.Count || shelf[index] is not { } item)
+                    continue;
+                try { if (prices.Contains(item)) hits++; }
+                catch { }
+            }
+
+            if (hits > bestHits)
+            {
+                bestHits = hits;
+                best = candidate;
+            }
+        }
+
+        return best;
+    }
+
+
+    private static bool LooksLikePrices(IDictionary table)
+    {
+        try
+        {
+            foreach (DictionaryEntry entry in table)
+            {
+                object? value = entry.Value;
+                return entry.Key is StardewValley.ISalable
+                       && (value is int[] || (value != null && ReadMember(value, "Price") != null));
+            }
+        }
+        catch { }
+
+        return false;
+    }
+
+
+    /// <summary>
+    /// Price and stock out of one entry of the shop's price table.
+    ///
+    /// The value type is NOT stable across versions, and assuming it was cost real time: the first
+    /// version looked the table up by name and then demanded an int[]; the "shape-based" rewrite did
+    /// the same thing by a different route. In 1.6 the value is an ItemStockInformation, so both
+    /// found nothing and the shelf reported a column of blanks.
+    ///
+    /// So read BOTH shapes, and read by MEANING - `Price` and `Stock` - instead of by index, so a
+    /// third shape cannot quietly produce a wrong price.
+    /// </summary>
+    private static (int Price, int Stock) ReadPrice(object? entry)
+    {
+        if (entry == null)
+            return (0, -1);
+
+        if (entry is int[] info && info.Length > 0)
+            return (info[0], info.Length > 1 && info[1] != int.MaxValue ? info[1] : -1);
+
+        int price = ToInt(ReadMember(entry, "Price"));
+        int stock = ToInt(ReadMember(entry, "Stock"));
+        if (stock == int.MaxValue || stock < 0)
+            stock = -1;
+
+        return (price, stock);
+    }
+
+
+    private static int ToInt(object? value)
+    {
+        try { return value == null ? 0 : Convert.ToInt32(value); }
+        catch { return 0; }
+    }
+
+
+    private static List<FieldInfo> AllFieldsOn(object target)
+    {
+        var fields = new List<FieldInfo>();
+        Type? type = target.GetType();
+        while (type != null && type != typeof(object))
+        {
+            try { fields.AddRange(type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)); }
+            catch { }
+            type = type.BaseType;
+        }
+        return fields;
+    }
+
+
+    private static bool AllAre(List<object?> items, Func<object?, bool> predicate)
+    {
+        foreach (object? item in items)
+        {
+            if (!predicate(item))
+                return false;
+        }
+        return true;
+    }
+
+
+    /// <summary>
+    /// What the open menu is holding, if it is holding anything.
+    ///
+    /// A SECOND place an item can be "in hand", and the one nobody looked at: a menu can hold an item
+    /// itself (<c>IClickableMenu.heldItem</c>) rather than the player holding it on the cursor. While
+    /// it does, Stardew's <c>readyToClose()</c> returns false - and both the close button and the
+    /// escape key go through that - so the menu "refuses to close for no reason" and swallows every
+    /// later click too. A player sees the item in their hand; the payload said nothing about it.
+    /// </summary>
+    private static string DescribeHeld(IClickableMenu? menu)
+    {
+        if (menu == null)
+            return "";
+
+        object? held = ReadMember(menu, "heldItem");
+        return held == null ? "" : Describe(held);
+    }
+
+
+    private static string Describe(object item)
+    {
+        if (item is not StardewValley.ISalable salable)
+            return "";
+
+        string name = salable.DisplayName ?? "";
+        if (salable.Stack > 1)
+            name = $"{name} x{salable.Stack}";
+        return name;
+    }
+
+
+    private static string IdOf(object item)
+        => item is StardewValley.ISalable salable ? (salable.QualifiedItemId ?? "") : "";
+
+
+    private static int ReadInt(object target, string name)
+    {
+        object? raw = ReadMember(target, name);
+        return raw is int value ? value : 0;
+    }
+
+
+    /// <summary>Reads a field (or property) by name up the type hierarchy, or null.</summary>
+    private static object? ReadMember(object target, string name)
+    {
+        Type? type = target.GetType();
+        while (type != null && type != typeof(object))
+        {
+            try
+            {
+                FieldInfo? field = type.GetField(name,
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (field != null)
+                    return field.GetValue(target);
+
+                PropertyInfo? prop = type.GetProperty(name,
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (prop != null && prop.GetIndexParameters().Length == 0)
+                    return prop.GetValue(target);
+            }
+            catch { return null; }
+
+            type = type.BaseType;
+        }
+
+        return null;
+    }
+
+
+    private static List<object?> ToList(object? sequence)
+    {
+        var list = new List<object?>();
+        if (sequence is not IEnumerable items)
+            return list;
+
+        try
+        {
+            foreach (object? entry in items)
+                list.Add(entry);
+        }
+        catch { /* a collection that throws mid-enumeration gives what we got so far */ }
+
+        return list;
     }
 }

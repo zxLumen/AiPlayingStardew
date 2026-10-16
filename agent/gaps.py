@@ -94,8 +94,13 @@ def load_journal_events(journal_dir: Path) -> list[dict]:
     return events
 
 
-def load_agent_events(agent_dir: Path, agent: str = "streamer") -> list[dict]:
-    """Parse logs/agents/<agent>.jsonl, which carries the world-change verdict."""
+def load_agent_events(agent_dir: Path, agent: str = "streamer", run_id: str = "") -> list[dict]:
+    """Parse logs/agents/<agent>.jsonl, which carries the world-change verdict.
+
+    `run_id` keeps this to the run being judged. The files are append-only and span every run ever,
+    so without it a fresh game inherits the previous one's failures - and the agents spend their
+    first minutes arguing about a save that no longer exists.
+    """
     events: list[dict] = []
     path = agent_dir / f"{agent}.jsonl"
     if not path.exists():
@@ -114,6 +119,10 @@ def load_agent_events(agent_dir: Path, agent: str = "streamer") -> list[dict]:
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
+
+        if run_id and str(event.get("run") or "") != run_id:
+            continue
+
         if event.get("action"):
             events.append(event)
 

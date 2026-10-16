@@ -1,67 +1,354 @@
 {
   "defects": [
     {
-      "key": "stalled:water_all",
-      "title": "water_all 走不到目标",
-      "owner": "agent",
-      "detail": "给 water_all 加了前置条件：{'fact': 'held.charges', 'op': '>', 'value': 0}，不足时先 refill_watering_can。原因：喷壶是空的（charges 0/40），所以每次浇水都没有效果，水壶不会消耗也不改变土壤，agent 就此卡在 (61,20)。",
-      "severity": 2,
-      "count": 3,
-      "first_seen": "2026-10-16 08:59",
-      "last_seen": "2026-10-16 14:18",
-      "cost_s": 23.70540999993682,
-      "days": 0,
-      "status": "mitigated",
-      "evidence": [
-        "给 water_all 加了前置条件：{'fact': 'held.charges', 'op': '>', 'value': 0}，不足时先 refill_watering_can。原因：喷壶是空的（charges 0/40），所以每次浇水都没有效果，水壶不会消耗也不改变土壤，agent 就此卡在 (61,20)。"
-      ]
-    },
-    {
       "key": "gap:interact",
       "title": "`interact` 被判定 BROKEN",
       "owner": "agent",
-      "detail": "BROKEN: 11 次尝试 / 报 OK 0 次 / 空转 0 次",
+      "detail": "写成计划约束：在执行 interact / interact_at / use_tool 等需要玩家自由的动作前，必须先确认没有过场或事件正在播放（uistate.dialogue 不为 null 或 uistate.menu 非空都算占用）；若返回 NOT_FREE，不要重试同一动作，而是先调用 clear_event（或 dialogue_advance / dialogue_choose 结束对话）把玩家交还控制权，再重新执行该动作。",
       "severity": 2,
-      "count": 1,
-      "first_seen": "2026-10-16 14:15",
-      "last_seen": "2026-10-16 14:15",
+      "count": 3,
+      "first_seen": "2026-10-16 14:54",
+      "last_seen": "2026-10-16 15:04",
       "cost_s": 0.0,
       "days": 0,
-      "status": "open",
+      "status": "mitigated",
       "evidence": [
-        "FAILED: checkAction at (9, 23) -> False; FAILED: checkAction at (9, 23) -> False"
-      ]
-    },
-    {
-      "key": "gap:use_tool_at",
-      "title": "`use_tool_at` 被判定 LYING",
-      "owner": "agent",
-      "detail": "LYING: 126 次尝试 / 报 OK 104 次 / 空转 0 次",
-      "severity": 2,
-      "count": 1,
-      "first_seen": "2026-10-16 14:15",
-      "last_seen": "2026-10-16 14:15",
-      "cost_s": 0.0,
-      "days": 0,
-      "status": "open",
-      "evidence": [
-        "NOTHING_DONE: 镰刀 did nothing at (67,19); NOTHING_DONE: 镰刀 did nothing at (69,21)"
+        "FAILED: checkAction at (9, 23) -> False; NOT_FREE: player not free: cutscene/event playing",
+        "写成计划约束：在执行 interact / interact_at / use_tool 等需要玩家自由的动作前，必须先确认没有过场或事件正在播放（uistate.dialogue 不为 null 或 uistate.menu 非空都算占用）；若返回 NOT_FREE，不要重试同一动作，而是先调用 clear_event（或 dialogue_advance / dialogue_choose 结束对话）把玩家交还控制权，再重新执行该动作。"
       ]
     },
     {
       "key": "gap:till_area",
       "title": "`till_area` 被判定 LYING",
       "owner": "agent",
-      "detail": "LYING: 50 次尝试 / 报 OK 32 次 / 空转 1 次",
+      "detail": "LYING: 19 次尝试 / 报 OK 17 次 / 空转 0 次",
       "severity": 2,
-      "count": 1,
-      "first_seen": "2026-10-16 14:15",
-      "last_seen": "2026-10-16 14:15",
+      "count": 4,
+      "first_seen": "2026-10-16 14:54",
+      "last_seen": "2026-10-16 15:15",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "mitigated",
+      "evidence": [
+        "(none): till_area: 3 tile(s) queued - it will work through them by itself; FAILED: nothing to do for till_area - nothing nearby needs that work",
+        "给 till_area 加了前置条件：{'fact': 'work.tillable', 'op': '>', 'value': 0}，不足时先 scan。原因：till_area 在 work.tillable 为 0（人还在 FarmHouse 里、附近根本没有可耕地）时被反复下发，bridge 只要把任务排进队列就回 OK，世界却一点没变，所以 22 次「OK」全是空头支票，偶尔才回一句「nothing nearby needs that work」。",
+        "(none): till_area: 20 done, 0 given up of 20 in 20.6s - finished; (none): till_area: 8 done, 0 given up of 8 in 10.3s - finished"
+      ]
+    },
+    {
+      "key": "gap:use_tool_at",
+      "title": "`use_tool_at` 被判定 LYING",
+      "owner": "agent",
+      "detail": "给 use_tool_at 加了前置条件：{'fact': 'work.tillable', 'op': '>', 'value': 0}，不足时先 scan。原因：两次被记成 LYING 的挥动都发生在没有可耕作物的坐标上（work.tillable=0、empty_soil=0、debris=0，且角色仍在 FarmHouse 内），锄头确实挥出了，但目标格本就无物可作用，世界不变；桥接只按“工具挥出”就回 OK，于是被判成说谎。",
+      "severity": 2,
+      "count": 3,
+      "first_seen": "2026-10-16 14:54",
+      "last_seen": "2026-10-16 15:12",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "mitigated",
+      "evidence": [
+        "(none): swung 锄头 at (9,23); (none): swung 锄头 at (12,11)",
+        "给 use_tool_at 加了前置条件：{'fact': 'work.tillable', 'op': '>', 'value': 0}，不足时先 scan。原因：两次被记成 LYING 的挥动都发生在没有可耕作物的坐标上（work.tillable=0、empty_soil=0、debris=0，且角色仍在 FarmHouse 内），锄头确实挥出了，但目标格本就无物可作用，世界不变；桥接只按“工具挥出”就回 OK，于是被判成说谎。"
+      ]
+    },
+    {
+      "key": "stage:save",
+      "title": "流水线卡在「读入 AI 自己的存档」",
+      "owner": "developer",
+      "detail": "不知道自己的存档长什么样（config/ai_save.json 缺失）",
+      "severity": 3,
+      "count": 2,
+      "first_seen": "2026-10-16 14:55",
+      "last_seen": "2026-10-16 14:56",
       "cost_s": 0.0,
       "days": 0,
       "status": "open",
       "evidence": [
-        "(none): till_area: 6 done, 1 given up of 7 in 4.6s - finished ((no path to (62,20))); (none): till_area: 1 done, 1 given up of 2 in 1.4s - finished ((no path to (62,20)))"
+        "不知道自己的存档长什么样（config/ai_save.json 缺失）"
+      ]
+    },
+    {
+      "key": "cheat:boy",
+      "title": "`boy` 不是玩家能做的动作",
+      "owner": "developer",
+      "detail": "'boy' is exposed but undeclared - say what a player does",
+      "severity": 3,
+      "count": 2,
+      "first_seen": "2026-10-16 15:18",
+      "last_seen": "2026-10-16 15:22",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": []
+    },
+    {
+      "key": "cheat:cancel_chore",
+      "title": "`cancel_chore` 不是玩家能做的动作",
+      "owner": "developer",
+      "detail": "'cancel_chore' is exposed but undeclared - say what a player does",
+      "severity": 3,
+      "count": 2,
+      "first_seen": "2026-10-16 15:18",
+      "last_seen": "2026-10-16 15:22",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": []
+    },
+    {
+      "key": "cheat:clear_event",
+      "title": "`clear_event` 不是玩家能做的动作",
+      "owner": "developer",
+      "detail": "'clear_event' is exposed but undeclared - say what a player does",
+      "severity": 3,
+      "count": 2,
+      "first_seen": "2026-10-16 15:18",
+      "last_seen": "2026-10-16 15:22",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": []
+    },
+    {
+      "key": "cheat:exit_building",
+      "title": "`exit_building` 不是玩家能做的动作",
+      "owner": "developer",
+      "detail": "'exit_building' claims \"walk onto the door tile\" but teleports the farmer (Game1.warpFarmer)",
+      "severity": 3,
+      "count": 2,
+      "first_seen": "2026-10-16 15:18",
+      "last_seen": "2026-10-16 15:22",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": []
+    },
+    {
+      "key": "cheat:girl",
+      "title": "`girl` 不是玩家能做的动作",
+      "owner": "developer",
+      "detail": "'girl' is exposed but undeclared - say what a player does",
+      "severity": 3,
+      "count": 2,
+      "first_seen": "2026-10-16 15:18",
+      "last_seen": "2026-10-16 15:22",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": []
+    },
+    {
+      "key": "cheat:new_day",
+      "title": "`new_day` 不是玩家能做的动作",
+      "owner": "developer",
+      "detail": "'new_day' has no player equivalent and is still offered",
+      "severity": 3,
+      "count": 2,
+      "first_seen": "2026-10-16 15:18",
+      "last_seen": "2026-10-16 15:22",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": []
+    },
+    {
+      "key": "cheat:pause_time",
+      "title": "`pause_time` 不是玩家能做的动作",
+      "owner": "developer",
+      "detail": "'pause_time' has no player equivalent and is still offered",
+      "severity": 3,
+      "count": 2,
+      "first_seen": "2026-10-16 15:18",
+      "last_seen": "2026-10-16 15:22",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": []
+    },
+    {
+      "key": "cheat:set_display",
+      "title": "`set_display` 不是玩家能做的动作",
+      "owner": "developer",
+      "detail": "'set_display' has no player equivalent and is still offered",
+      "severity": 3,
+      "count": 2,
+      "first_seen": "2026-10-16 15:18",
+      "last_seen": "2026-10-16 15:22",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": []
+    },
+    {
+      "key": "cheat:warp",
+      "title": "`warp` 不是玩家能做的动作",
+      "owner": "developer",
+      "detail": "'warp' has no player equivalent and is still offered",
+      "severity": 3,
+      "count": 2,
+      "first_seen": "2026-10-16 15:18",
+      "last_seen": "2026-10-16 15:22",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": []
+    },
+    {
+      "key": "cheat:game_data",
+      "title": "`game_data` 不是玩家能做的动作",
+      "owner": "developer",
+      "detail": "'game_data' reads the game without requiring 'WorldMap' to be open (a player would have to open it) - see whether the bridge can gate this",
+      "severity": 3,
+      "count": 21,
+      "first_seen": "2026-10-16 15:18",
+      "last_seen": "2026-10-16 18:20",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": []
+    },
+    {
+      "key": "cheat:chat",
+      "title": "`chat` 不是玩家能做的动作",
+      "owner": "agent",
+      "detail": "禁用 chat：游戏不存在「聊天」这一独立玩家动词：与 NPC 交谈是 interact / interact_at 命中 NPC 后由游戏自己触发对话（uistate.dialogue）。chat 没有任何可满足的前置条件，任何状态下都只会空转返回成功、不改变世界，因此必须从桥接动作表中移除，相关需求一律改由 interact / interact_at 承担。",
+      "severity": 2,
+      "count": 5,
+      "first_seen": "2026-10-16 16:55",
+      "last_seen": "2026-10-16 17:17",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "fixed",
+      "evidence": [
+        "禁用 chat：游戏没有「聊天」这个独立动词：对话是 interact 命中 NPC 时游戏自己弹出的（uistate.dialogue）。没有任何前置条件能让 chat 生效，它只能永远返回成功却不改变世界，因此必须从桥接层移除，改由 interact / interact_at 承担。",
+        "禁用 chat：游戏不存在「聊天」这一独立玩家动词：与 NPC 交谈是 interact / interact_at 命中 NPC 后由游戏自己触发对话（uistate.dialogue）。chat 没有任何可满足的前置条件，任何状态下都只会空转返回成功、不改变世界，因此必须从桥接动作表中移除，相关需求一律改由 interact / interact_at 承担。"
+      ]
+    },
+    {
+      "key": "cheat:narrate",
+      "title": "`narrate` 不是玩家能做的动作",
+      "owner": "agent",
+      "detail": "禁用 narrate：游戏与桥接层都没有“解说/旁白”这一动作，允许动作清单（go_to、move、work、use_tool、interact、plant_all、refill、scan 等）里也没有它，任何前置条件都无法让它生效；它只会消耗一个行动回合并让日志失真。",
+      "severity": 2,
+      "count": 5,
+      "first_seen": "2026-10-16 16:55",
+      "last_seen": "2026-10-16 17:17",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "fixed",
+      "evidence": [
+        "禁用 narrate：游戏和桥接层都不存在“解说/旁白”这一动作，没有任何前置条件能让它生效，它只会白占一个行动回合且不改变世界；所有行动必须取自允许动作清单（go_to、move、work、use_tool、interact、plant_all、refill、scan 等）。",
+        "禁用 narrate：游戏与桥接层都没有“解说/旁白”这一动作，允许动作清单（go_to、move、work、use_tool、interact、plant_all、refill、scan 等）里也没有它，任何前置条件都无法让它生效；它只会消耗一个行动回合并让日志失真。"
+      ]
+    },
+    {
+      "key": "cheat:progress",
+      "title": "`progress` 不是玩家能做的动作",
+      "owner": "agent",
+      "detail": "禁用 progress：游戏本身不存在与“progress”对应的玩家行为（没有工具、没有按键、没有 NPC 交互会推进它），它是桥接层把内部/调试通道当成正常动作暴露出来；任何前置条件都无法让玩家“做出”这个动作，只会污染规划器的可选动作集。",
+      "severity": 2,
+      "count": 4,
+      "first_seen": "2026-10-16 16:55",
+      "last_seen": "2026-10-16 17:21",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "fixed",
+      "evidence": [
+        "禁用 progress：游戏本身不存在与“progress”对应的玩家行为（没有工具、没有按键、没有 NPC 交互会推进它），它是桥接层把内部/调试通道当成正常动作暴露出来；任何前置条件都无法让玩家“做出”这个动作，只会污染规划器的可选动作集。"
+      ]
+    },
+    {
+      "key": "gap:menu_click",
+      "title": "`menu_click` 被判定 LYING",
+      "owner": "agent",
+      "detail": "LYING: 54 次尝试 / 报 OK 54 次 / 空转 0 次",
+      "severity": 2,
+      "count": 6,
+      "first_seen": "2026-10-16 17:57",
+      "last_seen": "2026-10-16 18:20",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "mitigated",
+      "evidence": [
+        "(none): clicked '0' at (1060,247) in ShopMenu; (none): clicked '0' at (1060,247) in ShopMenu",
+        "桥缺能力：菜单点击缺少坐标换算"
+      ]
+    },
+    {
+      "key": "brain:unavailable",
+      "title": "模型接口连续 3 次没有回复",
+      "owner": "developer",
+      "detail": "连续拿不到回复（超时或报错）。在它之上的一切 —— 规划、裁判、守望 —— 都只是在空转，而且看起来和'游戏很慢'一模一样。",
+      "severity": 3,
+      "count": 6,
+      "first_seen": "2026-10-16 17:59",
+      "last_seen": "2026-10-16 18:11",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": []
+    },
+    {
+      "key": "outcome:stalled",
+      "title": "连续 4 天毫无进展",
+      "owner": "agent",
+      "detail": "金钱 / 任务 / 背包 / 农活 全部停在原地。这是最高优先级的缺陷：不是某个动作坏了，是整件事没有在往前走。当前值：inventory_kinds=10, money=500, quests_completed=0, tillable_worked=0",
+      "severity": 2,
+      "count": 1,
+      "first_seen": "2026-10-16 18:06",
+      "last_seen": "2026-10-16 18:06",
+      "cost_s": 0.0,
+      "days": 4,
+      "status": "open",
+      "evidence": [
+        "y1-spring-11: {'money': 440, 'quests_completed': 0, 'inventory_kinds': 10, 'tillable_worked': 0}"
+      ]
+    },
+    {
+      "key": "referee:unavailable",
+      "title": "裁判拿不到结果 —— 这一天的学习丢了",
+      "owner": "developer",
+      "detail": "referee unavailable: HTTP 403 from https://opencode.ai/inference/go/openai/v1/chat/completions: {\"type\":\"error\",\"error\":{\"type\":\"permission_error\",\"message\":\"Workspace access denied\"}}",
+      "severity": 3,
+      "count": 1,
+      "first_seen": "2026-10-16 18:11",
+      "last_seen": "2026-10-16 18:11",
+      "cost_s": 3.3122363998554647,
+      "days": 0,
+      "status": "open",
+      "evidence": []
+    },
+    {
+      "key": "cap:菜单点击缺少坐标换算",
+      "title": "菜单点击缺少坐标换算",
+      "owner": "developer",
+      "detail": "游戏能以鼠标点击商店列表项完成购买，但 bridge 的 menu_click 只接受一个裸屏幕坐标，既不校验该坐标是否命中 ShopMenu 的某个可点控件，也不随窗口位置/分辨率/UI 缩放换算，于是「点了但没点到」。需要的是按 UI 元素（如库存下标 '0'）解析出真实屏幕坐标，并在点击后确认世界状态改变（金钱减少、物品入包），否则不能报 OK。（原缺陷：menu_click 把目标当成屏幕绝对坐标 (1060,247) 直接注入，没有按游戏窗口的位置/缩放/UI 比例换算，点击落在菜单控件之外，因此每次报 OK 但世界毫无变化。）",
+      "severity": 3,
+      "count": 1,
+      "first_seen": "2026-10-16 18:16",
+      "last_seen": "2026-10-16 18:16",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": [
+        "LYING: 32 次尝试 / 报 OK 32 次 / 空转 0 次"
+      ]
+    },
+    {
+      "key": "gap:exit_building",
+      "title": "`exit_building` 被判定 LYING",
+      "owner": "agent",
+      "detail": "LYING: 28 次尝试 / 报 OK 14 次 / 空转 0 次",
+      "severity": 2,
+      "count": 1,
+      "first_seen": "2026-10-16 18:20",
+      "last_seen": "2026-10-16 18:20",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": [
+        "(none): left FarmHouse -> Farm (64,15); (none): left FarmHouse -> Farm (64,15)"
       ]
     }
   ]

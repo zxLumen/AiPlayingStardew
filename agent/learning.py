@@ -158,6 +158,34 @@ class LearningStore:
         needle = (action, json.dumps(args, sort_keys=True, ensure_ascii=False))
         return self.failures.count(needle) >= threshold
 
+    def is_repeat_near(self, action: str, args: dict, radius: int = 3) -> bool:
+        """Whether this action has already failed twice within a few tiles of where it is aimed.
+
+        Changing (4,18) to (5,18) is not a new idea - it is the same wall with a different number on
+        it - and a check for the exact same arguments cannot see that. Two days were spent walking
+        into the counter behind Pierre one guess at a time.
+        """
+        if "x" not in args or "y" not in args:
+            return False
+
+        try:
+            x, y = int(args["x"]), int(args["y"])
+        except (TypeError, ValueError):
+            return False
+
+        near = 0
+        for recorded_action, recorded_args in self.failures:
+            if recorded_action != action:
+                continue
+            try:
+                other = json.loads(recorded_args)
+                if abs(int(other["x"]) - x) <= radius and abs(int(other["y"]) - y) <= radius:
+                    near += 1
+            except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+                continue
+
+        return near >= 2
+
     def clear_failures(self) -> None:
         self.failures.clear()
 
@@ -172,6 +200,12 @@ class LearningStore:
 
         if self.is_repeat(action, args):
             return action, args, f"'{action}' {args} 已连续失败 2 次，被拦截 - 换个做法"
+
+        if action == "go_to" and self.is_repeat_near(action, args):
+            return action, args, (
+                "go_to 已经在附近失败过多次 - 换了坐标但还在同一堵墙前。"
+                "别再用 go_to 猜位置：对人或物直接发 interact_at（游戏会自己站到旁边），"
+                "或者换一个完全不同的目标")
 
         if kind and kind not in NOT_ACTIONABLE and action in TILE_ACTIONS:
             better = self.best_action(kind, action)

@@ -41,6 +41,10 @@ class LlmReply:
         return self.finish_reason == "length"
 
 
+class LlmQuotaError(LlmError):
+    """The endpoint is out of credit or refusing to serve. Retrying cannot fix this."""
+
+
 class LlmClient:
     def __init__(self, section: str = "llm") -> None:
         self.endpoint: Endpoint = resolve(section)
@@ -49,7 +53,8 @@ class LlmClient:
                 "no API key configured. Set OPENCODE_API_KEY, or fill llm.api_key "
                 "in config/secrets.json"
             )
-        self._client = httpx.Client(timeout=self.endpoint.timeout_s)
+        self._client = httpx.Client(timeout=self.endpoint.timeout_s,
+                                    trust_env=self.endpoint.trust_env)
 
     def close(self) -> None:
         self._client.close()
@@ -68,12 +73,16 @@ class LlmClient:
         temperature: float | None = None,
         max_tokens: int | None = None,
         reasoning_effort: str | None = _DEFAULT,  # type: ignore[assignment]
+        timeout_s: float | None = None,
     ) -> LlmReply:
         body: dict = {
             "model": model or self.endpoint.model,
             "messages": messages,
             "temperature": self.endpoint.temperature if temperature is None else temperature,
-            "max_tokens": self.endpoint.max_tokens if max_tokens is None else max_tokens,
+            # A reasoning model spends this on thinking, and thinking counts here - so a small
+            # ceiling gives a long think and an empty answer, which looks exactly like a network
+            # fault and is not. A floor in one place beats remembering this per agent.
+            "max_tokens": max(2000, max_tokens if max_tokens is not None else (self.endpoint.max_tokens or 0)),
         }
 
         effort = self.endpoint.reasoning_effort if reasoning_effort == _DEFAULT else reasoning_effort
@@ -89,6 +98,10 @@ class LlmClient:
                 **self.endpoint.headers,
             },
             json=body,
+            # A per-call cap. The client has a default, but a caller that only gets one decision
+            # per turn needs to say "this one, no longer than this" - otherwise a slow answer eats
+            # the turn and the farmer stands still waiting for it.
+            timeout=timeout_s if timeout_s else self.endpoint.timeout_s,
         )
         elapsed = time.perf_counter() - started
 
@@ -116,8 +129,30 @@ class LlmClient:
         attempt_kwargs = dict(kwargs)
         last_error: Exception | None = None
 
-        for _ in range(retries + 1):
-            reply = self.chat(attempt_messages, **attempt_kwargs)  # type: ignore[arg-type]
+        for attempt in range(retries + 1):
+            try:
+                reply = self.chat(attempt_messages, **attempt_kwargs)  # type: ignore[arg-type]
+            except Exception as exc:
+                text = f"{type(exc).__name__}: {exc}".lower()
+
+                # Out of credit is not the same fault as a dropped connection, and from here the
+                # two look identical. One is fixed by waiting, the other only by a new key - and
+                # saying which it is matters, because "model unavailable" sends you looking in the
+                # wrong place.
+                if any(k in text for k in (
+                    "402", "403", "429",                 # out of credit, no permission, rate limited
+                    "quota", "insufficient", "credit", "balance",
+                    "permission", "denied", "unauthor",  # a 403 is a config fault, not a blip
+                )):
+                    raise LlmQuotaError(f"额度用尽或被限流：{exc}") from exc
+
+                # "Server disconnected" and "SSL EOF" both mean the model went silent mid-answer.
+                # Waiting a moment and asking again usually just works.
+                last_error = exc
+                if attempt < retries:
+                    time.sleep(0.6 * (2 ** attempt))
+                    continue
+                raise
 
             try:
                 return extract_json(reply.content), reply

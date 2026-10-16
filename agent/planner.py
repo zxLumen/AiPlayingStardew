@@ -17,13 +17,13 @@ class PlannerAI:
         self.llm = llm
 
     def plan_day(self, state: dict, persona: str = "", memory: str = "",
-                 goal: str = "", recent_days: str = "") -> dict:
+                 goal: str = "", recent_days: str = "", viewers: str = "") -> dict:
         messages = [
-            {"role": "system", "content": prompts.PLANNER_SYSTEM},
+            {"role": "system", "content": prompts.PLANNER_SYSTEM + prompts.LANGUAGE},
             {
                 "role": "user",
                 "content": prompts.planner_user(
-                    compact_state(state), persona, memory, goal, recent_days
+                    compact_state(state), persona, memory, goal, recent_days, viewers
                 ),
             },
         ]

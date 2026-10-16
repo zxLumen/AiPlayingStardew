@@ -31,6 +31,10 @@ STALL_S = 5.0             # position frozen for this long while "walking" means 
 NO_PROGRESS_S = 12.0      # the world counter not moving for this long means the action cannot work
 MAX_REMEDIES_PER_REASON = 2
 
+# An event with nothing on screen for this long is wreckage, not a scene. Real cutscenes are
+# always showing something - dialogue, a letterbox, a fade - and the audience is watching them.
+STUCK_EVENT_S = 45.0
+
 # Blockers that are not a fault: the farmer is mid-animation or mid-fade and will move on.
 # Treating these as defects fills the ledger with noise and aborts actions that would have worked.
 TRANSIENT_BLOCKERS = {
@@ -63,6 +67,16 @@ def _counter(state: dict, field_name: str):
 def _slug(text: str) -> str:    return "".join(c if c.isalnum() else "-" for c in text.lower()).strip("-")[:48]
 
 
+# Menus that were opened by something the agent did on purpose. They are the agent's to use, not
+# a blockage to clear: a shop is how you buy, a dialogue is how you talk, a letter is something you
+# opened. The watcher closed a ShopMenu once while the streamer was walking up to buy seeds, which
+# is a fine example of helping too much.
+HANDS_OFF_MENUS = (
+    "ShopMenu", "DialogueBox", "LetterViewerMenu", "ItemGrabMenu", "LevelUpMenu",
+    "MuseumMenu", "CarpenterMenu", "AnimalQueryMenu", "PurchaseAnimalsMenu", "ForgeMenu",
+)
+
+
 class Watcher:
     """Watches one running action and takes the remedy for anything going wrong."""
 
@@ -82,13 +96,27 @@ class Watcher:
         if reason == "dialogue is waiting for a choice":
             return "dialogue_choose", {"index": 0}
 
+        # NOT clear_event. A cutscene is content - the audience is watching it, and skipping it is
+        # the one thing a stream must not do. Click through it the way the person holding the mouse
+        # would, and only treat an event as abandoned when it has sat there with nothing on screen
+        # for far longer than any real scene lasts (see STUCK_EVENT_S).
         if reason == "cutscene/event playing":
-            return "clear_event", {}
+            return "dialogue_advance", {}
 
         if reason.startswith("menu open"):
+            # Only the pause/inventory menu is a stray. A shop, a dialogue or a letter was opened by
+            # something the agent did on purpose, and closing it throws its own work away - the
+            # watcher closed a ShopMenu once while the streamer was trying to buy seeds.
+            if any(name in reason for name in HANDS_OFF_MENUS):
+                return None
+
             return "menu_click", {"name": "upperRightCloseButton"}
 
         return None
+
+    def _is_abandoned_event(self, held_for: float) -> bool:
+        """An event with nothing on screen for this long is not a scene, it is wreckage."""
+        return held_for > STUCK_EVENT_S
 
     def _note(self, day: str, step: int, **fields) -> None:
         if self.runlog is not None:
@@ -145,6 +173,14 @@ class Watcher:
             if not game.get("is_player_free"):
                 reason = str(game.get("blocked_reason") or "unknown")
 
+                # A menu the agent opened on purpose is not a blockage - it is the agent's own work
+                # in progress. Leave it alone and keep waiting; the agent will click or close it
+                # when it is done. Only a menu nobody asked for (a stray Escape) is a fault.
+                if reason.startswith("menu open") and any(n in reason for n in HANDS_OFF_MENUS):
+                    result.state = state
+                    time.sleep(POLL_S)
+                    continue
+
                 if blocked_since == 0.0 or reason != blocked_reason:
                     blocked_since = time.monotonic()
                     blocked_reason = reason
@@ -169,6 +205,15 @@ class Watcher:
                 if held > BLOCKED_GRACE_S:
                     attempt = remedies_for_reason.get(reason, 0)
                     remedy = self._remedy_for(reason)
+
+                    # A cutscene is a scene, and the audience is watching it. Click through as many
+                    # lines as it has - a real event always has something on screen - and only clear a
+                    # flag that has held the farmer this long with nothing to look at. This is the one
+                    # place the show must never be skipped, so the attempt cap does not apply here.
+                    if reason == "cutscene/event playing":
+                        remedy = ("clear_event", {}) if self._is_abandoned_event(held) \
+                            else ("dialogue_advance", {})
+                        attempt = 0
 
                     if remedy is None or attempt >= MAX_REMEDIES_PER_REASON:
                         # Not obvious, or the obvious thing did not work. This is a judgement call.

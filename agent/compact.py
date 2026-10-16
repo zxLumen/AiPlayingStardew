@@ -21,6 +21,21 @@ def _buttons(ui: dict) -> list[dict]:
     return out
 
 
+def _cursor_name(player: dict) -> str | None:
+    """What is stuck to the mouse right now, or None.
+
+    Worth a field of its own because it is a state a player sees instantly and the agent could not
+    see at all: an item can sit on the cursor indefinitely - a shop purchase that was never put down
+    lives there - while the toolbar happily reads "axe".
+    """
+    held = player.get("cursor_item") or {}
+    name = held.get("name")
+    if not name:
+        return None
+    count = held.get("stack") or 1
+    return f"{name} x{count}" if count > 1 else name
+
+
 def compact_state(state: dict) -> dict:
     game = state.get("game", {}) or {}
     player = state.get("player", {}) or {}
@@ -53,6 +68,11 @@ def compact_state(state: dict) -> dict:
             "facing": player.get("facing"),
             "location": player.get("current_location"),
             "holding": (player.get("current_item") or {}).get("name"),
+            # "holding" above is the toolbar SELECTION, not what is in the hand. A farmer can be
+            # carrying a whole stack on the cursor while the toolbar still reads "axe" - and while
+            # that stack is there, a shop will not close. Naming it separately is the difference
+            # between "the bridge is lying about the shop" and "there is a bag of seeds in my hand".
+            "on_cursor": _cursor_name(player),
             "selected_slot": player.get("selected_slot_index"),
             "auto_moving": player.get("is_auto_moving"),
             "bed_tile": player.get("bed_tile"),
@@ -157,6 +177,18 @@ def compact_state(state: dict) -> dict:
             "parent": ui.get("parent_menu") or None,
             "buttons": _buttons(ui),
         }
+        if ui.get("held_item"):
+            # The menu's own hand. While it holds something, the shop will not close and clicks stop
+            # landing - and until now nothing said so, so "the shop is ignoring me" had no cause.
+            compact["ui"]["held_item"] = ui["held_item"]
+        if ui.get("shop"):
+            # The shelves, joined onto the slot names menu_click takes. Without this the agent gets
+            # a column of blank rows called "0".."3" and can only click them blind.
+            compact["ui"]["shop"] = [
+                {"slot": s.get("slot"), "item": s.get("item"), "price": s.get("price"),
+                 "stock": s.get("stock"), "affordable": s.get("affordable")}
+                for s in ui["shop"]
+            ]
         if ui.get("save_slots"):
             compact["ui"]["save_slots"] = [
                 {"index": s.get("index"), "farmer": s.get("farmer_name"),

@@ -18,6 +18,13 @@ class StreamerAI:
         self.memory_block = memory_block
         self.plan = plan or {}
 
+        # A single decision may not take longer than this. Beyond it the answer is worthless anyway -
+        # the world it was reasoning about has moved on - so the harness gives up and looks around
+        # instead of leaving the farmer standing still.
+        self.deadline_s = 25.0
+        self.last_error = ""
+        self.consecutive_failures = 0
+
     def set_plan(self, plan: dict) -> None:
         """Hand over the plan for today (from the planner AI)."""
         self.plan = plan or {}
@@ -84,6 +91,33 @@ class StreamerAI:
             {"role": "system", "content": system},
             {"role": "user", "content": prompts.streamer_user(compact_state(state), history, directive)},
         ]
-        # Per-turn decisions are tiny, but a reasoning model needs room to think and still answer.
-        decision, _ = self.llm.chat_json(messages, max_tokens=900)
+
+        # One slow decision must not eat the round. A model call that has not answered inside the
+        # deadline is not going to be worth the wait: the world it was reasoning about has moved on,
+        # and every second spent waiting is a second the farmer is standing still. So the wait is
+        # bounded, and a timed-out turn falls back to looking around - which is cheap, useful, and
+        # never leaves the farmer frozen.
+        try:
+            decision, _ = self.llm.chat_json(messages, max_tokens=2500, timeout_s=self.deadline_s)
+            self.consecutive_failures = 0
+        except Exception as exc:
+            self.consecutive_failures += 1
+            self.last_error = f"{type(exc).__name__}: {exc}"
+
+            # The fallback must not look like a normal decision. Returning a tidy "scan" here was a
+            # mistake: scan is a legal action, so the log, the referee and the witness all read it as
+            # the agent choosing to look around - and a dead model became invisible. It also looped:
+            # eight scans in a row while the day drained away.
+            #
+            # So: one failed call looks around once (cheap, sometimes useful), a second in a row
+            # stands still instead, and either way the line says plainly that the brain is down.
+            action = "noop" if self.consecutive_failures >= 2 else "scan"
+
+            return {
+                "reason": f"!! 模型不可用（{type(exc).__name__}）第 {self.consecutive_failures} 次 - "
+                          f"{'停手' if action == 'noop' else '先看一眼'}",
+                "actions": [{"action": action, "radius": 8, "reason": "model unavailable"}],
+            }
+
+        self.last_error = ""
         return decision

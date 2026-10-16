@@ -45,11 +45,16 @@ class StageFailure(Exception):
 class Pipeline:
     """Owns every stage before a day can be played, and records what went wrong."""
 
-    def __init__(self, client: StateClient, ledger: DefectLedger, runlog=None, log=print) -> None:
+    def __init__(self, client: StateClient, ledger: DefectLedger, runlog=None, log=print,
+                 design_character=None) -> None:
         self.client = client
         self.ledger = ledger
         self.runlog = runlog
         self.log = log
+
+        # Given a list of farm types, returns the character design to create. Supplied by the agent
+        # side, because designing a character is a judgement, not a stage.
+        self.design_character = design_character
         self.notes: list[str] = []
 
     # -- bookkeeping -------------------------------------------------------
@@ -119,18 +124,19 @@ class Pipeline:
         self._failed("api", "接口 2 轮都没起来", cost_s=time.monotonic() - started)
         raise StageFailure("api", "接口 2 轮都没起来")
 
-    def stage_save(self, ai_save: dict | None, timeout_s: float = 180.0) -> None:
-        """Get into the agent's own save - and never click any other slot.
+    def stage_save(self, ai_save: dict | None, create=None, timeout_s: float = 240.0) -> dict | None:
+        """Get into the agent's own save - creating one if there is not one yet.
 
-        This stage failed silently in a throwaway script once and parked the game at the load menu.
-        Here it either succeeds, or it says exactly what it saw and writes it down.
+        "No save on record" is not a failure: on a first run it is the normal state, and the job is
+        then to make one. Reporting it as a blocker is how an unattended run spends the night parked
+        at the title screen.
+
+        Never clicks a slot that is not the agent's own.
         """
-        started = time.monotonic()
-
         if ai_save is None:
-            self._failed("save", "不知道自己的存档长什么样（config/ai_save.json 缺失）")
-            raise StageFailure("save", "没有 AI 存档记录")
+            ai_save = self._create(create)
 
+        started = time.monotonic()
         want = str(ai_save.get("character_name") or "")
         load_at = 0.0
         slot_at = 0.0
@@ -157,7 +163,7 @@ class Pipeline:
 
                 self._note("save", "ok", farmer=farmer,
                            seconds=round(time.monotonic() - started, 1))
-                return
+                return ai_save
 
             menu = ui.get("menu_name") or ""
             slots = ui.get("save_slots") or []
@@ -172,10 +178,17 @@ class Pipeline:
 
             if slots:
                 slot = self._match_slot(slots, ai_save)
+
                 if slot is None:
+                    # The recorded save is gone - deleted, renamed, or a different machine. The
+                    # honest move is to make a new one rather than sit here failing.
                     names = [s.get("farmer_name") for s in slots]
-                    self._failed("save", f"存档列表里没有 '{want}'（只有 {names}）")
-                    raise StageFailure("save", f"存档列表里没有 '{want}'")
+                    self.log(f"[流水线] 存档列表里没有 '{want}'（只有 {names}）—— 改为新建一局")
+                    self._note("save", "record missing, creating instead", saw=names)
+                    ai_save = self._create(create)
+                    want = str(ai_save.get("character_name") or "")
+                    started = time.monotonic()          # a fresh clock for the load itself
+                    continue
 
                 # Click the slot ONCE and then give the game time to load it. Clicking every couple
                 # of seconds restarts the load it is already doing, which is how a save can look
@@ -202,6 +215,28 @@ class Pipeline:
                      cost_s=time.monotonic() - started)
         raise StageFailure("save", f"超时；见过的界面 {seen_menus}")
 
+    def _create(self, create) -> dict:
+        """Have the agent make itself a save. `create` returns the record of what it made."""
+        if create is None:
+            self._failed("save", "没有存档，也没有创建存档的能力")
+            raise StageFailure("save", "没有存档且无法创建")
+
+        self.log("[流水线] 还没有属于自己的存档 —— 让主播自己捏一个")
+        self._note("save", "creating")
+
+        try:
+            fresh = create()
+        except Exception as exc:
+            self._failed("save", f"创建存档失败: {type(exc).__name__}: {exc}")
+            raise StageFailure("save", f"创建存档失败: {exc}")
+
+        if not fresh:
+            self._failed("save", "创建流程跑完了，但拿不到存档记录")
+            raise StageFailure("save", "创建存档失败")
+
+        self._note("save", "created", farmer=fresh.get("character_name"))
+        return fresh
+
     # -- helper ------------------------------------------------------------
 
     def _match_slot(self, slots: list[dict], ai_save: dict) -> dict | None:
@@ -222,8 +257,14 @@ class Pipeline:
 
     # -- whole run ---------------------------------------------------------
 
-    def ensure(self, ai_save: dict | None) -> None:
-        """Get from nothing to a playable day, or raise with the stage that stopped us."""
+    def ensure(self, ai_save: dict | None, create=None) -> dict | None:
+        """Get from nothing to a playable day, or raise with the stage that stopped us.
+
+        `create` is how the AI comes to have a save of its own in the first place. Without it, a
+        missing config/ai_save.json is not a problem to be solved but a dead end - and a dead end
+        before the play loop is exactly how an unattended run spends the whole night parked at the
+        title screen, retrying every minute, achieving nothing and saying nothing about it.
+        """
         self.stage_game()
         self.stage_api()
-        self.stage_save(ai_save)
+        return self.stage_save(ai_save, create=create)

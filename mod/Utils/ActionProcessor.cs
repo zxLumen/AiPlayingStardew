@@ -25,6 +25,34 @@ public static class ActionProcessor
     /// <summary>Set while a go_to route is active; null when nothing is planned.</summary>
     internal static PlannedRoute? PlannedPath;
 
+    /// <summary>
+    /// Every action this bridge actually implements.
+    ///
+    /// It exists because the project had TWO lists of actions that were never compared: this one's
+    /// predecessors, and the authenticity ledger's declarations. The ledger declared `open_screen`,
+    /// `map` and `inventory` as things a player can do - none of which were ever built - so its own
+    /// defect ("reading the world map must require the map to be open") pointed at an action that did
+    /// not exist, and the defect stood open for weeks. A claim nothing can check is not a claim.
+    ///
+    /// Keep this next to the switch it describes, and let the python side diff it against the ledger
+    /// every cycle. Anything declared but absent here is a defect, loudly.
+    /// </summary>
+    public static readonly string[] ACTIONS =
+    {
+        // handled before the switch
+        "observe", "scan", "game_data", "overlay", "narrate", "chat", "progress",
+        // the switch
+        "select_slot", "use_tool", "use_tool_at", "work", "plant", "enter", "clear_area", "refill",
+        "till_area", "plant_all", "water_all", "harvest_all", "chore", "cancel_chore",
+        "interact", "interact_at", "exit_building", "move", "go_to", "sleep", "clear_event",
+        "stop", "press_key", "focus_window", "menu_click", "title_button", "skip_intro",
+        "new_game", "create_character", "set_appearance", "set_text",
+        "dialogue_choose", "dialogue_advance", "noop",
+        // asking questions about the running game, and opening screens
+        "inspect", "open_screen", "actions",
+    };
+
+
     public static (bool ok, string detail, Dictionary<string, object?>? data) Execute(string? body, bool actionsEnabled, IMonitor monitor)
     {
         if (!actionsEnabled)
@@ -67,6 +95,15 @@ public static class ActionProcessor
                 if (action == "overlay")
                     return Overlay(root);
 
+                if (action == "narrate")
+                    return Narrate(root);
+
+                if (action == "chat")
+                    return Chat(root);
+
+                if (action == "progress")
+                    return Progress(root);
+
                 (bool ok, string detail) = action switch
                 {
                     "select_slot" => SelectSlot(root),
@@ -85,17 +122,13 @@ public static class ActionProcessor
                     "interact" => Interact(),
                     "interact_at" => InteractAt(root),
                     "exit_building" => ExitBuilding(),
-                    "pause_time" => PauseTime(root),
                     "move" => Move(root),
                     "go_to" => GoTo(root),
                     "sleep" => Sleep(),
-                    "new_day" => NewDay(),
                     "clear_event" => ClearEvent(),
                     "stop" => StopMove(),
                     "press_key" => PressKey(root),
                     "focus_window" => FocusWindow(),
-                    "set_display" => SetDisplay(root),
-                    "warp" => Warp(root),
                     "menu_click" => MenuClick(root),
                     "title_button" => TitleButton(root),
                     "skip_intro" => SkipIntro(),
@@ -106,6 +139,9 @@ public static class ActionProcessor
                     "dialogue_choose" => DialogueChoose(root),
                     "dialogue_advance" => DialogueAdvance(),
                     "noop" => (true, "noop"),
+                    "inspect" => Inspect(root),
+                    "open_screen" => OpenScreen(root),
+                    "actions" => (true, "bridge actions: " + string.Join(", ", ACTIONS)),
                     _ => (false, $"unknown action '{action}'"),
                 };
 
@@ -548,6 +584,78 @@ public static class ActionProcessor
 
         OverlayPanel.Push(items);
         return (true, $"overlay +{items.Count} line(s), {OverlayPanel.Count} kept", null);
+    }
+
+
+    /// <summary>
+    /// The streamer's voice, on screen. This is the show: one line of what it is saying out loud,
+    /// big, at the bottom, exactly as a viewer would hear it. Nothing is read back.
+    /// </summary>
+    private static (bool ok, string detail, Dictionary<string, object?>? data) Narrate(JsonElement root)
+    {
+        string text = root.TryGetProperty("text", out JsonElement textEl) ? textEl.GetString() ?? "" : "";
+        string speaker = root.TryGetProperty("speaker", out JsonElement speakerEl) ? speakerEl.GetString() ?? "" : "";
+
+        if (string.IsNullOrWhiteSpace(text))
+            return (false, "nothing to say (send 'text')", null);
+
+        OverlayPanel.Say(speaker, text);
+        return (true, $"subtitle: {text.Length} chars", null);
+    }
+
+
+    /// <summary>The room's messages, down the right. Newest at the bottom.</summary>
+    private static (bool ok, string detail, Dictionary<string, object?>? data) Chat(JsonElement root)
+    {
+        if (root.TryGetProperty("clear", out JsonElement clearEl)
+            && clearEl.ValueKind == JsonValueKind.True)
+        {
+            OverlayPanel.ClearChat();
+            return (true, "chat cleared", null);
+        }
+
+        var items = new List<KeyValuePair<string, string>>();
+
+        if (root.TryGetProperty("lines", out JsonElement linesEl)
+            && linesEl.ValueKind == JsonValueKind.Array)
+        {
+            foreach (JsonElement entry in linesEl.EnumerateArray())
+            {
+                if (entry.ValueKind == JsonValueKind.String)
+                {
+                    items.Add(new KeyValuePair<string, string>("", entry.GetString() ?? ""));
+                    continue;
+                }
+
+                if (entry.ValueKind != JsonValueKind.Object)
+                    continue;
+
+                string user = entry.TryGetProperty("user", out JsonElement userEl)
+                    ? userEl.GetString() ?? ""
+                    : "";
+
+                string text = entry.TryGetProperty("text", out JsonElement textEl)
+                    ? textEl.GetString() ?? ""
+                    : "";
+
+                items.Add(new KeyValuePair<string, string>(user, text));
+            }
+        }
+
+        if (items.Count == 0)
+            return (false, "nothing to show (send 'lines')", null);
+
+        OverlayPanel.PushChat(items);
+        return (true, $"chat +{items.Count} message(s)", null);
+    }
+
+
+    /// <summary>The strip across the top: day, season, quests, money, today's goal.</summary>
+    private static (bool ok, string detail, Dictionary<string, object?>? data) Progress(JsonElement root)
+    {
+        string text = root.TryGetProperty("text", out JsonElement textEl) ? textEl.GetString() ?? "" : "";
+        OverlayPanel.SetProgress(text);
+        return (true, "progress set", null);
     }
 
 
@@ -1309,24 +1417,39 @@ public static class ActionProcessor
             if (string.IsNullOrWhiteSpace(target) || target == location.Name || target == "null")
                 continue;
 
-            int targetX = warp.TargetX;
-            int targetY = warp.TargetY;
+            // warp.X/warp.Y are the tile on THIS map that triggers it - the doorstep. A player walks
+            // onto that tile and the game takes them through; it does not lift them out of the room.
+            // Putting the farmer on the far side directly is the same class of shortcut as teleporting
+            // to town, and it skips the step that makes leaving a building a thing you did.
+            var controller = new PathFindController(Game1.player, location, new Point(warp.X, warp.Y), 2);
 
-            Game1.warpFarmer(target, targetX, targetY, 2);
-            MovementController.Stop();
-            return (true, $"left {location.Name} -> {target} ({targetX},{targetY})");
+            if (controller.pathToEndPoint == null || controller.pathToEndPoint.Count == 0)
+                continue;                                   // that door is not walkable; try another
+
+            Game1.player.controller = controller;
+            return (true, $"walking to the exit at ({warp.X},{warp.Y}) -> {target}");
         }
 
-        return (false, $"no exit warp found in {location.Name}");
+        return (false, $"no walkable exit found in {location.Name}");
     }
 
 
     /// <summary>Freezes or resumes the in-game clock.</summary>
+    /// <summary>
+    /// Refused on purpose.
+    ///
+    /// A player cannot decide to stop the clock. Time does stop on its own when a menu is open - the
+    /// inventory, the map - and that is the game's own behaviour, so this deliberately touches
+    /// nothing: it just refuses. Holding the clock still for a whole day while carrying on playing
+    /// is the thing a player cannot do, and it quietly breaks the game's rules: the clock never
+    /// reaches 9:00, so the shop never opens and nothing that happens at an hour ever happens.
+    /// </summary>
     private static (bool, string) PauseTime(JsonElement root)
     {
-        bool paused = !root.TryGetProperty("paused", out JsonElement el) || el.ValueKind != JsonValueKind.False;
-        Game1.isTimePaused = paused;
-        return (true, paused ? "the in-game clock is frozen" : "the in-game clock is running again");
+        return (false,
+            "pause_time is disabled: a player cannot stop the clock. Open the inventory or the map " +
+            "and time pauses by itself, the way it does for anyone playing - but the world cannot be " +
+            "held still while you carry on.");
     }
 
 
@@ -1486,30 +1609,12 @@ public static class ActionProcessor
 
         if (bed == null)
         {
-            // Not home yet. Get into the farmhouse so the day can actually end instead of falling
-            // back to the raw new-day routine.
-            int? insideX = null;
-            int? insideY = null;
-
-            try
-            {
-                GameLocation? house = Game1.getLocationFromName("FarmHouse");
-                Warp? back = house?.warps?.FirstOrDefault(w => w != null && w.TargetName == "Farm");
-                if (back != null)
-                {
-                    insideX = back.X;
-                    insideY = back.Y - 1;   // stand just inside the door, not on the warp tile itself
-                }
-            }
-            catch { }
-
-            if (insideX == null || insideY == null)
-                return (false, "there is no bed here and no known way home");
-
-            Game1.warpFarmer("FarmHouse", insideX.Value, insideY.Value, 2);
-            MovementController.Stop();
-            _pendingSleep = true;
-            return (true, "not home - went into the FarmHouse to sleep (it will lie down automatically)");
+            // Not home. A player walks home; they do not appear in their kitchen. If the night runs
+            // out first, the game puts them to bed at 2am, which is also what happens to a player.
+            return (false,
+                $"there is no bed in {location.Name}. A player walks home to sleep - go_to the " +
+                "FarmHouse door and go inside, then sleep at the bed. Stay up past 2am and the game " +
+                "will put you to bed itself.");
         }
 
         return LieDown(location, bed);
@@ -1546,13 +1651,34 @@ public static class ActionProcessor
     private static (bool, string) LieDown(GameLocation location, BedFurniture bed)
     {
         Point spot = bed.GetBedSpot();
+
+        // Interacting with a bed means standing next to it, so walk there first. Putting the farmer
+        // onto the bed from across the room is the same class of shortcut as teleporting to town.
+        if (!IsAdjacent(Game1.player, spot.X, spot.Y))
+        {
+            Point? stand = FindAdjacentWalkable(location, spot.X, spot.Y);
+            if (stand == null)
+                return (false, $"nowhere to stand beside the bed at ({spot.X},{spot.Y})");
+
+            Game1.player.controller = new PathFindController(Game1.player, location, stand.Value, 2);
+            _pendingSleep = true;
+            return (true, $"walking to the bed at ({spot.X},{spot.Y}) - will lie down on arrival");
+        }
+
+        return EnterBed(location, spot);
+    }
+
+
+    /// <summary>Gets into the bed: the bed runs its own sleep flow and we accept it.</summary>
+    private static (bool, string) EnterBed(GameLocation location, Point spot)
+    {
         Game1.warpFarmer(location.Name, spot.X, spot.Y, 0);
         Game1.player.isInBed.Value = true;
 
         string note;
         try
         {
-            // Ask the bed to run its own "sleep?" flow, then accept it.
+            // Ask the bed to run its own "sleep?" flow, then accept it. The game does the rest.
             location.checkAction(new Location(spot.X, spot.Y), Game1.viewport, Game1.player);
             location.answerDialogueAction("Sleep_Yes", null);
             note = "answered yes";
@@ -1566,22 +1692,19 @@ public static class ActionProcessor
     }
 
 
-    /// <summary>Raw day rollover, used as an escape hatch when the bed flow does not trigger.</summary>
+    /// <summary>
+    /// Refused on purpose.
+    ///
+    /// A player cannot skip to tomorrow. They sleep in a bed, or they stay up until 2am and the game
+    /// puts them to bed itself. Rolling the day over from an API is also the routine that once left
+    /// the game permanently unable to act, because a raw new day started on top of a live cutscene
+    /// leaves the event flag set with no event behind it.
+    /// </summary>
     private static (bool, string) NewDay()
     {
-        if (Game1.player == null)
-            return (false, "no active save");
-
-        MovementController.Stop();
-
-        // A raw new-day started on top of a live cutscene leaves Game1.eventUp set with no event
-        // behind it, and the farmer can then never act again on any later day. End the event first.
-        string leftover = ReleaseStuckEvent();
-
-        Game1.NewDay(0f);
-
-        return (true, "the day is ending (raw new-day routine)"
-                      + (leftover.Length > 0 ? $" after {leftover}" : ""));
+        return (false,
+            "new_day is disabled: a player cannot skip a day. Walk home and sleep in the bed, or " +
+            "stay up past 2am and the game will put you to bed.");
     }
 
 
@@ -1762,27 +1885,20 @@ public static class ActionProcessor
     }
 
 
+    /// <summary>
+    /// Refused on purpose.
+    ///
+    /// A player cannot teleport, so an agent that can is playing a different game: it would skip the
+    /// walking, the people met on the way, the foraging along the road, and the whole business of
+    /// learning where things are. It was originally offered as an "emergency" way out of a failed
+    /// path - which is precisely the moment a player would walk round instead. A path that cannot be
+    /// walked is not a bug to route around, it is the map telling you something.
+    /// </summary>
     private static (bool, string) Warp(JsonElement root)
     {
-        string location = root.TryGetProperty("location", out JsonElement locEl)
-            ? locEl.GetString() ?? ""
-            : "";
-
-        if (string.IsNullOrWhiteSpace(location))
-            return (false, "missing 'location'");
-
-        if (!root.TryGetProperty("x", out JsonElement xEl) || !root.TryGetProperty("y", out JsonElement yEl))
-            return (false, "missing 'x' / 'y'");
-
-        int x = xEl.GetInt32();
-        int y = yEl.GetInt32();
-        int facing = 2;
-        if (root.TryGetProperty("facing", out JsonElement fEl))
-            facing = fEl.GetInt32();
-
-        Game1.warpFarmer(location, x, y, facing);
-        MovementController.Stop();
-        return (true, $"warped to {location} ({x}, {y})");
+        return (false,
+            "warp is disabled: a player cannot teleport. If a path failed, aim at an adjacent " +
+            "walkable tile or choose another destination - the detour is part of the game.");
     }
 
 
@@ -1822,10 +1938,290 @@ public static class ActionProcessor
 
         // Route through the top-level menu so it can forward into its submenu,
         // which is how real mouse input reaches a TitleMenu submenu.
-        (ReferenceEquals(menu, active) ? menu : active).receiveLeftClick(cx, cy, true);
+        IClickableMenu router = ReferenceEquals(menu, active) ? menu : active;
+
+        int moneyBefore = Game1.player?.Money ?? 0;
+        string cursorBefore = CursorName();
+
+        // A real click is hover -> press -> release. This used to press ONLY, and that is not a
+        // detail: a shop row got picked up onto the cursor and never put down, so money was spent,
+        // the seeds never reached the bag, and the shop - still holding an item - refused to close,
+        // which blocked exit_building and stopped the day from ever ending. One missing release had
+        // four symptoms, and nothing in the project could see any of them.
+        try { menu.performHoverAction(cx, cy); } catch { /* not every menu implements it */ }
+        router.receiveLeftClick(cx, cy, true);
+
+        // Sample BETWEEN press and release. Two very different failures were being conflated: a
+        // click that lands on nothing, and a click that picks something up and then puts it straight
+        // back down. Only the middle of the gesture tells them apart.
+        int moneyPressed = Game1.player?.Money ?? 0;
+        string cursorPressed = CursorName();
+
+        try { router.releaseLeftClick(cx, cy); } catch { }
+
+        int moneyAfter = Game1.player?.Money ?? 0;
+        string cursorAfter = CursorName();
+
+        // The witness. "The call did not throw" is not evidence that anything happened - this is.
+        var evidence = new List<string>();
+        if (moneyPressed != moneyBefore)
+            evidence.Add($"press: money {moneyBefore}->{moneyPressed}");
+        if (!string.Equals(cursorBefore, cursorPressed, StringComparison.Ordinal))
+            evidence.Add($"press: cursor {cursorBefore}->{cursorPressed}");
+        if (moneyAfter != moneyPressed)
+            evidence.Add($"release: money {moneyPressed}->{moneyAfter}");
+        if (!string.Equals(cursorPressed, cursorAfter, StringComparison.Ordinal))
+            evidence.Add($"release: cursor {cursorPressed}->{cursorAfter}");
 
         string via = ReferenceEquals(menu, active) ? "" : $" (via {active.GetType().Name})";
-        return (true, $"clicked '{name}' at ({cx},{cy}) in {menu.GetType().Name}{via}");
+        string proof = evidence.Count > 0
+            ? $" [{string.Join(", ", evidence)}]"
+            : " [the whole click changed nothing - not money, not the cursor]";
+
+        return (true, $"clicked '{name}' at ({cx},{cy}) in {menu.GetType().Name}{via}{proof}");
+    }
+
+
+    /// <summary>What sits on the cursor right now, for the click witness.</summary>
+    private static string CursorName()
+    {
+        try
+        {
+            Item? held = Game1.player?.CursorSlotItem;
+            return held == null ? "empty" : $"{held.DisplayName} x{held.Stack}";
+        }
+        catch { return "?"; }
+    }
+
+
+    /// <summary>
+    /// Reflects over a LIVE game object and hands back its fields.
+    ///
+    /// This is the bridge's answer to a question nobody anticipated. Every other field in /state is
+    /// something a person thought to expose - which is fine until the cause of a failure lives in a
+    /// field nobody exposed, and then no agent can form the hypothesis, let alone test it. That is
+    /// how "the shop will not close" and "the seeds never arrived" both stayed mysterious: the item
+    /// was on the cursor, and there was no cursor in the payload.
+    ///
+    /// `game_data` already does this for the game's static data tables. This does it for the objects
+    /// that are running - the difference between reading the manual and looking under the hood.
+    /// </summary>
+    private static (bool, string) Inspect(JsonElement root)
+    {
+        string target = (root.TryGetProperty("target", out JsonElement t) ? (t.GetString() ?? "") : "")
+            .ToLowerInvariant();
+        string filter = root.TryGetProperty("contains", out JsonElement c) ? (c.GetString() ?? "") : "";
+        int limit = root.TryGetProperty("limit", out JsonElement l) && l.TryGetInt32(out int n)
+            ? Math.Clamp(n, 1, 150)
+            : 50;
+
+        object? obj;
+        switch (target)
+        {
+            case "player":
+            case "farmer":
+                obj = Game1.player;
+                break;
+            case "menu":
+                obj = UiStateBuilder.GetEffectiveMenu();
+                break;
+            case "location":
+                obj = Game1.currentLocation;
+                break;
+            case "game":
+                obj = Game1.game1;
+                break;
+            default:
+                return (false, $"unknown target '{target}' (try: player, menu, location, game)");
+        }
+
+        if (obj == null)
+            return (false, $"nothing to inspect for '{target}' right now");
+
+        var parts = new List<string>();
+        Type? type = obj.GetType();
+        while (type != null && type != typeof(object))
+        {
+            FieldInfo[] fields;
+            try { fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance); }
+            catch { fields = Array.Empty<FieldInfo>(); }
+
+            foreach (FieldInfo field in fields)
+            {
+                if (parts.Count >= limit)
+                    break;
+                if (filter.Length > 0 && field.Name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+
+                object? value;
+                try { value = field.GetValue(obj); }
+                catch { continue; }
+
+                parts.Add($"{field.Name}:{ShortType(field.FieldType)}={ShortValue(value)}");
+            }
+
+            PropertyInfo[] properties;
+            try { properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance); }
+            catch { properties = Array.Empty<PropertyInfo>(); }
+
+            foreach (PropertyInfo property in properties)
+            {
+                if (parts.Count >= limit)
+                    break;
+                if (filter.Length > 0 && property.Name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+                if (property.GetIndexParameters().Length > 0)
+                    continue;                       // an indexer is not a readable field
+
+                object? value;
+                try { value = property.GetValue(obj); }
+                catch { continue; }
+
+                parts.Add($"{property.Name}:{ShortType(property.PropertyType)}={ShortValue(value)}");
+            }
+
+            type = type.BaseType;
+        }
+
+        if (parts.Count == 0)
+            return (false, $"no field of {obj.GetType().Name} matches '{filter}'");
+
+        string joined = string.Join("; ", parts);
+        if (joined.Length > 1800)
+            joined = joined[..1800] + " …";
+        return (true, $"{obj.GetType().Name}{(filter.Length > 0 ? $" (contains '{filter}')" : "")}: {joined}");
+    }
+
+
+    /// <summary>
+    /// Opens a screen the way the game does when the player presses the key - by building the very
+    /// menu the game builds - rather than by handing the agent an answer it did not go and get.
+    ///
+    /// It also closes a hole that had been open for weeks: the ledger declared "open the map (M)" as
+    /// a thing a player can do, and the bridge had no way to do it, so the fix for the `game_data`
+    /// defect ("make reading the world map require the map open") could never be applied.
+    /// </summary>
+    private static (bool, string) OpenScreen(JsonElement root)
+    {
+        EnsureWindowActive();
+
+        if (Game1.player == null)
+            return (false, "no active save");
+
+        string screen = (root.TryGetProperty("screen", out JsonElement s) ? (s.GetString() ?? "") : "")
+            .ToLowerInvariant();
+
+        (bool free, string why) = RequireFreePlayer();
+        if (!free)
+            return (false, why);
+
+        var menu = new GameMenu();
+        Game1.activeClickableMenu = menu;
+
+        if (screen is "" or "bag" or "inventory" or "menu")
+            return (true, "opened the bag/pause menu (GameMenu) - exactly what pressing the key does");
+
+        if (screen == "map")
+        {
+            int page = FindPage(menu, "Map");
+            if (page < 0)
+                return (false, "opened the pause menu but found no Map page inside it");
+            if (!ChangeTab(menu, page))
+                return (false, $"found the Map page at index {page} but could not switch to it");
+            return (true, $"opened the map (GameMenu page {page})");
+        }
+
+        return (false, $"unknown screen '{screen}' (try: map, bag)");
+    }
+
+
+    /// <summary>Finds a GameMenu page by its type name, so no tab index is hardcoded.</summary>
+    private static int FindPage(GameMenu menu, string nameToken)
+    {
+        object? pages = ReadField<object>(menu, "pages");
+        if (pages is not System.Collections.IEnumerable sequence)
+            return -1;
+
+        int index = 0;
+        foreach (object? page in sequence)
+        {
+            string type = page?.GetType().Name ?? "";
+            if (type.IndexOf(nameToken, StringComparison.OrdinalIgnoreCase) >= 0)
+                return index;
+            index++;
+        }
+
+        return -1;
+    }
+
+
+    private static bool ChangeTab(GameMenu menu, int index)
+    {
+        foreach (string name in new[] { "setTab", "changeTab" })
+        {
+            try
+            {
+                MethodInfo? method = menu.GetType().GetMethod(name,
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                ParameterInfo[] ps = method?.GetParameters() ?? Array.Empty<ParameterInfo>();
+                if (method != null && ps.Length == 1 && ps[0].ParameterType == typeof(int))
+                {
+                    method.Invoke(menu, new object[] { index });
+                    return true;
+                }
+            }
+            catch { /* try the next spelling */ }
+        }
+
+        try
+        {
+            FieldInfo? field = menu.GetType().GetField("currentTab",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field != null)
+            {
+                field.SetValue(menu, index);
+                return true;
+            }
+        }
+        catch { }
+
+        return false;
+    }
+
+
+    private static string ShortType(Type type)
+    {
+        if (!type.IsGenericType)
+            return type.Name;
+
+        string args = string.Join(",", type.GetGenericArguments().Select(a => a.Name));
+        return $"{type.Name.Split('`')[0]}<{args}>";
+    }
+
+
+    private static string ShortValue(object? value)
+    {
+        if (value == null)
+            return "null";
+
+        try
+        {
+            if (value is string text)
+                return text.Length > 40 ? $"\"{text[..40]}…\"" : $"\"{text}\"";
+
+            if (value is System.Collections.ICollection collection)
+                return $"[{collection.Count}]";
+
+            if (value is StardewValley.ISalable salable)
+                return $"{salable.DisplayName} x{salable.Stack}";
+
+            Type type = value.GetType();
+            if (type.IsPrimitive || value is decimal)
+                return value.ToString() ?? "";
+
+            return type.Name;
+        }
+        catch { return "?"; }
     }
 
 
@@ -2461,18 +2857,322 @@ public static class NativeInput
     /// <summary>Whether the game window is the one the user's input would go to.</summary>
     public static bool IsGameWindowActive()
     {
-        IntPtr handle = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+        IntPtr handle = GameWindowHandle();
         return handle != IntPtr.Zero && GetForegroundWindow() == handle;
+    }
+
+    private const int SW_MAXIMIZE = 3;
+    private const int SW_RESTORE = 9;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    private const uint WM_SYSCOMMAND = 0x0112;
+    private const int SC_MAXIMIZE = 0xF030;
+    private const int GWL_STYLE = -16;
+    private const long WS_THICKFRAME = 0x00040000L;
+    private const long WS_MAXIMIZEBOX = 0x00010000L;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
+    private static extern IntPtr GetWindowLongPtrW(IntPtr hWnd, int nIndex);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetWindowLongW", SetLastError = true)]
+    private static extern IntPtr GetWindowLongW(IntPtr hWnd, int nIndex);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
+    private static extern IntPtr SetWindowLongPtrW(IntPtr hWnd, int nIndex, IntPtr value);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "SetWindowLongW", SetLastError = true)]
+    private static extern IntPtr SetWindowLongW(IntPtr hWnd, int nIndex, IntPtr value);
+
+    private static IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex)
+        => IntPtr.Size == 8 ? GetWindowLongPtrW(hWnd, nIndex) : GetWindowLongW(hWnd, nIndex);
+
+    private static IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr value)
+        => IntPtr.Size == 8 ? SetWindowLongPtrW(hWnd, nIndex, value) : SetWindowLongW(hWnd, nIndex, value);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool IsZoomed(IntPtr hWnd);
+
+    private const uint SPI_GETWORKAREA = 0x0030;
+    private const uint MONITORINFOF_PRIMARY = 0x0001;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SystemParametersInfo(uint action, uint param, ref RECT rect, uint winIni);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetClientRect(IntPtr hWnd, out RECT rect);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct RECT { public int Left, Top, Right, Bottom; }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
+    private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdc, ref RECT rect, IntPtr data);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr clip, MonitorEnumProc callback, IntPtr data);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO info);
+
+    private static RECT _bestArea;
+    private static bool _haveBestArea;
+
+    private static bool PickMonitor(IntPtr monitor, IntPtr hdc, ref RECT rect, IntPtr data)
+    {
+        var info = new MONITORINFO();
+        info.cbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>();
+
+        if (!GetMonitorInfo(monitor, ref info))
+            return true;
+
+        bool isPrimary = (info.dwFlags & MONITORINFOF_PRIMARY) != 0;
+
+        // The second screen is where the game belongs: the first one is where the person is
+        // working. A primary result is taken, but a non-primary one replaces it.
+        if (!_haveBestArea || !isPrimary)
+        {
+            _bestArea = info.rcWork;
+            _haveBestArea = true;
+        }
+
+        return true;
+    }
+
+    /// <summary>The work area of the screen the game should fill - the secondary one if there is one.</summary>
+    private static bool PreferredWorkArea(out RECT area)
+    {
+        _haveBestArea = false;
+        _bestArea = default;
+
+        try
+        {
+            EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, PickMonitor, IntPtr.Zero);
+        }
+        catch { }
+
+        area = _bestArea;
+        return _haveBestArea;
+    }
+
+    /// <summary>
+    /// Makes the game a window that fills the work area of the second screen - a window, with its
+    /// title bar, not a fullscreen takeover.
+    ///
+    /// Two things this gets right that the naive version did not. First, it does not fight the
+    /// window: Stardew re-fits and re-positions its own window during start-up, so resizing it from
+    /// outside is undone moments later - telling Stardew what size it wants is the only thing that
+    /// sticks. Second, `preferredResolution` is the *client* area, so asking for the whole work area
+    /// gives a window that is a title bar and a border larger than the screen. The decoration is
+    /// measured and subtracted.
+    /// </summary>
+    public static bool FillWorkingArea()
+    {
+        try
+        {
+            if (!PreferredWorkArea(out RECT area) || area.Right <= area.Left || area.Bottom <= area.Top)
+            {
+                var mode = Microsoft.Xna.Framework.Graphics.GraphicsAdapter.DefaultAdapter.CurrentDisplayMode;
+                area = new RECT { Left = 0, Top = 0, Right = mode.Width, Bottom = mode.Height };
+            }
+
+            int outerWidth = area.Right - area.Left;
+            int outerHeight = area.Bottom - area.Top;
+
+            // How much of the window is not game: title bar plus borders. Measured rather than guessed.
+            int decorX = 0, decorY = 0;
+            IntPtr handle = GameWindowHandle();
+            if (handle != IntPtr.Zero && GetClientRect(handle, out RECT client) && GetWindowRect(handle, out RECT outer))
+            {
+                decorX = Math.Max(0, (outer.Right - outer.Left) - (client.Right - client.Left));
+                decorY = Math.Max(0, (outer.Bottom - outer.Top) - (client.Bottom - client.Top));
+            }
+
+            int clientWidth = Math.Max(640, outerWidth - decorX);
+            int clientHeight = Math.Max(480, outerHeight - decorY);
+
+            Game1.options.fullscreen = false;
+            Game1.options.windowedBorderlessFullscreen = false;
+            Game1.options.preferredResolutionX = clientWidth;
+            Game1.options.preferredResolutionY = clientHeight;
+
+            Game1.graphics.IsFullScreen = false;
+            Game1.graphics.PreferredBackBufferWidth = clientWidth;
+            Game1.graphics.PreferredBackBufferHeight = clientHeight;
+            Game1.graphics.ApplyChanges();
+
+            if (handle != IntPtr.Zero)
+            {
+                const uint SWP_NOZORDER = 0x0004;
+                const uint SWP_NOACTIVATE = 0x0010;
+                SetWindowPos(handle, IntPtr.Zero, area.Left, area.Top, 0, 0,
+                             SWP_NOZORDER | SWP_NOACTIVATE | 0x0001);   // 0x0001 = NOSIZE
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+
+    /// <summary>
+    /// Maximises the window the way the title-bar button does, on the screen it is supposed to live on.
+    ///
+    /// Sizing the window from outside (backbuffer + SetWindowPos) produces something that only LOOKS
+    /// full: the window manager still treats it as a floating window with walls around it, so the
+    /// maximise button still offers to maximise, and anything that re-fits the window afterwards
+    /// undoes it. Asking Windows to maximise - WM_SYSCOMMAND/SC_MAXIMIZE, which is literally what the
+    /// button sends - is the only version that stays maximised.
+    ///
+    /// Two things have to be true first, and both were being missed:
+    ///
+    ///   * the window has to be ON the target monitor, or Windows maximises it on whichever monitor
+    ///     it happens to be sitting on (the primary one, every time);
+    ///   * the window needs WS_MAXIMIZEBOX. Without it the request is ignored and the symptom is a
+    ///     maximised-looking window whose button does nothing - "it still does not work".
+    /// </summary>
+    public static bool MaximizeOnTargetMonitor() => MaximizeOnTargetMonitor(out _);
+
+
+    /// <summary>
+    /// Same, but says WHY when it fails.
+    ///
+    /// The first version swallowed every exception, which made "did it work?" unanswerable: a failed
+    /// maximise and a successful one both returned quietly. That is the same defect this project keeps
+    /// finding in its agents - a claim with nothing to check it - and it was sitting in my own code.
+    /// A window operation that cannot say what happened is not evidence of anything.
+    /// </summary>
+    public static bool MaximizeOnTargetMonitor(out string why)
+    {
+        why = "";
+
+        IntPtr handle = GameWindowHandle();
+        if (handle == IntPtr.Zero)
+        {
+            why = "no game window handle";
+            return false;
+        }
+
+        try
+        {
+            // 1. Make sure the window is allowed to be maximised at all.
+            long style = (long)GetWindowLongPtr(handle, GWL_STYLE);
+            long wanted = style | WS_MAXIMIZEBOX | WS_THICKFRAME;
+            if (wanted != style)
+                SetWindowLongPtr(handle, GWL_STYLE, (IntPtr)wanted);
+
+            if (IsZoomed(handle))
+                return true;
+
+            // 2. Move it onto the target screen first. Maximising is per-monitor, so the order matters.
+            if (PreferredWorkArea(out RECT area) && area.Right > area.Left && area.Bottom > area.Top)
+            {
+                const uint SWP_NOZORDER = 0x0004;
+                const uint SWP_NOACTIVATE = 0x0010;
+                const uint SWP_NOSIZE = 0x0001;
+                SetWindowPos(handle, IntPtr.Zero, area.Left + 40, area.Top + 40, 0, 0,
+                             SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
+            }
+
+            // 3. The thing the maximise button actually does.
+            SendMessage(handle, WM_SYSCOMMAND, (IntPtr)SC_MAXIMIZE, IntPtr.Zero);
+
+            if (IsZoomed(handle))
+            {
+                RememberMaximizedClientSize(handle);
+                return true;
+            }
+
+            long after = (long)GetWindowLongPtr(handle, GWL_STYLE);
+            why = $"SC_MAXIMIZE was sent but IsZoomed is still false "
+                + $"(style=0x{after:X}, maximizebox={(after & WS_MAXIMIZEBOX) != 0}, "
+                + $"thickframe={(after & WS_THICKFRAME) != 0})";
+            return false;
+        }
+        catch (Exception ex)
+        {
+            why = $"{ex.GetType().Name}: {ex.Message}";
+            return false;
+        }
+    }
+
+
+    /// <summary>
+    /// Tells the game that the size it should ask for is the size it just got.
+    ///
+    /// MonoGame re-applies `preferredResolution` when a save loads or the window changes, and an
+    /// apply is a plain resize - which quietly un-maximises the window a moment after we maximised
+    /// it. Writing the maximised client size back means a re-apply reproduces that window instead of
+    /// shrinking it back to whatever the options file remembered from last time.
+    /// </summary>
+    private static void RememberMaximizedClientSize(IntPtr handle)
+    {
+        try
+        {
+            if (!GetClientRect(handle, out RECT client))
+                return;
+
+            int width = client.Right - client.Left;
+            int height = client.Bottom - client.Top;
+            if (width <= 0 || height <= 0)
+                return;
+
+            Game1.options.fullscreen = false;
+            Game1.options.windowedBorderlessFullscreen = false;
+            Game1.options.preferredResolutionX = width;
+            Game1.options.preferredResolutionY = height;
+        }
+        catch { /* remembering is a nicety; failing must not break the maximise */ }
+    }
+
+
+    /// <summary>Kept for call sites that still say "maximise"; now means the real one.</summary>
+    public static bool MaximizeGameWindow() => MaximizeOnTargetMonitor();
+
+
+    /// <summary>
+    /// The handle of the actual game window.
+    ///
+    /// Process.MainWindowHandle is the obvious thing to reach for and the wrong one: SMAPI runs the
+    /// game with its own console window, and the process will happily hand back that instead - which
+    /// maximises a black text box and leaves the game exactly where it was. XNA knows the right one.
+    /// </summary>
+    public static IntPtr GameWindowHandle()
+    {
+        try
+        {
+            if (Game1.game1?.Window?.Handle is IntPtr fromXna && fromXna != IntPtr.Zero)
+                return fromXna;
+        }
+        catch { }
+
+        return System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
     }
 
     /// <summary>Brings the game window to the front, which keyboard input needs.</summary>
     public static bool FocusGameWindow()
     {
-        IntPtr handle = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+        IntPtr handle = GameWindowHandle();
         if (handle == IntPtr.Zero)
             return false;
 
-        const int SW_RESTORE = 9;
         ShowWindow(handle, SW_RESTORE);
         return SetForegroundWindow(handle);
     }

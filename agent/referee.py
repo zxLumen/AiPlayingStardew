@@ -18,7 +18,7 @@ class RefereeAI:
     def score_day(self, plan: dict, journal: str, day_start: dict, day_end: dict,
                   steps: int) -> dict:
         messages = [
-            {"role": "system", "content": prompts.REFEREE_SYSTEM},
+            {"role": "system", "content": prompts.REFEREE_SYSTEM + prompts.LANGUAGE},
             {
                 "role": "user",
                 "content": prompts.referee_user(plan, journal, day_start, day_end, steps),

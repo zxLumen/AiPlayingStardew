@@ -23,8 +23,42 @@ public class ModConfig
     /// <summary>Overlay panel width in pixels.</summary>
     public int OverlayWidth { get; set; } = 470;
 
+    /// <summary>How fast a too-long line slides, in pixels per second. Slow on purpose.</summary>
+    public int OverlayScrollSpeed { get; set; } = 34;
+
+    /// <summary>Left edge of the panel. 0 is the screen edge.</summary>
+    public int OverlayLeft { get; set; } = 12;
+
+    /// <summary>
+    /// Top edge of the panel. Sits under the progress strip, in the top-left corner.
+    /// </summary>
+    public int OverlayTop { get; set; } = 40;
+
     /// <summary>Seconds before an overlay line fades out. 0 keeps everything until it scrolls off.</summary>
     public int OverlayFadeSeconds { get; set; } = 0;
+
+    /// <summary>Shows the streamer's spoken line as a subtitle at the bottom of the screen.</summary>
+    public bool ShowSubtitle { get; set; } = true;
+
+    /// <summary>Seconds a subtitle stays before fading. 0 keeps it until the next one replaces it.</summary>
+    public int SubtitleSeconds { get; set; } = 12;
+
+    /// <summary>Shows the room's chat down the right of the screen.</summary>
+    public bool ShowChat { get; set; } = true;
+
+    /// <summary>How many chat messages stay on screen at once.</summary>
+    public int ChatLines { get; set; } = 8;
+
+    /// <summary>Shows the day/quest/money strip across the top.</summary>
+    public bool ShowProgress { get; set; } = true;
+
+    /// <summary>Scales every panel at once. Raise it for a small stream window, lower it to see more.</summary>
+    public float PanelScale { get; set; } = 1.0f;
+
+    /// <summary>
+    /// Fill the screen with the game window on launch, keeping it a window - not fullscreen.
+    /// </summary>
+    public bool MaximizeWindow { get; set; } = true;
 
     /// <summary>How many nearby tiles to scan for objects/crops when building state.</summary>
     public int ScanRadius { get; set; } = 12;
@@ -200,6 +234,16 @@ public class PlayerInfo
     [JsonPropertyName("bed_tile")] public int[] BedTile { get; set; } = Array.Empty<int>();
 
     [JsonPropertyName("current_item")] public ItemInfo? CurrentItem { get; set; }
+
+    /// <summary>
+    /// The stack the player is carrying on the mouse cursor.
+    ///
+    /// This is NOT "current_item" - that is the toolbar selection. A farmer can be walking around
+    /// with a whole stack stuck to the cursor and the old payload said nothing about it, so an item
+    /// that was bought but never landed in the bag was simply invisible: the shop looked like it
+    /// would not close "for no reason". A player sees this instantly; the agent had no way to.
+    /// </summary>
+    [JsonPropertyName("cursor_item")] public ItemInfo? CursorItem { get; set; }
 }
 
 
@@ -380,6 +424,43 @@ public class UiInfo
     [JsonPropertyName("dialogue")] public DialogueInfo? Dialogue { get; set; }
     [JsonPropertyName("save_slots")] public List<SaveSlotInfo> SaveSlots { get; set; } = new();
     [JsonPropertyName("character_design")] public CharacterDesignInfo? CharacterDesign { get; set; }
+
+    /// <summary>What is actually on the shelves, joined onto the slot names menu_click takes.</summary>
+    [JsonPropertyName("shop")] public List<ShopItemInfo> Shop { get; set; } = new();
+
+    /// <summary>
+    /// What the open MENU itself is holding (<c>IClickableMenu.heldItem</c>), if anything.
+    ///
+    /// A second place an item can be "in hand", and the one nobody looked at. While a menu holds an
+    /// item, Stardew's own <c>readyToClose()</c> is false - and both the close button and the escape
+    /// key go through it. So the shop "refuses to close for no reason" and every later click is
+    /// swallowed, while the payload said nothing about a hand that was full.
+    /// </summary>
+    [JsonPropertyName("held_item")] public string HeldItem { get; set; } = "";
+}
+
+
+/// <summary>
+/// One row of an open shop.
+///
+/// The shop's clickable rows carry no label at all: the reflection collector reports them as a
+/// column of blank rectangles named "0", "1", "2", ..., which is why an agent can only click them
+/// blind and cannot tell a seed from a scythe. The item, the price and the stock live in two other
+/// lists on the same menu, so this is where they get joined back onto the row.
+/// </summary>
+public class ShopItemInfo
+{
+    /// <summary>The name to hand to menu_click (e.g. "0").</summary>
+    [JsonPropertyName("slot")] public string Slot { get; set; } = "";
+
+    [JsonPropertyName("item")] public string Item { get; set; } = "";
+    [JsonPropertyName("item_id")] public string ItemId { get; set; } = "";
+    [JsonPropertyName("price")] public int Price { get; set; }
+
+    /// <summary>How many are left, or -1 when the shop never runs out.</summary>
+    [JsonPropertyName("stock")] public int Stock { get; set; } = -1;
+
+    [JsonPropertyName("affordable")] public bool Affordable { get; set; }
 }
 
 

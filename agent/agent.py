@@ -19,11 +19,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import authenticity  # noqa: E402
 import game_process  # noqa: E402
 import gaps  # noqa: E402
 import memory as memory_mod  # noqa: E402
+import program as program_mod  # noqa: E402
+import prompts  # noqa: E402
 import runner  # noqa: E402
 import witness  # noqa: E402
+from brainwatch import BrainWatch  # noqa: E402
+from chatfeed import ChatFeed  # noqa: E402
 from compact import compact_state  # noqa: E402
 from defects import DefectLedger  # noqa: E402
 from doctor import Doctor  # noqa: E402
@@ -252,13 +257,18 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
          max_steps: int, store: "memory_mod.MemoryStore",
          learning: LearningStore, runlog: RunLog, budget_s: float = 0.0,
          watcher: Watcher | None = None,
-         prescriber: "Prescriber | None" = None) -> tuple[str, str, int]:
+         prescriber: "Prescriber | None" = None,
+         brainwatch: "BrainWatch | None" = None) -> tuple[str, str, int]:
     history: list[str] = []
     directive: str | None = None
     total_llm = total_action = total_watch = 0.0
     queued: list[dict] = []
     batch_reason = ""
-    stuck_events = 0
+    # How long an event flag may hold the farmer with nothing on screen before it counts as
+    # wreckage rather than a scene. Generous on purpose: a cutscene IS content, the audience is
+    # watching it, and killing it is the one thing a stream must never do.
+    stuck_since = 0.0
+    STUCK_EVENT_S = 45.0
     deadline = time.monotonic() + budget_s if budget_s > 0 else 0.0
 
     first = stable_day(client)
@@ -273,11 +283,10 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
 
     # Freeze the in-game clock while we play. The clock runs in real time, so a slow-thinking AI
     # would burn the whole day before finishing anything; the day now ends when it sleeps.
-    frozen = client.action("pause_time", paused=True)
-    if frozen.get("ok"):
-        log("[day] in-game clock frozen (the day ends when the streamer sleeps)")
-    else:
-        log(f"[day] could not freeze the clock: {frozen.get('detail')}")
+    # The clock runs. It used to be frozen for the whole day, which is not something a player can do
+    # - and it broke the game's own rules in the worst possible way: the clock never reached 9:00,
+    # so the shop never opened and "go and buy seeds at nine" could never happen, for sixty days.
+    log("[day] the clock is running (a day takes as long as it takes)")
 
     for step in range(1, max_steps + 1):
         # A day is a round, and a round that drags on teaches nothing. When the budget is gone the
@@ -310,16 +319,23 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
                 and (game.get("blocked_reason") or "") == "cutscene/event playing"
                 and not spoken
                 and not ui_now.get("menu_name")):
-            stuck_events += 1
-            if stuck_events >= 2:
+            # NOT a step counter. An event is full of moments with nothing on screen - a fade, the
+            # camera panning, an NPC walking into shot - and a two-step counter cleared the event
+            # during exactly those. That is how a cutscene "vanished, it never played at all".
+            # Time is the only honest measure here, and it has to be a long time.
+            if stuck_since == 0.0:
+                stuck_since = time.monotonic()
+
+            if time.monotonic() - stuck_since > STUCK_EVENT_S:
                 released = client.action("clear_event")
-                log(f"[恢复] 事件标志卡住、屏幕上没有内容 -> clear_event: {released.get('detail')}")
-                runlog.agent("run", event="cleared_stuck_event", day=label, step=step,
+                log(f"[恢复] 事件标志卡了 {STUCK_EVENT_S:.0f} 秒且屏幕上什么都没出现过 "
+                    f"-> 当作残局清掉: {released.get('detail')}")
+                runlog.agent("run", event="cleared_abandoned_event", day=label, step=step,
                              detail=str(released.get("detail")))
-                stuck_events = 0
+                stuck_since = 0.0
                 continue
         else:
-            stuck_events = 0
+            stuck_since = 0.0
 
         if supervisor.should_review(step, history):
             started = time.perf_counter()
@@ -349,6 +365,22 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             directive = None
             queued = streamer.extract_actions(decision)
             batch_reason = str(decision.get("reason", ""))
+
+            # A dead brain must be loud. The fallback used to hand back an ordinary-looking "scan",
+            # so a model that had stopped answering looked exactly like an agent choosing to look
+            # around - for eight turns, until the day was gone.
+            if streamer.last_error:
+                log(f"[脑死] 模型不可用（连续第 {streamer.consecutive_failures} 次）：{streamer.last_error}")
+                runlog.agent("brain", day=label, step=step, event="model unavailable",
+                             error=streamer.last_error,
+                             consecutive=streamer.consecutive_failures)
+
+            # The system watching its own body: a model that is down, or one that answers so slowly
+            # that every round is one action, is a defect - and it looks exactly like the game being
+            # stuck, so it has to be said out loud rather than discovered by a person watching.
+            if brainwatch is not None:
+                brainwatch.observe(llm_s, failed=bool(streamer.last_error))
+
             if len(queued) > 1:
                 log(f"[思考] {batch_reason[:70]}  -> {len(queued)} 步")
 
@@ -368,11 +400,22 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         before = observe_tile(client, tx, ty) if tracking else None
         kind = (before or {}).get("kind")
 
+        original_action, original_args = action, dict(args)
         action, args, note = learning.gatekeep(action, args, kind)
         if note:
             runlog.agent("gatekeeper", day=label, step=step, action=action, args=args,
                          kind=kind, note=note)
             log(f"[守门] {note}")
+
+            # A note used to be advice nobody read: it went to the log, the action ran anyway, and
+            # the model was never told - so it repeated it, every step, for a whole day. If the
+            # gatekeeper says "do not do this", the honest thing is to not do it AND to put the
+            # reason in the history the model reads on its next turn.
+            if action == original_action and args == original_args:
+                history.append(f"BLOCKED BY GATEKEEPER - this did not run: {note}")
+                store.log_step(label, f"- step {step}: 守门器拦下，未执行 - {note}")
+                log(f"[守门] 本步已拦下，未执行")
+                continue
 
         # A prescribed precondition is enforced here, by the system, not remembered by the model.
         # This is the difference between "the doctor found out that a watering can has to be full"
@@ -429,6 +472,20 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             time.sleep(0.6)        # let the swing land before reading the tile back
         after = observe_tile(client, tx, ty) if (tracking and action in TILE_ACTIONS) else None
         worked, evidence = witness.judge(action, args, state, after_state, before, after)
+
+        # Reconcile the two verdicts. "提前结束: timeout" and "OK" used to be printed one line apart,
+        # and only the OK was handed to the agent. If the watcher had to step in AND the world did not
+        # move, this was not a success on any reading, whatever the action claimed. (A walk that ran
+        # out of budget but did move the farmer still counts - the witness saw the change.)
+        if watch.stopped not in ("done",) and worked is False and result.get("ok"):
+            result = dict(result)
+            result["ok"] = False
+            result["reason_code"] = (result.get("reason_code")
+                                     or f"WATCHER_{str(watch.stopped).upper()}")
+            result["detail"] = (
+                f"{result.get('detail', '')} | 守望者提前结束（{watch.stopped}）"
+                f"且世界没有变化：{evidence}"
+            )
 
         # `state` here is the pre-action picture, so re-read before the before/after are mixed up.
         outcome_kind = kind or ("area" if action in CHORE_ACTIONS else None)
@@ -535,19 +592,20 @@ def observe_tile(client: StateClient, x: int, y: int) -> dict | None:
 
 
 def enforce_day_end(client: StateClient) -> None:
-    """If the play loop ran out of steps without sleeping, end the day anyway.
+    """Try to end the day the way a player would: go to bed.
 
-    Without this an unattended run can sit on day 1 forever, which is exactly the failure mode
-    that makes an overnight run worthless.
+    A day cannot be rolled over directly any more - `new_day` is not a thing a player can do, and it
+    used to be the routine that left the game permanently unable to act when it was called on top of
+    a live cutscene. If sleeping is not possible right now, the honest end to the day is to keep
+    playing: the clock runs, and at 2am the game puts the farmer to bed itself, exactly as it would
+    for anyone else.
     """
     result = client.action("sleep")
     if result.get("ok"):
-        log(f"[run ] forced sleep -> {result.get('detail')}")
+        log(f"[run ] 去睡觉 -> {result.get('detail')}")
         return
 
-    log(f"[run ] sleep unavailable ({result.get('detail')}) - using the raw new-day routine")
-    raw = client.action("new_day")
-    log(f"[run ] new_day -> ok={raw.get('ok')} {raw.get('detail')}")
+    log(f"[run ] 现在睡不了（{result.get('detail')}）—— 让时间继续走，2 点游戏会自己送他上床")
 
 
 def write_progress(path: Path, header: str, rows: list[str]) -> None:
@@ -635,6 +693,33 @@ def run_doctor(client: StateClient, ledger: DefectLedger, doctor: Doctor, prescr
     return done
 
 
+def start_show(client: StateClient, runlog: RunLog, store: "memory_mod.MemoryStore",
+               persona: str, speaker: str) -> "program_mod.Program | None":
+    """Bring up the part of the show that belongs to the playing process.
+
+    Which is: almost none of it. The commentary, the voice and the chat now live in their own
+    process (`agent/commentary_daemon.py`) and hear about the game through `logs/agents/bus.jsonl`.
+    That separation is the point - editing a sentence used to cost a restart of the whole game loop,
+    which kills the day in progress. This process keeps only the audience's wish list, because the
+    planner is the one who decides whether a wish is granted.
+    """
+    try:
+        show = program_mod.Program(
+            client=client,
+            runlog=runlog,
+            store=store,
+            persona=persona,
+            speaker=speaker or "主播",
+            log=log,
+            role="agent",
+        )
+        show.start()
+        return show
+    except Exception as exc:
+        log(f"[节目] 启动失败（{type(exc).__name__}: {exc}）——退化为纯玩游戏")
+        return None
+
+
 def run_forever(args: argparse.Namespace) -> int:
     """Unattended loop: play day after day, recover from anything, and keep a progress file."""
     started = time.time()
@@ -654,6 +739,7 @@ def run_forever(args: argparse.Namespace) -> int:
 
     cycle = 0
     days_done = 0
+    show = None
 
     with StateClient(args.base_url) as client, LlmClient("llm") as smart, LlmClient("fast") as fast:
         log(f"[llm ] fast brain = {fast.endpoint.model} (every step) | "
@@ -670,13 +756,47 @@ def run_forever(args: argparse.Namespace) -> int:
         doctor = Doctor(smart, client, log=log, actions=witness.ACTION_NAMES)
         prescriber = Prescriber(client, ledger, learning, store, log=log)
         outcomes = OutcomeWatch(ledger=ledger, log=log)
+        brainwatch = BrainWatch(ledger=ledger, log=log)
 
         # Everything the agents say also goes on screen, for whoever is watching.
         runlog.attach_overlay(
             lambda batch: client.action("overlay", lines=batch)
         )
+        # The room, mirrored into the game on the right, where the audience is actually looking.
+        # The room, read straight off the danmaku log the commentary process writes. Binding to the
+        # FILE rather than to a room means switching rooms needs no handling at all.
+        chatfeed = ChatFeed(memory_mod.PROJECT_ROOT / "logs" / "agents" / "chat.jsonl",
+                            lambda batch: client.action("chat", lines=batch), log=log)
+        chatfeed.start()
         runlog.feed("run", "agents attached - watch this panel")
         runlog.feed("outcome", outcomes.summary())
+
+        # And the show itself: commentary, voice, and the room. Separate threads with their own
+        # queues - the playing loop publishes events and never waits for any of it.
+        show = start_show(client, runlog, store, streamer.persona,
+                          str((ai_save or {}).get("character_name") or ""))
+
+        def make_own_save() -> dict | None:
+            """First run ever, or after the record was lost: the streamer designs its own character.
+
+            This is the missing half of the pipeline. Without it, losing config/ai_save.json does
+            not mean "make a new one", it means "park at the title screen until someone notices".
+            """
+            created = bootstrap(client, streamer, None, force_new=True,
+                                max_iterations=args.max_boot)
+
+            if created:
+                streamer.persona = created.get("persona", "") or streamer.persona
+                if created.get("start_goal"):
+                    streamer.goal = created["start_goal"]
+
+                log(f"[boot] 新生角色：{created.get('name')} @ {created.get('farm_name')}")
+
+                # The commentary started before the character existed; teach it who it now is.
+                if show is not None:
+                    show.refresh_persona(streamer.persona, str(created.get("name") or ""))
+
+            return load_ai_save()
 
         while time.time() < deadline and cycle < args.max_days:
             cycle += 1
@@ -689,7 +809,8 @@ def run_forever(args: argparse.Namespace) -> int:
             # got named, quoted and removed from the action set".
             audited = gaps.analyse(
                 gaps.load_journal_events(memory_mod.PROJECT_ROOT / "memory" / "journal")
-                + gaps.load_agent_events(memory_mod.PROJECT_ROOT / "logs" / "agents", "streamer")
+                + gaps.load_agent_events(memory_mod.PROJECT_ROOT / "logs" / "agents", "streamer",
+                                         run_id=runlog.run_id)
             )
             try:
                 (memory_mod.PROJECT_ROOT / "logs" / "capability-gaps.md").write_text(
@@ -709,10 +830,18 @@ def run_forever(args: argparse.Namespace) -> int:
                 # and `enter` - both fine - while the empty watering can behind the failures went
                 # untouched, and the agent lost two things it needed. It now raises a defect, and
                 # the doctor works out why.
+                # LYING is not the agent's fault, and filing it there sent the fix the wrong way. The
+                # action reported success while the world never moved: that is the bridge's own claim
+                # being untrue. Under "agent" the remedy became "don't repeat that click" - which can
+                # never repair a click that does not work, and left the actual fault (a click with no
+                # release, a payload with no cursor field) unowned and unfixed. A claim that is not
+                # true belongs to whoever made it.
+                owner = "developer" if gap.verdict == "LYING" else "agent"
+
                 ledger.raise_defect(
                     f"gap:{gap.action}",
                     f"`{gap.action}` 被判定 {gap.verdict}",
-                    "agent",
+                    owner,
                     detail=reason,
                     evidence="; ".join(gap.examples[:2]) if gap.examples else "",
                 )
@@ -721,10 +850,29 @@ def run_forever(args: argparse.Namespace) -> int:
                              reasons=gap.reasons, examples=gap.examples)
                 runlog.line(f"- [缺口] `{gap.action}` **{gap.verdict}** — {reason}")
 
+            # The witness asks "did the world change". It cannot ask "could a player do this", and
+            # a teleport changes the world perfectly. So the action set itself is audited, every
+            # cycle, against the one rule that matters for a stream: only what a person at the
+            # keyboard could do. Findings are raised as defects, not printed into a log to be
+            # discovered by a human later.
+            try:
+                decls = authenticity.load_declarations(memory_mod.PROJECT_ROOT)
+                findings = authenticity.audit(memory_mod.PROJECT_ROOT / "mod", decls,
+                                              catalogue=prompts.ACTION_CATALOGUE)
+                (memory_mod.PROJECT_ROOT / "logs" / "authenticity.md").write_text(
+                    authenticity.report(findings, decls), encoding="utf-8")
+
+                for key, title, owner, detail in authenticity.as_defects(findings):
+                    ledger.raise_defect(key, title, owner, detail=detail)
+                    log(f"[合法性] [{owner}] {title} - {detail}")
+            except Exception as exc:
+                log(f"[合法性] 审计失败: {type(exc).__name__}: {exc}")
+
             try:
                 # Every stage before a day is played now has an owner, a retry, and a record.
-                # "Could not load the save" used to be an exception nobody wrote down.
-                pipeline.ensure(ai_save)
+                # "Could not load the save" used to be an exception nobody wrote down - and "there
+                # is no save yet" used to be a wall with no door in it.
+                ai_save = pipeline.ensure(ai_save or load_ai_save(), create=make_own_save)
             except runner.StageFailure as failure:
                 log(f"[流水线] {failure} —— 记录进台账，等 60 秒重试")
                 runlog.agent("pipeline", stage=failure.stage, event="stage failed",
@@ -743,8 +891,21 @@ def run_forever(args: argparse.Namespace) -> int:
             try:
                 start_state = client.state()
                 label_hint = memory_mod.day_label(start_state.get("game") or {})
+
+                # The room's wishes go into the plan, and the plan is what decides. A suggestion is
+                # never an instruction - but it is read, and it is answered.
+                viewers = show.viewer_block() if show else ""
                 plan = planner.plan_day(start_state, persona=streamer.persona, memory=known,
-                                        goal=streamer.goal, recent_days=store.recent_days())
+                                        goal=streamer.goal, recent_days=store.recent_days(),
+                                        viewers=viewers)
+
+                if show and viewers:
+                    taken = show.take_suggestions()
+                    runlog.agent("audience", day=label_hint,
+                                 suggestions=[f"{item['user']}: {item['text']}" for item in taken],
+                                 focus=plan.get("focus", ""))
+                    log(f"[观众] 本轮收到 {len(taken)} 条建议，已交给规划：{plan.get('focus', '')}")
+
                 goals = plan.get("plan") or []
                 runlog.agent("planner", day=label_hint, focus=plan.get("focus", ""), goals=goals,
                              notes=plan.get("notes", ""), sleep_by=plan.get("sleep_by"))
@@ -755,7 +916,7 @@ def run_forever(args: argparse.Namespace) -> int:
 
                 outcome, label, steps = play(client, streamer, supervisor, args.steps, store,
                                              learning, runlog, budget_s=args.day_seconds,
-                                             watcher=watcher, prescriber=prescriber)
+                                             watcher=watcher, prescriber=prescriber, brainwatch=brainwatch)
 
                 # Never let the run sit on the same day forever.
                 if outcome in ("steps_exhausted", "budget_exhausted"):
@@ -773,8 +934,32 @@ def run_forever(args: argparse.Namespace) -> int:
                         time.sleep(2)
 
                 end_state = client.state()
+
+                # NOT `started` - that name already means "when this run began", and reusing it here
+                # silently turned the run clock into nonsense (it printed "elapsed 29845464 min").
+                referee_at = time.perf_counter()
                 verdict = referee.score_day(plan, store.read_journal(label),
                                             compact_state(start_state), compact_state(end_state), steps)
+                smart_s = time.perf_counter() - referee_at
+
+                # The smart brain is a different endpoint call from the streamer's, and it was never
+                # watched - so the planner, the referee and the doctor could all be timing out while
+                # the dashboard said everything was fine.
+                if brainwatch is not None:
+                    brainwatch.observe(smart_s, failed=verdict.get("score") is None)
+
+                # A referee that could not answer is not "no score for today". The consequence is that
+                # the day taught NOTHING: no verdict, no reflection, no lesson, and nobody told. That
+                # is a defect, not a missing number in a log file.
+                if verdict.get("score") is None:
+                    ledger.raise_defect(
+                        "referee:unavailable",
+                        "裁判拿不到结果 —— 这一天的学习丢了",
+                        "developer",
+                        detail=str(verdict.get("why"))[:220],
+                        cost_s=smart_s,
+                    )
+                    log(f"[裁判] 没有结果（{str(verdict.get('why'))[:100]}）—— 已记入台账")
 
                 log(f"[裁判] score={verdict.get('score')} ({verdict.get('verdict')}) - {verdict.get('why')}")
 
@@ -827,6 +1012,10 @@ def run_forever(args: argparse.Namespace) -> int:
                     pass
                 time.sleep(30)
 
+    if show is not None:
+        log(f"[节目] {show.stats()}")
+        show.stop()
+
     stats = store.stats()
     ledger.save()
 
@@ -867,6 +1056,8 @@ def main() -> int:
         started = game_process.ensure_running()
         log(f"[game] {'launched the game' if started else 'the game is already running'}")
 
+    show = None
+
     with StateClient(args.base_url) as client:
         log("[api ] waiting for StateBridge...")
         if not client.wait_until_up():
@@ -896,6 +1087,11 @@ def main() -> int:
             streamer = StreamerAI(fast, args.goal, persona=(ai_save or {}).get("persona", ""),
                                   memory_block=known)
             supervisor = SupervisorAI(smart)
+
+            # The audience layer, so a single day can be watched the way the stream will be.
+            runlog.attach_overlay(lambda batch: client.action("overlay", lines=batch))
+            show = start_show(client, runlog, store, streamer.persona,
+                              str((ai_save or {}).get("character_name") or ""))
 
             log("[boot] driving menus to the AI's own save...")
             created = bootstrap(client, streamer, ai_save, args.new_game, args.max_boot)
@@ -932,6 +1128,7 @@ def main() -> int:
                 memory=known,
                 goal=streamer.goal,
                 recent_days=store.recent_days(),
+                viewers=(show.viewer_block() if show else ""),
             )
 
             goals = plan.get("plan") or []
@@ -980,6 +1177,9 @@ def main() -> int:
             })
 
             reflect(supervisor, store, known, label, runlog)
+            if show is not None:
+                log(f"[节目] {show.stats()}")
+                show.stop()
             return 0 if outcome in ("day_complete", "supervisor_done") else 4
 
 

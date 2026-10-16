@@ -9,6 +9,7 @@ and answering it needs something in the world to look at afterwards:
     movement       the farmer's tile
     place changes  the current location
     menus          the open menu / dialogue
+    clicks         money, the bag and the cursor (a purchase does not move the screen)
     the bag        which slot is held
 
 An action with no witness cannot be learned from, so this module refuses to pretend. It returns
@@ -76,8 +77,9 @@ CHORE_WORK_FIELD = {
 # Actions that are not meant to change anything - asking for a witness is meaningless.
 INFORMATIONAL = {
     "noop", "scan", "observe", "game_data", "chore", "pause_time", "focus_window",
-    "set_display", "sleep", "new_day", "cancel_chore", "stop", "press_key", "clear_event",
+    "set_display", "sleep", "new_day", "cancel_chore", "stop", "clear_event",
     "title_button", "new_game", "create_character", "set_appearance", "set_text",
+    "actions", "inspect", "open_screen", "narrate", "chat", "progress", "overlay",
 }
 
 
@@ -108,6 +110,24 @@ def _dialogue(state: dict) -> str:
 
 def _charges(state: dict):
     return (_player(state).get("current_item") or {}).get("charges")
+
+
+def _money(state: dict):
+    return _player(state).get("money")
+
+
+def _cursor(state: dict) -> str:
+    held = _player(state).get("cursor_item") or {}
+    name = held.get("name")
+    return f"{name} x{held.get('stack')}" if name else "empty"
+
+
+def _bag(state: dict) -> tuple:
+    """What is in the bag, made comparable. A purchase that lands changes this."""
+    return tuple(
+        f"{s.get('slot')}:{s.get('name')}x{s.get('stack')}"
+        for s in (state.get("inventory") or [])
+    )
 
 
 def _front(state: dict) -> str:
@@ -142,7 +162,19 @@ def judge(action: str, args: dict, before_state: dict, after_state: dict,
         if before_tile is None or after_tile is None:
             return None, "the tile could not be read before and after"
         was, now = before_tile.get("kind"), after_tile.get("kind")
-        return was != now, f"tile kind {was} -> {now}"
+        if was != now:
+            return True, f"tile kind {was} -> {now}"
+
+        # Acting on a tile can also OPEN something - a shop counter, a door, a dialogue - and when it
+        # does, the tile is unchanged by design. Judging only the tile reported "nothing happened" for
+        # a successful interaction, which is a false negative in exactly the place the agent most needs
+        # a straight answer: it was told its shop-opening interact had failed.
+        was_screen = f"{_menu(before_state)}|{_dialogue(before_state)}"
+        now_screen = f"{_menu(after_state)}|{_dialogue(after_state)}"
+        if was_screen != now_screen:
+            return True, f"opened something: {was_screen} -> {now_screen}"
+
+        return False, f"tile kind {was} -> {now}"
 
     field = CHORE_WORK_FIELD.get(action)
     if field:
@@ -163,7 +195,49 @@ def judge(action: str, args: dict, before_state: dict, after_state: dict,
         want = args.get("index")
         return now == want, f"slot {was} -> {now} (wanted {want})"
 
-    if action in ("menu_click", "dialogue_choose", "dialogue_advance", "skip_intro"):
+    if action == "menu_click":
+        # A click in a shop is supposed to change the WORLD, not the screen. Buying seeds leaves the
+        # shop menu exactly where it was, so judging a click by "did the screen move" made every real
+        # purchase look like a lie - and made two very different outcomes look identical:
+        #
+        #   money down, bag up            a purchase went through
+        #   money down, cursor occupied   a purchase got picked up and never put down
+        #
+        # What actually moves is money, the bag and the cursor. Those are the witness.
+        before = (_menu(before_state), _dialogue(before_state), _money(before_state),
+                  _bag(before_state), _cursor(before_state))
+        after = (_menu(after_state), _dialogue(after_state), _money(after_state),
+                 _bag(after_state), _cursor(after_state))
+
+        if before == after:
+            return False, "nothing moved (screen, money, bag and cursor all identical)"
+
+        notes = []
+        if before[2] != after[2]:
+            notes.append(f"money {before[2]} -> {after[2]}")
+        if before[3] != after[3]:
+            notes.append("the bag changed")
+        if before[4] != after[4]:
+            notes.append(f"cursor {before[4]} -> {after[4]}")
+        if before[0] != after[0]:
+            notes.append(f"menu {before[0] or '(none)'} -> {after[0] or '(none)'}")
+
+        # A cursor left holding something is NOT a success. It is the half-finished purchase that
+        # stops the shop from closing, which is what froze a whole day. Say so, loudly.
+        if after[4] != "empty":
+            notes.append(f"WARNING: '{after[4]}' is stuck on the cursor")
+
+        return True, "; ".join(notes) if notes else "the world changed"
+
+    if action == "press_key":
+        # A key press had no witness at all, so `press_key escape` reported OK whether or not the menu
+        # closed - and that is how a stuck shop menu looked like a successful escape for a whole day,
+        # with the agent pressing escape over and over and being told each time that it worked.
+        was = f"{_menu(before_state)}|{_dialogue(before_state)}"
+        now = f"{_menu(after_state)}|{_dialogue(after_state)}"
+        return was != now, f"screen {was} -> {now}"
+
+    if action in ("dialogue_choose", "dialogue_advance", "skip_intro"):
         was = f"{_menu(before_state)}|{_dialogue(before_state)}"
         now = f"{_menu(after_state)}|{_dialogue(after_state)}"
         return was != now, "screen changed" if was != now else "nothing on screen moved"

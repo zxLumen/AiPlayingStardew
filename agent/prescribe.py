@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import time
 
+import authenticity
+from defects import PROJECT_ROOT
 from witness import ACTION_NAMES, resolve_action
 
 
@@ -84,6 +86,7 @@ class Prescriber:
         self.learning = learning
         self.store = store
         self.log = log
+        self.root = PROJECT_ROOT
         self.preconditions: dict[str, dict] = {}
         self.attempts: dict[str, int] = {}
 
@@ -211,6 +214,25 @@ class Prescriber:
             msg = f"桥缺能力：{title}"
             self._record(defect, msg, owner="developer", status="mitigated")
             self.log(f"[处方] !!! {msg} —— 已进开发者队列")
+            return msg
+
+        if pkind == "declare":
+            full = str(prescription.get("action") or "").strip()
+            cls = str(prescription.get("class") or "").strip()
+            how = str(prescription.get("how") or cause).strip()
+
+            action = resolve_action(full) or full
+            if not action:
+                return self._record(defect, "声明没写动作名，无法执行", "agent", "open")
+
+            # The declaration is a sentence; the audit still checks it against the code, and a
+            # teleport declared as "action" is caught regardless of what anybody wrote.
+            if not authenticity.save_declaration(self.root, action, cls, how=how):
+                return self._record(defect, f"声明类别 '{cls}' 不合法（只能是 "
+                                            f"{' / '.join(authenticity.KINDS)}）", "agent", "open")
+
+            msg = f"声明 {action} 属于 {cls}：{how}"
+            self._record(defect, msg, owner="agent", status="fixed")
             return msg
 
         if pkind == "ban":

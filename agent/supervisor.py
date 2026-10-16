@@ -39,7 +39,7 @@ class SupervisorAI:
 
     def review(self, state: dict, history: list[str], steps: int, day_start: dict) -> dict:
         messages = [
-            {"role": "system", "content": prompts.SUPERVISOR_SYSTEM},
+            {"role": "system", "content": prompts.SUPERVISOR_SYSTEM + prompts.LANGUAGE},
             {
                 "role": "user",
                 "content": prompts.supervisor_user(compact_state(state), history, steps, day_start),
@@ -64,7 +64,7 @@ class SupervisorAI:
     def reflect(self, journal: str, known: str) -> dict:
         """Turn one day of play into durable facts and lessons."""
         messages = [
-            {"role": "system", "content": prompts.REFLECTION_SYSTEM},
+            {"role": "system", "content": prompts.REFLECTION_SYSTEM + prompts.LANGUAGE},
             {"role": "user", "content": prompts.reflection_user(journal, known)},
         ]
         try:

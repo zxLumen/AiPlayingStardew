@@ -72,7 +72,9 @@ def stop(force: bool = True, wait_s: float = 30.0) -> None:
         cmd = ["taskkill", "/IM", name]
         if force:
             cmd.append("/F")
-        subprocess.run(cmd, capture_output=True, text=True)
+        # Chinese Windows answers taskkill in GBK; decoding that as UTF-8 raises inside subprocess'
+        # reader thread and takes the whole run down with it.
+        subprocess.run(cmd, capture_output=True, text=True, errors="replace")
 
     deadline = time.monotonic() + wait_s
     while time.monotonic() < deadline and is_running():

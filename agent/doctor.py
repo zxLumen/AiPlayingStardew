@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import json
 
+import prompts
+
 DOCTOR_SYSTEM = """You are the DOCTOR AI for an agent that plays Stardew Valley through a bridge.
 
 Something has been failing repeatedly. Your only job is to find out WHY and say what to do about it.
@@ -54,6 +56,20 @@ The prescription is ONE of:
   {"kind": "plan_constraint", "text": "<a constraint the daily planner must respect>"}
   {"kind": "capability", "title": "<short>", "detail": "<what the game can do that the bridge cannot>"}
   {"kind": "ban", "action": "<action>", "why": "<why it can never work>"}
+  {"kind": "declare", "action": "<action>", "class": "action|read|recovery|illegal",
+   "how": "<what a player does to trigger it, or why it is recovery / illegal>"}
+
+IMPORTANT - before prescribing anything, ask which of these an exposed action is:
+  action    a player does it. If it can be done, this is usually the answer.
+  read      looking at something; legal only while the matching screen is open.
+  recovery  the harness uses it on the agent's behalf and the agent must never choose it as play.
+            This includes anything that draws or narrates FOR THE AUDIENCE - a subtitle, a chat
+            panel, the agents' board. Those are not gameplay verbs a model invented; they are part
+            of the show, and the right prescription is "declare", never "ban".
+  illegal   a player cannot do it at all.
+
+Use "ban" only for something that is neither a player action nor a recovery tool. Banning a
+recovery action takes a piece of the harness away from itself.
 
 For a precondition, "fact" is a dotted path into the live state. These work:
   held.charges, held.name, held.slot, money, stamina, work.thirsty_crops, work.empty_soil,
@@ -122,7 +138,7 @@ class Doctor:
         verdict: dict = {}
         for round_index in range(rounds):
             messages = [
-                {"role": "system", "content": DOCTOR_SYSTEM},
+                {"role": "system", "content": DOCTOR_SYSTEM + prompts.LANGUAGE},
                 {"role": "user", "content": _brief(evidence, 6000)},
             ]
 

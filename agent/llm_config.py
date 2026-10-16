@@ -40,6 +40,11 @@ class Endpoint:
     key_source: str = "unknown"
     headers: dict = field(default_factory=dict)
     extra: dict = field(default_factory=dict)
+    # Whether to let httpx pick up the machine's system proxy. Off by default, and that default is
+    # load-bearing: a local proxy client that is restarting, switching nodes, or simply wedged turns
+    # every model call into an SSL EOF - which looks exactly like the AI going silent for no reason.
+    # The bridge client already refuses the system proxy for the same class of reason.
+    trust_env: bool = False
 
     @property
     def is_configured(self) -> bool:
@@ -100,7 +105,7 @@ def resolve(section: str = "llm") -> Endpoint:
 
     known = {
         "provider", "base_url", "api_key", "model", "headers",
-        "temperature", "max_tokens", "timeout_s", "reasoning_effort",
+        "temperature", "max_tokens", "timeout_s", "reasoning_effort", "trust_env",
     }
     extra = {k: v for k, v in raw.items() if k not in known and not k.startswith("_")}
 
@@ -116,6 +121,7 @@ def resolve(section: str = "llm") -> Endpoint:
         key_source=source,
         headers=dict(raw.get("headers", {})),
         extra=extra,
+        trust_env=bool(raw.get("trust_env", False)),
     )
 
 

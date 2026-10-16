@@ -74,7 +74,7 @@ def measure(ep, model: str, effort: str | None, messages: list[dict]) -> dict:
 
     started = time.perf_counter()
     try:
-        with httpx.Client(timeout=180) as client:
+        with httpx.Client(timeout=180, trust_env=ep.trust_env) as client:
             resp = client.post(
                 ep.chat_url,
                 headers={"Authorization": f"Bearer {ep.api_key}", "Content-Type": "application/json",

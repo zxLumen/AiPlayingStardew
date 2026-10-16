@@ -1,0 +1,24 @@
+{
+  "actions": {
+    "chat": {
+      "kind": "recovery",
+      "how": "把弹幕画到游戏右侧给观众看，不是玩法动作",
+      "by": "agent"
+    },
+    "narrate": {
+      "kind": "recovery",
+      "how": "把主播要说的话画成字幕，只有 harness 使用",
+      "by": "agent"
+    },
+    "progress": {
+      "kind": "recovery",
+      "how": "把日期/任务/金钱画成顶部一条，不是玩法动作",
+      "by": "agent"
+    },
+    "overlay": {
+      "kind": "recovery",
+      "how": "把智能体实况画到左上角，不是玩法动作",
+      "by": "agent"
+    }
+  }
+}

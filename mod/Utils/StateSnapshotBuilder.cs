@@ -190,6 +190,12 @@ public static class StateSnapshotBuilder
             CurrentItem = f.CurrentItem != null ? ToItemInfo(f.CurrentItem) : null,
         };
 
+        // The stack on the cursor. Until this was exposed, a farmer could be carrying a whole
+        // purchase around and the payload would not mention it - so "the shop will not close" and
+        // "the seeds never arrived" both looked like the bridge lying rather than an item in hand.
+        try { info.CursorItem = f.CursorSlotItem != null ? ToItemInfo(f.CursorSlotItem) : null; }
+        catch { info.CursorItem = null; }
+
         // The tile the farmer is facing right now - what an action would act on.
         GameLocation? here = Game1.currentLocation;
         if (here != null)

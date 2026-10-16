@@ -32,10 +32,24 @@ class RunLog:
         self.run_id = time.strftime("%Y-%m-%d_%H%M%S")
         self.report = self.runs / f"run-{self.run_id}.md"
 
+        # One unified event stream. Everything this process learns about the game also goes here,
+        # so that a process which is NOT this process can follow along. The commentary and the voice
+        # window live outside this one on purpose: being separate is what makes them editable and
+        # restartable without cutting a running day in half.
+        self.stream = self.agents / "bus.jsonl"
+
         # The on-screen panel. Lines are batched so the API is not called once per event.
         self._push = None
         self._feed: list[dict] = []
         self._last_push = 0.0
+
+        # The room, for the in-game chat panel.
+        self._chat_push = None
+        self._chat_feed: list[dict] = []
+        self._chat_at = 0.0
+
+        # The show. Set with attach_bus(); when it is None this log is purely a log.
+        self._bus = None
 
         # One continuous human record across every run, so there is always a single file to read
         # even when a run is restarted many times.
@@ -96,13 +110,106 @@ class RunLog:
 
     # -- per-agent machine-readable stream ---------------------------------
 
-    def agent(self, name: str, **fields) -> None:
-        """Append one event for one agent."""
+    def agent(self, name: str, via_bus: bool = True, **fields) -> None:
+        """Append one event for one agent.
+
+        `via_bus=False` writes the record without echoing it to the show. That matters when the
+        caller publishes the same event itself: the voice listens on the bus, and an event that
+        arrives twice is a sentence said twice.
+        """
         event = {"t": time.strftime("%Y-%m-%d %H:%M:%S"), "run": self.run_id}
         event.update(fields)
         self._append(self.agents / f"{name}.jsonl",
                      json.dumps(event, ensure_ascii=False, default=str) + "\n")
         self.feed(name, summarize(name, fields))
+
+        # Anything worth writing down is worth letting the show react to. The bus never blocks and
+        # never raises, so a commentary module that is slow or dead cannot touch the run.
+        if via_bus and self._bus is not None:
+            try:
+                self._bus.publish({"name": name, **fields})
+            except Exception:
+                pass
+
+        # And the same event onto the shared stream on disk, for the processes that are not us.
+        # `via_bus=False` means the caller is the show itself, and the show must not feed itself.
+        if via_bus:
+            self._append_stream({"name": name, **event})
+
+    # -- the shared stream -------------------------------------------------
+
+    MAX_STREAM_BYTES = 8 * 1024 * 1024
+    KEEP_STREAM_LINES = 2000
+
+    def _append_stream(self, event: dict) -> None:
+        """Append one event to bus.jsonl, trimming the file when it gets large.
+
+        A stream that is never trimmed is a disk leak on a machine that runs for weeks; one line per
+        event is cheap, but fifty thousand of them per night is not.
+        """
+        try:
+            if self.stream.exists() and self.stream.stat().st_size > self.MAX_STREAM_BYTES:
+                kept = self.stream.read_text(encoding="utf-8", errors="replace").splitlines()
+                self.stream.write_text("\n".join(kept[-self.KEEP_STREAM_LINES:]) + "\n",
+                                       encoding="utf-8")
+
+            with self.stream.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(event, ensure_ascii=False, default=str) + "\n")
+        except OSError:
+            pass
+
+    # -- the show ----------------------------------------------------------
+
+    def attach_bus(self, bus) -> None:
+        """Let the commentary/voice layer watch every agent event without being called by them."""
+        self._bus = bus
+
+        # The room's messages belong on screen too, in the game, where the audience is looking -
+        # and this is the one place that already sits on the bus, so nothing in the commentary or
+        # voice modules has to know the game exists.
+        try:
+            bus.subscribe(self._on_bus_event, name="overlay-chat")
+        except Exception:
+            pass
+
+    def _on_bus_event(self, event: dict) -> None:
+        if not isinstance(event, dict) or event.get("name") != "chat":
+            return
+
+        kind = str(event.get("chat_kind") or "danmaku")
+        if kind == "enter":
+            return          # a join notice every few seconds would bury the actual conversation
+
+        text = str(event.get("text") or "").strip()
+        if not text:
+            return
+
+        prefix = {"gift": "[礼物] ", "guard": "[上舰] ", "super_chat": "[醒目留言] "}.get(kind, "")
+        self.feed_chat(str(event.get("user") or ""), prefix + text)
+
+    # -- the chat panel ----------------------------------------------------
+
+    def attach_chat(self, push) -> None:
+        """Give the log somewhere to send the room's messages for the in-game chat panel."""
+        self._chat_push = push
+
+    def feed_chat(self, user: str, text: str) -> None:
+        """Queue one chat message. The room can talk far faster than a panel can show."""
+        if self._chat_push is None:
+            return
+
+        self._chat_feed.append({"user": user, "text": text})
+
+        now = time.monotonic()
+        if len(self._chat_feed) < 5 and now - self._chat_at < 1.5:
+            return
+
+        batch, self._chat_feed = self._chat_feed, []
+        self._chat_at = now
+        try:
+            self._chat_push(batch)
+        except Exception:
+            pass        # the panel is a nicety; it must never break the run
 
     # -- the on-screen feed ------------------------------------------------
 
@@ -217,7 +324,8 @@ def translate_evidence(text: str) -> str:
         out = out.replace(english, chinese)
     for english, chinese in BLOCKED.items():
         out = out.replace(english, chinese)
-    return out.replace(" -> ", " → ").replace("->", "→")
+    # The game's own font has no → or ｜ - they render as *. Only characters that exist are used.
+    return out.replace(" -> ", " -> ").replace("->", "->")
 
 
 def summarize(name: str, f: dict) -> str:
@@ -261,10 +369,10 @@ def summarize(name: str, f: dict) -> str:
             target = f"({args.get('x')},{args.get('y')})"
 
         if f.get("ok"):
-            return f"{action} {target} → 成功 {str(f.get('reason') or '')[:40]}".strip()
+            return f"{action} {target} -> 成功".strip()
 
         reason = _zh(REASONS, f.get("reason_code"))
-        return f"{action} {target} → 失败 {reason}{where(f.get('detail'))}".strip()
+        return f"{action} {target} -> 失败 {reason}{where(f.get('detail'))}".strip()
 
     if name == "supervisor":
         return str(f.get("note") or "")[:96]
@@ -280,7 +388,7 @@ def summarize(name: str, f: dict) -> str:
         if reason == held:
             reason = translate_evidence(str(held))[:40]
         remedy = _zh(ACTIONS, f.get("remedy")) if f.get("remedy") else ""
-        return f"{event}｜{action} {reason}".strip() + (f" → {remedy}" if remedy else "")
+        return f"{event}: {action} {reason}".strip() + (f" -> {remedy}" if remedy else "")
 
     if name == "doctor":
         cause = str(f.get("cause") or "")[:96]
@@ -305,7 +413,7 @@ def summarize(name: str, f: dict) -> str:
         return str(f.get("note") or "")[:110]
 
     if name == "prescription":
-        return (f"{_zh(ACTIONS, f.get('action'))} 前置不足 → "
+        return (f"{_zh(ACTIONS, f.get('action'))} 前置不足 -> "
                 f"先做了 {_zh(ACTIONS, f.get('satisfied_with'))}")
 
     if name == "gaps":
