@@ -2175,7 +2175,7 @@ public static class ActionProcessor
         bool activeNow = NativeInput.IsGameWindowActive();
         string why = real
             ? $"the real click changed nothing (aimed at ({cx},{cy}), the game's mouse is {seen}, "
-              + $"window active: {activeNow})"
+              + $"window active: {activeNow}, {NativeInput.LastClickReport()})"
             : "the cursor could not be moved";
 
         // A real click is hover -> press -> release, and the press half is the old shape too: a shop row
@@ -3229,8 +3229,9 @@ public static class NativeInput
 
         bool isPrimary = (info.dwFlags & MONITORINFOF_PRIMARY) != 0;
 
-        // The second screen is where the game belongs: the first one is where the person is
-        // working. A primary result is taken, but a non-primary one replaces it.
+        // The second screen is where the game belongs: the first one is where the person is working.
+        // (Tried forcing the primary while chasing the mouse; the person's requirement is the secondary,
+        // so the window stays here and the input problem is solved where it actually is.)
         if (!_haveBestArea || !isPrimary)
         {
             _bestArea = info.rcWork;
@@ -3626,6 +3627,9 @@ public static class NativeInput
     private static extern bool SetCursorPos(int x, int y);
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetCursorPos(ref POINT point);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern bool ClientToScreen(IntPtr hWnd, ref POINT point);
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -3656,11 +3660,19 @@ public static class NativeInput
     /// client pixels - so this is where a player's mouse would be. The window is brought forward for
     /// the instant of the click and handed back afterwards, exactly as keyboard input already does.
     /// </summary>
+    private static string _lastClick = "";
+
+    /// <summary>The numbers behind the last real click, for the witness. A mismatch here is a diagnosis.</summary>
+    public static string LastClickReport() => _lastClick;
+
     public static bool ClickAt(int clientX, int clientY)
     {
         POINT? origin = ClientOrigin();
         if (origin == null)
+        {
+            _lastClick = "no screen origin";
             return false;
+        }
 
         if (!IsGameWindowActive())
             FocusGameWindow();
@@ -3669,13 +3681,60 @@ public static class NativeInput
         int screenX = origin.Value.X + (int)Math.Round(clientX * scale);
         int screenY = origin.Value.Y + (int)Math.Round(clientY * scale);
 
+        int clientW = 0, clientH = 0;
+        try
+        {
+            if (GetClientRect(GameWindowHandle(), out RECT rect))
+            {
+                clientW = rect.Right;
+                clientH = rect.Bottom;
+            }
+        }
+        catch { }
+
+        int uiW = 0;
+        try { uiW = Game1.uiViewport.Width; } catch { }
+
         try
         {
             SetCursorPos(screenX, screenY);
 
-            // Give the game a frame to see the cursor before the press: the hover matters, because a
-            // menu highlights by position and some of them do their work in performHoverAction.
-            Thread.Sleep(60);
+            // A small wiggle, because a JUMP may not be an event.
+            //
+            // The OS cursor arrives (OS_cursor == screen) and the game's reading never follows. SDL
+            // reports the mouse from the motion events it receives, so a single teleport can leave it
+            // believing the pointer is where it was; two small moves give it motion to report. If this
+            // fixes it, the click was always in the right place and only the game's idea of "where the
+            // mouse is" was stale; if it does not, the game is reading the mouse from something other
+            // than the cursor and the next suspect is its own input layer.
+            SetCursorPos(screenX + 2, screenY + 2);
+            Thread.Sleep(15);
+            SetCursorPos(screenX, screenY);
+
+            // WAIT UNTIL THE GAME AGREES, then click.
+            int waited = 0;
+            while (waited < 400 && !MouseAgrees(clientX, clientY))
+            {
+                Thread.Sleep(20);
+                waited += 20;
+            }
+
+            bool agreed = MouseAgrees(clientX, clientY);
+
+            // Where the OS actually put the cursor. This is the number that settles a class of mystery:
+            // if the OS cursor is NOT at the point we asked for, the move was clamped (a window on a
+            // display that is not live, or a coordinate off the virtual desktop) and no amount of
+            // waiting or clicking will help. If the OS cursor IS there and the game disagrees, then the
+            // game reads the mouse in a different space than its own component bounds - which would be
+            // this code's assumption to fix, not the game's.
+            var osPoint = new POINT();
+            GetCursorPos(ref osPoint);
+
+            _lastClick = $"screen=({screenX},{screenY}) aim=({clientX},{clientY}) "
+                         + $"origin=({origin.Value.X},{origin.Value.Y}) client=({clientW}x{clientH}) "
+                         + $"ui={uiW} scale={scale:0.###} agreed={agreed} waited={waited}ms "
+                         + $"OS_cursor=({osPoint.X},{osPoint.Y})";
+
             mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
             Thread.Sleep(50);
             mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
@@ -3683,6 +3742,17 @@ public static class NativeInput
             return true;
         }
         catch { return false; }
+    }
+
+
+    /// <summary>Whether the game's own mouse reading has caught up with the point we moved it to.</summary>
+    private static bool MouseAgrees(int clientX, int clientY)
+    {
+        try
+        {
+            return Math.Abs(Game1.getMouseX() - clientX) <= 2 && Math.Abs(Game1.getMouseY() - clientY) <= 2;
+        }
+        catch { return true; }
     }
 
 

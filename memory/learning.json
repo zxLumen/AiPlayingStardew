@@ -1,28 +1,28 @@
 {
   "tally": {
     "area|clear_area": {
-      "ok": 15,
-      "fail": 22
+      "ok": 16,
+      "fail": 29
     },
     "area|harvest_all": {
-      "ok": 1,
-      "fail": 8
+      "ok": 3,
+      "fail": 15
     },
     "area|plant_all": {
-      "ok": 8,
+      "ok": 9,
       "fail": 1
     },
     "area|refill": {
-      "ok": 8,
-      "fail": 7
+      "ok": 10,
+      "fail": 11
     },
     "area|till_area": {
-      "ok": 7,
-      "fail": 48
+      "ok": 9,
+      "fail": 51
     },
     "area|water_all": {
-      "ok": 20,
-      "fail": 15
+      "ok": 24,
+      "fail": 18
     },
     "big_debris|go_to": {
       "ok": 0,
