@@ -37,10 +37,44 @@ KINDS = ("action", "knowledge", "read", "recovery", "illegal")
 # action's description, they are the action.
 CHEAT_PRIMITIVES = {
     "Game1.warpFarmer": "teleports the farmer",
-    "Game1.isTimePaused": "stops or starts the clock",
+    # A WRITE, not the word. Reading the clock to report whether the game is paused is how /state
+    # works, and banning the read would have accused the payload of cheating.
+    "Game1.isTimePaused =": "stops or starts the clock",
     "Game1.NewDay": "rolls the day over without sleeping",
-    "Game1.player.Position": "moves the farmer directly",
-    "player.Position": "moves the farmer directly",
+    "Game1.player.Position =": "moves the farmer directly",
+    "player.Position =": "moves the farmer directly",
+}
+
+# The second kind of cheat, and the harder one to see.
+#
+# The list above catches actions a player CANNOT do. This catches actions a player CAN do, written by
+# setting the outcome instead of walking the game's own path - so the world ends up somewhere a player
+# could never have reached. Still cheating; nothing about it looks like a cheat.
+#
+# The one that taught us this: HoeDirt.plant() puts the crop into the soil and charges nothing, because
+# the game takes the seed in the SEED'S OWN use path. Four parsnip seeds became fifty-one parsnip crops
+# while the bag still held all four. A player cannot do that.
+FIDELITY_PRIMITIVES = {
+    ".state = ": "sets a tile's state directly instead of using the tool that would set it",
+    ".watered = ": "waters a tile by assignment instead of using the can",
+    ".Objects.Remove": "removes an object without the tool action that removes it",
+    "Items.Add": "puts an item in the bag without the game giving it",
+    "debris.Add": "creates debris the player never produced",
+    # The farmer's stamina, not any field called Stamina: assigning the payload's own Stamina is how
+    # the number is reported, and matching that would accuse the snapshot of spending energy.
+    ".Stamina =": "sets stamina instead of spending it",
+    ".health = ": "sets health instead of taking damage",
+}
+
+# Primitives that are only legitimate when their COST is paid in the same method.
+# `dirt.plant(...)` is not wrong by itself - planting is a thing a player does - but it is free unless
+# something takes the seed, and that is the whole difference between farming and conjuring.
+FIDELITY_WITH_COST = {
+    "dirt.plant(": (
+        ("reduceActiveItemByOne", "ChargeSeed"),
+        "plants the crop directly, which charges nothing - the game takes the seed in the seed's own "
+        "use path, so the seed must be taken here too",
+    ),
 }
 
 # The starting declarations. Kept deliberately complete, so "undeclared" means someone added an
@@ -128,7 +162,18 @@ SWITCH_ARM = re.compile(r'"([a-z_]+)"\s*=>')
 # `game_data` and `overlay` are answered before the switch, so they are not switch entries and were
 # being skipped entirely by the first version of this audit.
 EARLY_RETURN = re.compile(r'action\s*==\s*"([a-z_]+)"\s*\)\s*\n\s*return\s+(\w+)\(')
-METHOD_START = re.compile(r'(?:private|internal|public)\s+static\s+\(bool,\s*string\)\s+(\w+)\s*\(')
+# ANY method, not only the ones shaped like an action.
+#
+# It used to match `(bool, string) Name(` exactly - the action-method signature - so a primitive
+# sitting in a helper was invisible to EVERY rule in this file. That is where the planting cheat
+# lived: PlantAt returns bool and ChargeSeed returns void, so the fidelity rule written to catch
+# planting-for-free could not see the very call it was written for, and the audit reported a clean
+# sheet. A rule whose scan cannot reach the defect is decoration.
+METHOD_START = re.compile(
+    r'(?:public|private|internal|protected)\s+'
+    r'(?:static\s+|virtual\s+|override\s+|sealed\s+|async\s+|new\s+)*'
+    r'(?:[\w\.<>,\[\]\?]+|\([^)]*\))\s+'
+    r'(\w+)\s*\(')
 
 DECLARATIONS_PATH = "memory/authenticity.json"
 
@@ -189,7 +234,12 @@ def _method_bodies(source: str) -> dict[str, str]:
     for match in METHOD_START.finditer(source):
         name = match.group(1)
         start = source.find("{", match.end())
-        if start < 0:
+
+        # An expression-bodied member (`... => Foo();`) has no block of its own. Taking the next `{`
+        # would swallow whatever method follows and blame it for things it never did - a false
+        # accusation, which in this project is worse than a missed one because somebody acts on it.
+        between = source[match.end():start] if start >= 0 else ""
+        if start < 0 or "=>" in between or ";" in between:
             continue
 
         depth = 0
@@ -229,6 +279,30 @@ def _switch_block(source: str) -> str:
     return source[start:]
 
 
+def _reachable(body: str, bodies: dict[str, str], depth: int = 3, seen: set | None = None) -> str:
+    """An action's own method, plus the bodies of the methods it calls.
+
+    A rule that reads only the action's own method is a rule that can be dodged by moving one line into
+    a helper - which is exactly how planting-for-free survived two audits. Walking the calls closes
+    that. It is deliberately shallow: the question is "did this action, in the end, do the thing", not
+    a full analysis of the program.
+    """
+    if seen is None:
+        seen = set()
+
+    if depth <= 0:
+        return body
+
+    out = [body]
+    for name in re.findall(r"(\w+)\s*\(", body):
+        if name in seen or name not in bodies:
+            continue
+        seen.add(name)
+        out.append(_reachable(bodies[name], bodies, depth - 1, seen))
+
+    return "\n".join(out)
+
+
 def exposed_actions(source: str) -> dict[str, str]:
     """Every action the bridge accepts, and the method each one runs."""
     block = _switch_block(source) or source
@@ -252,7 +326,9 @@ def audit(mod_dir: Path, decls: dict[str, dict], catalogue: str = "") -> list[Fi
     findings: list[Finding] = []
 
     for action, method in sorted(exposed.items()):
-        body = bodies.get(method, "")
+        # The action's own method AND everything it calls. A primitive one call away is just as much
+        # the action's doing, and moving it there used to make it invisible to every rule here.
+        body = _reachable(bodies.get(method, ""), bodies)
         declared = decls.get(action)
         cheats = [what for primitive, what in CHEAT_PRIMITIVES.items() if primitive in body]
 
@@ -276,6 +352,20 @@ def audit(mod_dir: Path, decls: dict[str, dict], catalogue: str = "") -> list[Fi
             findings.append(Finding(
                 action, "illegal-exposed", "developer",
                 f"'{action}' is still offered although a player cannot do it ({declared.get('why')})"))
+            continue
+
+        # Did it get there the way a player would? A legal action can still be a cheat if it sets the
+        # outcome instead of walking the game's path - the world lands somewhere no player could reach.
+        unfaithful = [what for primitive, what in FIDELITY_PRIMITIVES.items() if primitive in body]
+        for primitive, (costs, why) in FIDELITY_WITH_COST.items():
+            if primitive in body and not any(cost in body for cost in costs):
+                unfaithful.append(why)
+
+        if unfaithful:
+            findings.append(Finding(
+                action, "unfaithful", "developer",
+                f"'{action}' is declared '{kind}' and a player can do it, but it does not get there "
+                f"the way a player would: {'; '.join(unfaithful)}"))
             continue
 
         if kind == "recovery" and f"- {action} " in catalogue:

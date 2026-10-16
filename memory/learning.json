@@ -4,13 +4,21 @@
       "ok": 6,
       "fail": 3
     },
+    "area|plant_all": {
+      "ok": 1,
+      "fail": 0
+    },
     "area|refill": {
       "ok": 0,
-      "fail": 1
+      "fail": 4
     },
     "area|till_area": {
       "ok": 0,
       "fail": 32
+    },
+    "area|water_all": {
+      "ok": 1,
+      "fail": 2
     }
   }
 }

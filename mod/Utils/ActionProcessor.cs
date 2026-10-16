@@ -454,7 +454,13 @@ public static class ActionProcessor
     ///
     /// Planting is NOT checkAction and NOT a tool swing - that is why every earlier attempt failed
     /// with "interacted -> False" or "current item is not a tool". The game plants through
-    /// HoeDirt.plant(), with the held item's own performUseAction() as a fallback.
+    /// HoeDirt.plant().
+    ///
+    /// But HoeDirt.plant() only puts the CROP into the soil. The game charges the player for the seed
+    /// elsewhere - in the seed's own use path - so planting through HoeDirt.plant() alone plants FOR
+    /// FREE, and that is exactly what was happening: four parsnip seeds became fifty-one parsnip
+    /// crops while the bag still held all four. No player can do that, which makes it a cheat - and
+    /// the seed was always taken here, right after the crop goes in.
     /// </summary>
     internal static bool PlantAt(GameLocation location, int x, int y, Farmer farmer)
     {
@@ -466,18 +472,71 @@ public static class ActionProcessor
             if (location.terrainFeatures.TryGetValue(new Vector2(x, y), out TerrainFeature? feature)
                 && feature is HoeDirt dirt)
             {
-                try { if (dirt.plant(held.QualifiedItemId, farmer, false)) return true; }
+                try
+                {
+                    if (dirt.plant(held.QualifiedItemId, farmer, false))
+                    {
+                        ChargeSeed(farmer, held);
+                        return true;
+                    }
+                }
                 catch { }
 
-                try { if (dirt.plant(held.ItemId, farmer, false)) return true; }
+                try
+                {
+                    if (dirt.plant(held.ItemId, farmer, false))
+                    {
+                        ChargeSeed(farmer, held);
+                        return true;
+                    }
+                }
                 catch { }
             }
         }
         catch { }
 
-        // Fallback: let the item act on whatever the farmer is facing.
+        // Fallback: let the item act on whatever the farmer is facing. The game's own path already
+        // charges for the seed, so nothing is taken here.
         try { return held.performUseAction(location); }
         catch { return false; }
+    }
+
+
+    /// <summary>
+    /// Takes one seed out of the farmer's hands, the way the game does when a player plants.
+    ///
+    /// Its absence was not a small bug. Whatever the soil is doing, the player is paying a seed for
+    /// it, and the bridge was not: an entire field appeared out of four seeds. A cost that is not
+    /// charged is a cheat, however good the rest of the action looks.
+    /// </summary>
+    private static void ChargeSeed(Farmer farmer, StardewValley.Object seed)
+    {
+        try
+        {
+            // The game's own call, and the one that behaves with the held stack.
+            if (ReferenceEquals(farmer.CurrentItem, seed))
+            {
+                farmer.reduceActiveItemByOne();
+                return;
+            }
+        }
+        catch { /* fall through to the explicit search */ }
+
+        try
+        {
+            for (int i = 0; i < farmer.Items.Count; i++)
+            {
+                Item? item = farmer.Items[i];
+                if (item == null || item.QualifiedItemId != seed.QualifiedItemId)
+                    continue;
+
+                item.Stack--;
+                if (item.Stack <= 0)
+                    farmer.Items[i] = null;
+                return;
+            }
+        }
+        catch { }
     }
 
 
@@ -1669,16 +1728,22 @@ public static class ActionProcessor
     }
 
 
-    /// <summary>Gets into the bed: the bed runs its own sleep flow and we accept it.</summary>
+    /// <summary>
+    /// Gets into the bed: the bed runs its own sleep flow and we accept it.
+    ///
+    /// It used to start by teleporting the farmer onto the bed tile and setting `isInBed` by hand.
+    /// Both are the same primitive as the `warp` action this project already bans - a player WALKS
+    /// onto the bed, and the bed sets `isInBed` itself when the player answers yes. Reaching in and
+    /// writing the outcome is exactly the cheat this class of bug is made of: the action looked
+    /// legal, the farmer ended up in bed, and nothing along the way was how a person gets there.
+    /// </summary>
     private static (bool, string) EnterBed(GameLocation location, Point spot)
     {
-        Game1.warpFarmer(location.Name, spot.X, spot.Y, 0);
-        Game1.player.isInBed.Value = true;
-
         string note;
         try
         {
-            // Ask the bed to run its own "sleep?" flow, then accept it. The game does the rest.
+            // Ask the bed to run its own "sleep?" flow, then accept it. The game does the rest -
+            // including putting the farmer in the bed.
             location.checkAction(new Location(spot.X, spot.Y), Game1.viewport, Game1.player);
             location.answerDialogueAction("Sleep_Yes", null);
             note = "answered yes";

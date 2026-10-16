@@ -15,4 +15,21 @@
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.3.2" />
   </ItemGroup>
 
+  <!--
+    "Every action drives the game; it does not write the outcome" is a RULE, and a rule that a person
+    checks by hand is a suggestion. This one is checked by the compiler: a banned primitive cannot be
+    built into the bridge at all - not by accident, not inside a helper, not behind a fallback.
+
+    That was not hypothetical. `Game1.warpFarmer` sat inside EnterBed while `warp` was already declared
+    illegal in the action table, and planting charged nothing for a whole field of parsnips. Both were
+    found by widening a scan, which only happened because a person went looking. This target means
+    nobody has to go looking again.
+
+    The patterns live in agent/authenticity.py, so what the build forbids and what the runtime audit
+    reports can never drift apart.
+  -->
+  <Target Name="FidelityCheck" BeforeTargets="Build">
+    <Exec Command="&quot;$(MSBuildProjectDirectory)\..\.venv\Scripts\python.exe&quot; &quot;$(MSBuildProjectDirectory)\..\tools\check_fidelity.py&quot;" />
+  </Target>
+
 </Project>
