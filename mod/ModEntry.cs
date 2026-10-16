@@ -36,6 +36,7 @@ public class ModEntry : Mod
 
     /// <summary>Ticks left in the window-maximise burst, and when it last tried.</summary>
     private int _maximizeTries;
+    private int _maximizeFailStreak;
     private long _lastMaximizeAt;
 
     /// <summary>Roughly when config.json was last re-read, in units of two seconds.</summary>
@@ -165,12 +166,22 @@ public class ModEntry : Mod
             if (NativeInput.MaximizeOnTargetMonitor(out string why))
             {
                 _maximizeTries = 0;
-                Monitor.Log("window: maximised (IsZoomed=true)", LogLevel.Info);
+                if (_maximizeFailStreak > 0)
+                {
+                    Monitor.Log($"window: maximised, after {_maximizeFailStreak} failed attempt(s)",
+                        LogLevel.Info);
+                    _maximizeFailStreak = 0;
+                }
             }
-            else if (_maximizeTries == 0)
+            else
             {
-                // Say so, loudly and once. Silence was how "it does not work" stayed unanswerable.
-                Monitor.Log($"window: could NOT maximise - {why}", LogLevel.Warn);
+                // The FIRST failure, with its reason - not the last one. The previous version only
+                // spoke when the retry counter reached zero, and MaximizeWhenReady() resets that
+                // counter, so it never spoke at all and "it does not work" stayed unanswerable for a
+                // whole session. Report the moment something is known, not when a counter runs out.
+                _maximizeFailStreak++;
+                if (_maximizeFailStreak == 1)
+                    Monitor.Log($"window: could NOT maximise - {why}", LogLevel.Warn);
             }
         }
 

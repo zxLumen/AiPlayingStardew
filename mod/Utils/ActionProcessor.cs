@@ -3072,11 +3072,16 @@ public static class NativeInput
 
         try
         {
-            // 1. Make sure the window is allowed to be maximised at all.
+            // 1. Make sure the window is allowed to be maximised at all - but only if the style could
+            //    actually be READ. A zero here means the read failed, and OR-ing our wishes onto that
+            //    zero and writing it back would strip the window's real style.
             long style = (long)GetWindowLongPtr(handle, GWL_STYLE);
-            long wanted = style | WS_MAXIMIZEBOX | WS_THICKFRAME;
-            if (wanted != style)
-                SetWindowLongPtr(handle, GWL_STYLE, (IntPtr)wanted);
+            if (style != 0)
+            {
+                long wanted = style | WS_MAXIMIZEBOX | WS_THICKFRAME;
+                if (wanted != style)
+                    SetWindowLongPtr(handle, GWL_STYLE, (IntPtr)wanted);
+            }
 
             if (IsZoomed(handle))
                 return true;
@@ -3154,16 +3159,45 @@ public static class NativeInput
     /// game with its own console window, and the process will happily hand back that instead - which
     /// maximises a black text box and leaves the game exactly where it was. XNA knows the right one.
     /// </summary>
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool IsWindow(IntPtr hWnd);
+
     public static IntPtr GameWindowHandle()
     {
         try
         {
-            if (Game1.game1?.Window?.Handle is IntPtr fromXna && fromXna != IntPtr.Zero)
+            if (Game1.game1?.Window?.Handle is IntPtr fromXna && IsUsableWindow(fromXna))
                 return fromXna;
         }
         catch { }
 
-        return System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+        IntPtr fromProcess = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+        if (IsUsableWindow(fromProcess))
+            return fromProcess;
+
+        return IntPtr.Zero;
+    }
+
+
+    /// <summary>
+    /// A handle is only usable once Windows agrees it is a window.
+    ///
+    /// This check exists because of a real failure, not a precaution. `GetWindowLongPtr` on the handle
+    /// the game reports came back ZERO - meaning that as far as user32 was concerned it was not a
+    /// window at all - and the code then took that zero, OR-ed the styles it wanted onto it, and wrote
+    /// the result back. Deriving a window style from a failed read and applying it is how a window
+    /// loses its caption, or vanishes. A read that failed must never become a write.
+    /// </summary>
+    private static bool IsUsableWindow(IntPtr handle)
+    {
+        if (handle == IntPtr.Zero)
+            return false;
+
+        try
+        {
+            return IsWindow(handle) && (long)GetWindowLongPtr(handle, GWL_STYLE) != 0;
+        }
+        catch { return false; }
     }
 
     /// <summary>Brings the game window to the front, which keyboard input needs.</summary>
