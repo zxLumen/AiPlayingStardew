@@ -139,6 +139,54 @@ def audit_source(source: str, declarations: dict) -> list:
         return A.audit(root, declarations, "")
 
 
+def runtime_cases() -> list[tuple[str, bool]]:
+    """The rules that run WHILE the game is being played, fed the defects that motivated them.
+
+    Same question as above, same reason for asking. Two of these were written down as rules and could
+    not survive their own case:
+
+      * `is_loop` counted repeats and blocked `dialogue_advance` for the rest of the day while the
+        scene it was advancing was turning pages - four calls, four lines, and the agent then spent
+        that day pressing escape, space, enter and E at a dialogue box it was forbidden to advance.
+
+      * the chore witness watched `till_area` against `empty_soil`, and hoeing only ever pushes that
+        UP: it turns a TILLABLE tile into empty soil. 0 successes in 42 attempts, recorded as a broken
+        verb, and the farmer told to stop tilling while the tilling was working.
+    """
+    import learning as L
+    import witness as W
+
+    cases: list[tuple[str, bool]] = []
+
+    def loop(action: str, args: dict, repeats: int, worked: bool | None) -> bool:
+        store = L.LearningStore(Path(tempfile.gettempdir()) / "aipst-rule-test-absent.json",
+                                log=lambda _m: None)
+        for _ in range(repeats):
+            store.note_attempt_outcome(store.remember_attempt(action, args), worked)
+        return store.is_loop(action, args)
+
+    cases.append(("dialogue_advance four times, each one turning the page, is NOT a loop",
+                  loop("dialogue_advance", {}, 4, True) is False))
+    cases.append(("menu_click on the same shelf row four times is NOT a loop",
+                  loop("menu_click", {"name": "forSaleButtons.0"}, 4, True) is False))
+    cases.append(("shouldering the same locked shop four times, changing nothing, IS a loop",
+                  loop("enter", {"target": "SeedShop"}, 4, False) is True))
+    cases.append(("three repeats is still under the threshold",
+                  loop("menu_click", {"name": "upperRightCloseButton"}, 3, False) is False))
+
+    # The chore witness, fed a world where the work actually happened. Hoeing a patch moves
+    # `tillable` DOWN and `empty_soil` UP - which is the reverse of planting, and the reason naming a
+    # counter after the verb was not enough to get it right.
+    hoed_before = {"location": {"work": {"tillable": 11, "empty_soil": 3}}}
+    hoed_after = {"location": {"work": {"tillable": 9, "empty_soil": 5}}}
+    worked, evidence = W.judge("till_area", {}, hoed_before, hoed_after)
+    cases.append((f"a patch that got hoed reads as success ({evidence})", worked is True))
+    cases.append(("a patch nobody touched is not a success",
+                  W.judge("till_area", {}, hoed_before, hoed_before)[0] is False))
+
+    return cases
+
+
 def main() -> int:
     failures = 0
 
@@ -161,7 +209,15 @@ def main() -> int:
             failures += 1
 
     print()
-    print(f"{len(CASES) - failures}/{len(CASES)} detectors behave as their own history says they should")
+    total = len(CASES)
+    for name, ok in runtime_cases():
+        print(f"{'PASS' if ok else 'FAIL':4}  {name}")
+        if not ok:
+            failures += 1
+        total += 1
+
+    print()
+    print(f"{total - failures}/{total} detectors behave as their own history says they should")
     return 1 if failures else 0
 
 

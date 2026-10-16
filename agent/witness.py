@@ -66,9 +66,22 @@ def resolve_action(name: str) -> str | None:
     return None
 
 # Reflex macros, and the location.work counter each one is supposed to move (downwards).
+#
+# The counter has to be the one the action actually consumes, and reading the sign off the action's
+# NAME gets it wrong. `till_area` was watched against `empty_soil`, and that is backwards: tilling
+# turns a TILLABLE tile INTO empty soil. The counter it consumes is `tillable`, so the witness waited
+# for a number to fall that the action only ever pushes up - `till_area` scored 0 successes in 42
+# attempts, was recorded as a broken verb, and the farmer was told to stop tilling while the tilling
+# was working. The other five were already right, which is what made the wrong one look plausible:
+#
+#   clear_area   debris          down    (the weeds are gone)
+#   till_area    tillable        down    (the ground is no longer diggable - it is dug)
+#   plant_all    empty_soil      down    (the soil is no longer empty - it has a seed)
+#   water_all    thirsty_crops   down    (nothing there is thirsty any more)
+#   harvest_all  ready_crops     down    (nothing there is ripe any more)
 CHORE_WORK_FIELD = {
     "clear_area": "debris",
-    "till_area": "empty_soil",
+    "till_area": "tillable",
     "plant_all": "empty_soil",
     "water_all": "thirsty_crops",
     "harvest_all": "ready_crops",

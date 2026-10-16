@@ -917,50 +917,30 @@ public static class ActionProcessor
 
         GameLocation location = Game1.currentLocation;
 
-        // Doors carry the destination name; find the first one that matches.
-        (int x, int y)? door = null;
+        // ONE list of exits, the same one /state reports, so the door the agent can SEE and the door
+        // the action can USE cannot drift apart. `enter FarmHouse` used to fail on the farm because it
+        // searched location.doors and location.warps by hand - and a building's door is in neither of
+        // them: the game synthesizes it in getWarpFromDoor. See WorldMapper.BuildWarps.
+        List<WarpInfo> exits = WorldMapper.BuildWarps(location);
+        WarpInfo? match = null;
 
-        try
+        foreach (WarpInfo exit in exits)
         {
-            foreach (KeyValuePair<Point, string> entry in location.doors.Pairs)
+            if (exit.Target != null && exit.Target.Contains(target, StringComparison.OrdinalIgnoreCase))
             {
-                if (entry.Value != null &&
-                    entry.Value.Contains(target, StringComparison.OrdinalIgnoreCase))
-                {
-                    door = (entry.Key.X, entry.Key.Y);
-                    break;
-                }
+                match = exit;
+                break;
             }
         }
-        catch { }
 
-        if (door == null)
+        if (match == null)
         {
-            // Warps can also lead into a building.
-            try
-            {
-                foreach (Warp warp in location.warps)
-                {
-                    if (warp?.TargetName != null &&
-                        warp.TargetName.Contains(target, StringComparison.OrdinalIgnoreCase))
-                    {
-                        door = (warp.X, warp.Y);
-                        break;
-                    }
-                }
-            }
-            catch { }
-        }
-
-        if (door == null)
-        {
-            List<WarpInfo> known = WorldMapper.BuildWarps(location);
             string names = string.Join(", ",
-                known.Select(w => w.Target).Where(t => !string.IsNullOrWhiteSpace(t)).Distinct().Take(12));
+                exits.Select(w => w.Target).Where(t => !string.IsNullOrWhiteSpace(t)).Distinct().Take(12));
             return (false, $"nothing here leads to '{target}'. Known exits: {names}");
         }
 
-        (int dx, int dy) = door.Value;
+        (int dx, int dy) = (match.X, match.Y);
 
         if (!IsAdjacent(Game1.player, dx, dy))
         {

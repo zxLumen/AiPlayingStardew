@@ -259,7 +259,20 @@ sleep, move, menu_click, dialogue_choose, dialogue_advance, use_tool, interact, 
 
 NEVER tell it to warp or teleport, and never offer any other shortcut a player does not have. A
 failed path is not a problem to route around - it is the map. The correct advice when a tile cannot
-be reached is a different walkable tile, or a different destination."""
+be reached is a different walkable tile, or a different destination.
+
+QUOTE THE STATE, DO NOT COMPUTE FROM IT. Every coordinate and every button name you write must be
+COPIED out of the state you were handed: a button's x/y from ui.buttons, a person's or object's tile
+from nearby_characters / nearby_objects, a door or exit from location.warps. If the number is not in
+the state, you do not have it - name the thing instead ("the close button", "Alex", "the shop door")
+and let the streamer look it up. An invented coordinate reads exactly like a real one and costs the
+streamer a whole step: you sent it to (1564,156) for a button that is at (1588,180) and to (1440,656)
+for a slot whose centre is (1472,688). Two wrong numbers, four wasted steps, in one shop.
+
+BUILDINGS ARE ENTERED WITH `enter <LocationName>`, and only when location.warps declares it. If the
+bridge answers "nothing here leads to X", that name is not an exit from where the streamer is
+standing - do not repeat it and do not rephrase it. Send it to a place the state actually lists, or
+send it `interact_at` on the door tile if the ASCII map shows a door ('>') there."""
 
 
 def supervisor_user(state: dict, history: list[str], steps: int, day_start: dict) -> str:

@@ -120,9 +120,37 @@ def compact_state(state: dict) -> dict:
 
         warps = location.get("warps") or []
         if warps:
+            # One entry per DESTINATION, not the first ten raw tiles.
+            #
+            # A location lists a warp for every TILE that leads somewhere, so the farm spends its
+            # first ten entries on three edge tiles to BusStop and four to the Mountain, and the
+            # farmhouse door - whose warp the game creates under the building's humanDoor - is cut off
+            # the end. `enter <Name>` can only work on a name the agent has been shown, so a
+            # truncation like that is the whole difference between "the house is not an exit" and
+            # "the house is an exit I was never told about".
+            #
+            # The tile reported is a standing tile (x, y >= 0) whenever the destination has one:
+            # an edge warp sits at -1 and cannot be walked to, but its target is still a real exit.
+            best: dict = {}
+            for warp in warps:
+                key = (str(warp.get("target") or ""), bool(warp.get("is_door")))
+                x, y = warp.get("x"), warp.get("y")
+                standable = isinstance(x, int) and isinstance(y, int) and x >= 0 and y >= 0
+
+                if key not in best:
+                    best[key] = {"at": [x, y], "to": warp.get("target"),
+                                 "door": warp.get("is_door"), "tiles": 1, "standable": standable}
+                    continue
+
+                entry = best[key]
+                entry["tiles"] += 1
+                if standable and not entry["standable"]:
+                    entry["at"] = [x, y]
+                    entry["standable"] = standable
+
             compact["location"]["warps"] = [
-                {"at": [w.get("x"), w.get("y")], "to": w.get("target"), "door": w.get("is_door")}
-                for w in warps[:10]
+                {k: v for k, v in entry.items() if k != "standable"}
+                for entry in list(best.values())[:MAX_LIST]
             ]
 
         # Where the work actually is, across this whole location. Without it the planner guesses

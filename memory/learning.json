@@ -1,24 +1,28 @@
 {
   "tally": {
     "area|clear_area": {
-      "ok": 10,
+      "ok": 12,
       "fail": 6
     },
     "area|plant_all": {
-      "ok": 3,
-      "fail": 0
+      "ok": 4,
+      "fail": 1
     },
     "area|refill": {
       "ok": 1,
       "fail": 5
     },
     "area|till_area": {
-      "ok": 0,
-      "fail": 42
+      "ok": 1,
+      "fail": 44
     },
     "area|water_all": {
-      "ok": 3,
+      "ok": 4,
       "fail": 2
+    },
+    "thirsty_crop|work": {
+      "ok": 1,
+      "fail": 0
     },
     "tree|work": {
       "ok": 1,

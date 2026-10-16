@@ -191,19 +191,29 @@ class Prescriber:
         return action in ("noop", "stop")
 
     def _bag_slots(self, state: dict) -> list[str]:
-        """The bag slot names the menu reports, minus the shelf rows."""
+        """The bag slot names the menu reports, minus the shelf rows. Drawn slots first.
+
+        Order matters because the satisfier TRIES them: a shop's panel is 36 components laid out in
+        three rows, but the shop only draws the first one. Slot 12 sits at (832,756) - a real bag
+        index behind a component nobody can see - and a click there is accepted and does nothing,
+        while slot 11 one row up empties the hand. So the drawn ones are offered first.
+        """
         shelf = {str(row.get("slot") or "") for row in ((state.get("ui") or {}).get("shop") or [])}
 
-        bag = []
+        drawn: list[str] = []
+        rest: list[str] = []
+
         for button in ((state.get("ui") or {}).get("buttons") or []):
             name = str(button.get("name") or "")
             if not name or name in shelf:
                 continue
 
-            if name.startswith("inventory") or name.split(".")[-1].isdigit():
-                bag.append(name)
+            if not (name.startswith("inventory") or name.split(".")[-1].isdigit()):
+                continue
 
-        return bag
+            (drawn if button.get("visible", True) else rest).append(name)
+
+        return drawn + rest
 
     def _put_down(self, state: dict) -> str | None:
         """Put the carried stack down. Returns what it ran, or None when there is no way to."""
@@ -249,9 +259,30 @@ class Prescriber:
 
         target = free[0]
         self.log(f"[处方] 手上有东西（{self._hand_full(state)}），先放进背包：menu_click {target}")
-        result = self.client.action("menu_click", name=target)
-        self.log(f"[处方]   menu_click {target} -> ok={result.get('ok')} {str(result.get('detail'))[:90]}")
-        return f"menu_click {target}"
+
+        # Verify, do not trust. A click on a slot the menu does not actually draw is accepted by the
+        # bridge and changes nothing, and this satisfier used to pick one name and report success on
+        # its own say-so - which is how slot 12 was tried three times in one shop visit while the
+        # seeds stayed on the menu's hand. Try, look at the hand, and try the next one.
+        for attempt in free[:4]:
+            result = self.client.action("menu_click", name=attempt)
+            self.log(f"[处方]   menu_click {attempt} -> ok={result.get('ok')} "
+                     f"{str(result.get('detail'))[:80]}")
+
+            try:
+                after = self.client.state()
+            except Exception as exc:
+                self.log(f"[处方]   读状态失败（{exc}）—— 无法验证，照实返回")
+                return f"menu_click {attempt}"
+
+            if not self._hand_full(after):
+                if attempt != free[0]:
+                    self.log(f"[处方]   放进去了：{attempt}（{free[0]} 是空的却不管用）")
+                return f"menu_click {attempt}"
+
+        self.log(f"[处方] {len(free[:4])} 个空格都试过了，手上还有 "
+                 f"{self._hand_full(state)} —— 如实报告，不假装成功")
+        return None
 
     def note_outcome(self, action: str, worked: bool | None) -> None:
         """The verification half: did the prescribed fix actually fix it?"""

@@ -428,7 +428,7 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
                              satisfied_with=helper)
                 time.sleep(1.5)
 
-        learning.remember_attempt(action, args)
+        attempt_entry = learning.remember_attempt(action, args)
 
         started = time.perf_counter()
         result = client.action(action, **args)
@@ -486,6 +486,10 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             time.sleep(0.6)        # let the swing land before reading the tile back
         after = observe_tile(client, tx, ty) if (tracking and action in TILE_ACTIONS) else None
         worked, evidence = witness.judge(action, args, state, after_state, before, after)
+
+        # Hand the verdict back to the attempt it judged: the loop check asks what the repeats DID
+        # (see LearningStore.is_loop), and until now it could only ask how many there were.
+        learning.note_attempt_outcome(attempt_entry, worked)
 
         # Reconcile the two verdicts. "提前结束: timeout" and "OK" used to be printed one line apart,
         # and only the OK was handed to the agent. If the watcher had to step in AND the world did not

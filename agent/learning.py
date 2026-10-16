@@ -53,22 +53,53 @@ class LearningStore:
         self.log = log
         self.tally: dict[str, Tally] = {}
         self.failures: list[tuple[str, str]] = []
-        self.attempts: list[tuple[str, str]] = []   # every attempt, success or not
+        self.attempts: list[dict] = []       # every attempt, with the verdict that judged it
         self.blocked: dict[str, str] = {}     # action -> why it was blacklisted
         self._load()
 
-    def remember_attempt(self, action: str, args: dict) -> None:
-        """Count every attempt, not just the failed ones.
+    def remember_attempt(self, action: str, args: dict) -> dict:
+        """Count every attempt, not just the failed ones, and hand the record back.
 
         The worst loops are not failures at all: 'enter the locked shop' returns ok, opens a
         dialogue, and the agent does it again. Repeating one action+args this many times in a day
         is a loop, whatever it reports.
+
+        But that reasoning was applied to the COUNT alone, and a repeat that MOVES the world is not a
+        loop - it is the action working, again. `dialogue_advance` on a long scene is the same action
+        with the same arguments four times and each one turns the page; the same is true of buying six
+        seeds with six clicks and of pressing a key. Counting attempts alone cannot tell those apart
+        from a farmer shouldering the same locked door, and it refused the one action that could end
+        the conversation it was stuck in: the gatekeeper blocked `dialogue_advance` for the rest of the
+        day, and the agent spent that day pressing escape, space, enter and E at a dialogue box.
+
+        So the record carries the verdict as well as the attempt, and the loop check asks what the
+        REPEATS DID rather than how many there were. The caller attaches the verdict once the witness
+        has spoken (see note_attempt_outcome).
         """
-        self.attempts.append((action, json.dumps(args, sort_keys=True, ensure_ascii=False)))
+        entry = {
+            "action": action,
+            "args": json.dumps(args, sort_keys=True, ensure_ascii=False),
+            "worked": None,
+        }
+        self.attempts.append(entry)
+        return entry
+
+    def note_attempt_outcome(self, entry: dict | None, worked: bool | None) -> None:
+        """Attach the witness verdict to the attempt it judged."""
+        if entry is not None:
+            entry["worked"] = worked
 
     def is_loop(self, action: str, args: dict, threshold: int = 4) -> bool:
+        """Repeat attempts that changed NOTHING. A repeat that moved the world is progress."""
         needle = (action, json.dumps(args, sort_keys=True, ensure_ascii=False))
-        return self.attempts.count(needle) >= threshold
+        same = [a for a in self.attempts
+                if a.get("action") == needle[0] and a.get("args") == needle[1]]
+
+        if len(same) < threshold:
+            return False
+
+        # Only the tail, so an action that used to work and has now stopped is still caught.
+        return all(a.get("worked") is not True for a in same[-threshold:])
 
     def blacklist(self, action: str, reason: str) -> bool:
         """Stop using an action that has been shown not to work. Returns True when newly blocked."""

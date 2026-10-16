@@ -281,6 +281,42 @@ public static class WorldMapper
         }
         catch { }
 
+        // A BUILDING's door is in neither list. It is synthesized on demand by
+        // GameLocation.getWarpFromDoor (StardewValley.GameLocation:2194), so `location.warps` never
+        // mentions the farmhouse, the coops, the barn or the shed. That is why the farm's exits read
+        // "BusStop, Forest, Backwoods, Farm" with no house among them, why `enter FarmHouse` answered
+        // "nothing here leads to it" while the farmer was standing on the farm, and why the model had
+        // to find the door by trial and error.
+        //
+        // The game's own answer to "where is this building's door" is getPointForHumanDoor() and to
+        // "what is this building's inside called" is GetIndoorsName(), so this asks it rather than
+        // doing the arithmetic by hand - the same pair of calls GameLocation.getWarpFromDoor makes.
+        try
+        {
+            foreach (Building building in location.buildings)
+            {
+                if (building == null || !building.HasIndoors())
+                    continue;
+
+                string indoors = building.GetIndoorsName() ?? "";
+                if (string.IsNullOrWhiteSpace(indoors))
+                    continue;
+
+                var door = building.getPointForHumanDoor();
+
+                result.Add(new WarpInfo
+                {
+                    X = door.X,
+                    Y = door.Y,
+                    Target = indoors,
+                    TargetX = 0,
+                    TargetY = 0,
+                    IsDoor = true,
+                });
+            }
+        }
+        catch { }
+
         return result;
     }
 }
