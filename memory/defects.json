@@ -350,6 +350,23 @@
       "evidence": [
         "(none): left FarmHouse -> Farm (64,15); (none): left FarmHouse -> Farm (64,15)"
       ]
+    },
+    {
+      "key": "gap:refill",
+      "title": "`refill` 被判定 BROKEN",
+      "owner": "agent",
+      "detail": "给 refill 加了前置条件：{'fact': 'held.name', 'op': '==', 'value': '喷壶'}，不足时先 select_slot。原因：refill 从来不是孤立的动作：它要求浇水壶正拿在手上、且农夫面向/紧邻一格水面，而每次调用时这两个前置条件一个都没满足，所以桥只能如实回报失败。",
+      "severity": 2,
+      "count": 3,
+      "first_seen": "2026-10-16 20:57",
+      "last_seen": "2026-10-16 21:38",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "mitigated",
+      "evidence": [
+        "FAILED: till_area: 5 done, 0 given up of 5 in 7.7s - finished; FAILED: plant_all: 51 done, 0 given up of 51 in 54.1s - finished",
+        "给 refill 加了前置条件：{'fact': 'held.name', 'op': '==', 'value': '喷壶'}，不足时先 select_slot。原因：refill 从来不是孤立的动作：它要求浇水壶正拿在手上、且农夫面向/紧邻一格水面，而每次调用时这两个前置条件一个都没满足，所以桥只能如实回报失败。"
+      ]
     }
   ]
 }

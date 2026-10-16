@@ -2001,19 +2001,25 @@ public static class ActionProcessor
         int cx = target.bounds.Center.X;
         int cy = target.bounds.Center.Y;
 
-        // Route through the top-level menu so it can forward into its submenu,
-        // which is how real mouse input reaches a TitleMenu submenu.
-        IClickableMenu router = ReferenceEquals(menu, active) ? menu : active;
+        // Where the GAME would send this click - not where the button "belongs".
+        //
+        // SDV dispatches a click to the deepest child of the active menu (Game1.updateActiveMenu), and
+        // a shop's own receiveLeftClick is what puts a purchase down. The previous revision routed to
+        // the nested InventoryMenu that OWNS a bag slot instead - whose receiveLeftClick is empty - so
+        // the click was received, was logged, and nothing happened. See UiStateBuilder.ClickRouter.
+        IClickableMenu router = UiStateBuilder.ClickRouter() ?? active;
 
         int moneyBefore = Game1.player?.Money ?? 0;
         string cursorBefore = CursorName();
+        string handBefore = MenuHand(menu);
+        string bagBefore = BagSignature();
 
         // A real click is hover -> press -> release. This used to press ONLY, and that is not a
         // detail: a shop row got picked up onto the cursor and never put down, so money was spent,
         // the seeds never reached the bag, and the shop - still holding an item - refused to close,
         // which blocked exit_building and stopped the day from ever ending. One missing release had
         // four symptoms, and nothing in the project could see any of them.
-        try { menu.performHoverAction(cx, cy); } catch { /* not every menu implements it */ }
+        try { router.performHoverAction(cx, cy); } catch { /* not every menu implements it */ }
         router.receiveLeftClick(cx, cy, true);
 
         // Sample BETWEEN press and release. Two very different failures were being conflated: a
@@ -2021,27 +2027,45 @@ public static class ActionProcessor
         // back down. Only the middle of the gesture tells them apart.
         int moneyPressed = Game1.player?.Money ?? 0;
         string cursorPressed = CursorName();
+        string handPressed = MenuHand(menu);
+        string bagPressed = BagSignature();
 
         try { router.releaseLeftClick(cx, cy); } catch { }
 
         int moneyAfter = Game1.player?.Money ?? 0;
         string cursorAfter = CursorName();
+        string handAfter = MenuHand(menu);
+        string bagAfter = BagSignature();
 
         // The witness. "The call did not throw" is not evidence that anything happened - this is.
+        //
+        // Money and the cursor are not enough. Putting a purchase down into the bag changes the BAG and
+        // nothing else, so this witness used to report the one click that finally worked as "the whole
+        // click changed nothing" - and the model read that sentence and went on trying other things.
+        // A witness that misses the change it is looking for is worse than no witness: it is a witness
+        // that lies in the confident direction.
         var evidence = new List<string>();
         if (moneyPressed != moneyBefore)
             evidence.Add($"press: money {moneyBefore}->{moneyPressed}");
         if (!string.Equals(cursorBefore, cursorPressed, StringComparison.Ordinal))
             evidence.Add($"press: cursor {cursorBefore}->{cursorPressed}");
+        if (!string.Equals(handBefore, handPressed, StringComparison.Ordinal))
+            evidence.Add($"press: menu hand {Shown(handBefore)}->{Shown(handPressed)}");
+        if (!string.Equals(bagBefore, bagPressed, StringComparison.Ordinal))
+            evidence.Add($"press: bag {bagBefore}->{bagPressed}");
         if (moneyAfter != moneyPressed)
             evidence.Add($"release: money {moneyPressed}->{moneyAfter}");
         if (!string.Equals(cursorPressed, cursorAfter, StringComparison.Ordinal))
             evidence.Add($"release: cursor {cursorPressed}->{cursorAfter}");
+        if (!string.Equals(handPressed, handAfter, StringComparison.Ordinal))
+            evidence.Add($"release: menu hand {Shown(handPressed)}->{Shown(handAfter)}");
+        if (!string.Equals(bagPressed, bagAfter, StringComparison.Ordinal))
+            evidence.Add($"release: bag {bagPressed}->{bagAfter}");
 
         string via = ReferenceEquals(menu, active) ? "" : $" (via {active.GetType().Name})";
         string proof = evidence.Count > 0
             ? $" [{string.Join(", ", evidence)}]"
-            : " [the whole click changed nothing - not money, not the cursor]";
+            : " [the whole click changed nothing - not money, not the bag, not either hand]";
 
         return (true, $"clicked '{name}' at ({cx},{cy}) in {menu.GetType().Name}{via}{proof}");
     }
@@ -2054,6 +2078,50 @@ public static class ActionProcessor
         {
             Item? held = Game1.player?.CursorSlotItem;
             return held == null ? "empty" : $"{held.DisplayName} x{held.Stack}";
+        }
+        catch { return "?"; }
+    }
+
+
+    /// <summary>The item the MENU is holding, for the click witness. Empty string when it holds nothing.</summary>
+    private static string MenuHand(IClickableMenu? menu)
+    {
+        try { return UiStateBuilder.DescribeHeld(menu); }
+        catch { return ""; }
+    }
+
+
+    private static string Shown(string hand) => string.IsNullOrEmpty(hand) ? "empty" : hand;
+
+
+    /// <summary>
+    /// How full the bag is, for the click witness.
+    ///
+    /// Placing a purchase changes the bag and NOTHING else - not money, not the cursor, not the screen.
+    /// A witness that watched only money and the cursor therefore reported the click that finally
+    /// worked as "the whole click changed nothing", and the model believed it and kept hunting for the
+    /// click that would put the seeds down. Counting slots and stacks is enough to see it: a purchase
+    /// that lands moves both, and a click that dies moves neither.
+    /// </summary>
+    private static string BagSignature()
+    {
+        try
+        {
+            Farmer? farmer = Game1.player;
+            if (farmer == null)
+                return "? (no player)";
+
+            int used = 0;
+            int stacks = 0;
+            foreach (Item? item in farmer.Items)
+            {
+                if (item == null)
+                    continue;
+                used++;
+                stacks += item.Stack;
+            }
+
+            return $"{used}/{farmer.Items.Count} slots, {stacks} items";
         }
         catch { return "?"; }
     }

@@ -137,3 +137,19 @@
 - upperRightCloseButton 今天全部超时无变化，关不掉 ShopMenu；菜单卡住时别再连点同一按钮，立刻换动作类型（如 downArrow / 离开店内）。
 - Farm 新锄地点用 (61,18) 半径 2（5 done, 0 放弃）；(60,21)/(64,21) 有 (62,23) 的树挡路会放弃，别选它们。
 - 已经在 SeedShop 内部时不要反复 enter SeedShop，只会回 'entered via the door at (43,56)' 空转。
+
+## 2026-10-16
+- 买种子流程：go_to (4,19) → interact_at (4,17)/(4,18) 打开 ShopMenu → 点 forSaleButtons.0 (1060,235) 买够数量 → 立刻一次 upperRightCloseButton 再 exit_building，绝不要连点 4 次以上。
+- 别在 ShopMenu 里乱点 inventory.* 与数字按钮（'4' '10' '12' 等今天全是 WATCHER_TIMEOUT 空转），只有 forSaleButtons.0 和 upperRightCloseButton 有实际效果。
+- press_key 'escape' 关不掉 ShopMenu（今天 3 次全 timeout），不要浪费回合。
+- Farm 锄地换新点用 (61,18)：先 clear_area 半径 3（11 格）再 till_area 半径 2（11 格）；(67,23) 已清空，(77,18) 半径 2 只有 2 done 2 given up 不划算。
+
+## 2026-10-16
+- ShopMenu 里绝不要碰 inventory.* 前缀名，除 inventory.0-3 外全报 NO_SUCH_BUTTON；需要点格子用纯数字名 '4'-'24'，但今天这些数字点击也全是 WATCHER_TIMEOUT，实际上别点。
+- 买种子一招到底：interact_at (4,18) 开菜单 → 连点 forSaleButtons.0 到第 4 次（守门器上限）→ 立刻 exit_building，一次买 4 个别贪。
+- 看到 rc=NOT_FREE『dialogue is open』时先发 press_key 'escape'（今天有效），不要连发 dialogue_advance（4 次就被拦）。
+- 在 Town (43,57) 用 interact_at (43,56) 能直接重开 SeedShop 门，比 enter SeedShop 少一步且不会被重复守门器拦。
+- Farm (61,18) 是可每天复用的锄地/清地点，出了 FarmHouse 先 scan 再直奔 (61,18)，不要浪费回合在 (77,18)/(67,23)。
+
+## 2026-10-16
+- [处方] 给 refill 加了前置条件：{'fact': 'held.name', 'op': '==', 'value': '喷壶'}，不足时先 select_slot。原因：refill 从来不是孤立的动作：它要求浇水壶正拿在手上、且农夫面向/紧邻一格水面，而每次调用时这两个前置条件一个都没满足，所以桥只能如实回报失败。

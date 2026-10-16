@@ -138,6 +138,13 @@ HANDS_OFF_MENUS = (
     "MuseumMenu", "CarpenterMenu", "AnimalQueryMenu", "PurchaseAnimalsMenu", "ForgeMenu",
 )
 
+# Actions whose whole job happens INSIDE a menu. While one of these is being watched the menu being
+# open is the point, not an obstacle, and there is nothing to wait for: the click has already
+# happened, and whether it worked is a question for the witness (money / bag / either hand) - not for
+# the farmer's feet. Watching them the old way spun here until the settle timeout and then announced
+# "timeout - the world did not move" about a click that had just put four parsnip seeds in the bag.
+MENU_ACTIONS = {"menu_click", "dialogue_choose", "dialogue_advance"}
+
 
 class Watcher:
     """Watches one running action and takes the remedy for anything going wrong."""
@@ -245,6 +252,12 @@ class Watcher:
                 # in progress. Leave it alone and keep waiting; the agent will click or close it
                 # when it is done. Only a menu nobody asked for (a stray Escape) is a fault.
                 if reason.startswith("menu open") and any(n in reason for n in HANDS_OFF_MENUS):
+                    if action in MENU_ACTIONS:
+                        # The action IS the menu interaction, so the menu is not holding it up: it is
+                        # where it happened. Nothing to wait for - hand the verdict to the witness.
+                        result.stopped = "done"
+                        break
+
                     result.state = state
                     time.sleep(POLL_S)
                     continue

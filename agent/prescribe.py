@@ -79,16 +79,23 @@ def _compare(fact, op: str, want) -> bool | None:
 
 # Is the hand gate allowed to BLOCK anything?
 #
-# It was on for one afternoon and turned a bad situation into a deadlock. The gate blocks every action
-# while a hand is full, and the thing that satisfies it - clicking a free bag slot - does nothing in the
-# real game: measured, `menu_click 12` on an empty slot, and the held stack did not move off the menu's
-# hand. A gate whose remedy does not exist is worse than the bug it was written for, because the original
-# bug at least let the day continue.
+# It was on for one afternoon and turned a bad situation into a deadlock, because the thing that
+# satisfies it - clicking a free bag slot - did nothing in the real game: measured, `menu_click 12` on
+# an empty slot, and the held stack did not move off the menu's hand. A gate whose remedy does not
+# exist is worse than the bug it was written for, because the original bug at least let the day
+# continue. The comment here said it comes back when putting an item down has been PROVEN, not written.
 #
-# Detection stays ON: the witness says the hand is not empty, the doctor can see both hands, and every
-# journal line carries `[hand: ...]`. Blocking comes back when putting an item down has been PROVEN -
-# not when it has been written.
-HAND_GATE = False
+# It has now been proven, and the reason the remedy failed is also known: menu_click was routed to the
+# menu that OWNS a bag slot (a nested InventoryMenu whose receiveLeftClick is an EMPTY method) instead
+# of to the menu the game itself would hand the click to. With the routing fixed, the same click works.
+# Measured in the live game, twice:
+#
+#     click forSaleButtons.0   money 500 -> 420, menu hand '防风草种子' (x1..x4)
+#     menu_click '10'          menu hand -> empty, bag +4 防风草种子, and the shop then closes
+#
+# Detection was never off: the witness says the hand is not empty, the doctor can see both hands, and
+# every journal line carries `[hand: ...]`.
+HAND_GATE = True
 
 
 class Prescriber:
@@ -117,7 +124,7 @@ class Prescriber:
         # (ui.held_item is in its payload) and asked for something else anyway, which is exactly why
         # this is enforced by the harness rather than requested in a prompt - the same reason a
         # watering can gets filled before watering.
-        if HAND_GATE and self._hand_full(state) and not self._is_put_down(action, args):
+        if HAND_GATE and self._hand_full(state) and not self._is_put_down(action, args, state):
             return True
 
         rule = self.preconditions.get(action)
@@ -132,7 +139,7 @@ class Prescriber:
 
     def satisfy(self, action: str, state: dict, args: dict | None = None) -> str | None:
         """Run whatever satisfies the precondition first. Returns what it ran."""
-        if HAND_GATE and self._hand_full(state) and not self._is_put_down(action, args):
+        if HAND_GATE and self._hand_full(state) and not self._is_put_down(action, args, state):
             return self._put_down(state)
 
         rule = self.preconditions.get(action)
@@ -169,23 +176,37 @@ class Prescriber:
         cursor = str(((state.get("player") or {}).get("cursor_item") or {}).get("name") or "").strip()
         return menu_hand or cursor
 
-    def _is_put_down(self, action: str, args: dict | None) -> bool:
+    def _is_put_down(self, action: str, args: dict | None, state: dict) -> bool:
         """Whether this action is itself a way of putting the carried stack down."""
         args = args or {}
 
         if action == "menu_click":
-            # A shop's bag slots are named `inventory...` in ui.buttons; clicking one places the stack.
-            return str(args.get("name") or "").startswith("inventory")
+            # Only a real bag slot. The shelf rows are addressed the same way as the slots, so this
+            # asks the payload which names are goods for sale rather than guessing from the shape.
+            return str(args.get("name") or "") in self._bag_slots(state)
 
         if action == "press_key":
             return str(args.get("key") or "").lower() == "escape"
 
         return action in ("noop", "stop")
 
+    def _bag_slots(self, state: dict) -> list[str]:
+        """The bag slot names the menu reports, minus the shelf rows."""
+        shelf = {str(row.get("slot") or "") for row in ((state.get("ui") or {}).get("shop") or [])}
+
+        bag = []
+        for button in ((state.get("ui") or {}).get("buttons") or []):
+            name = str(button.get("name") or "")
+            if not name or name in shelf:
+                continue
+
+            if name.startswith("inventory") or name.split(".")[-1].isdigit():
+                bag.append(name)
+
+        return bag
+
     def _put_down(self, state: dict) -> str | None:
         """Put the carried stack down. Returns what it ran, or None when there is no way to."""
-        ui = state.get("ui") or {}
-
         occupied = set()
         for slot in (state.get("inventory") or []):
             try:
@@ -197,21 +218,18 @@ class Prescriber:
             digits = "".join(c for c in name.split(".")[-1] if c.isdigit())
             return int(digits) if digits else -1
 
-        # EVERY bag slot, not only the ones whose name starts with "inventory".
+        # EVERY bag slot, not only the ones whose name starts with "inventory", and never a shelf row.
         #
         # A shop's panel is 36 slots. The few that collide with a shelf row get prefixed
         # ("inventory.0"); the other thirty-two keep their plain number ("12"). Filtering on the prefix
         # therefore found four slots - the tool row, which is always full - concluded "no free slot",
         # and clicked the axe. That is the difference between putting the hand down and not being able
         # to act at all, and it is why this gate looked like a trap instead of a repair.
-        bag = []
-        for button in (ui.get("buttons") or []):
-            name = str(button.get("name") or "")
-            if not name:
-                continue
-            tail = name.split(".")[-1]
-            if name.startswith("inventory") or tail.isdigit():
-                bag.append(name)
+        #
+        # The other direction matters too: a shelf row's name ends in a digit as well, so "looks like a
+        # number" would send a PURCHASE down the put-down path. The shelf is taken from `ui.shop`, which
+        # is the same list the prompt offers the model as goods.
+        bag = self._bag_slots(state)
 
         if not bag:
             # Either the hand is the player's cursor (not the menu's), or the panel is not addressable.

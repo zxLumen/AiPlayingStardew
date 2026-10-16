@@ -51,6 +51,33 @@ public static class UiStateBuilder
     }
 
 
+    /// <summary>
+    /// The menu the GAME ITSELF would hand a click to.
+    ///
+    /// Deliberately not "the menu that owns the thing being clicked", and that distinction cost a
+    /// field of parsnips. SDV's own dispatch (<c>Game1.updateActiveMenu</c>) starts at
+    /// <see cref="Game1.activeClickableMenu"/>, walks <c>GetChildMenu()</c> to the deepest child, and
+    /// gives THAT one the hover, the update and the click.
+    ///
+    /// A shop owns its inventory panel as a nested <c>InventoryMenu</c> - but that nested menu's
+    /// <c>receiveLeftClick</c> is an empty method, and the code that puts a purchase down lives in the
+    /// SHOP's own <c>receiveLeftClick</c> (<c>heldItem = inventory.leftClick(x, y, heldItem)</c>).
+    /// Sending the click to the owner instead of to the game's target made it vanish with no error:
+    /// received, logged, and nothing at all happened.
+    ///
+    /// This mirrors the game's loop exactly. If the game's dispatch ever changes, this is the one
+    /// place that has to change with it.
+    /// </summary>
+    public static IClickableMenu? ClickRouter()
+    {
+        IClickableMenu? menu = Game1.activeClickableMenu;
+        while (menu?.GetChildMenu() is IClickableMenu child)
+            menu = child;
+
+        return menu;
+    }
+
+
     public static UiInfo Build(IMonitor monitor)
     {
         var ui = new UiInfo();
@@ -683,8 +710,11 @@ public static class UiStateBuilder
     /// it does, Stardew's <c>readyToClose()</c> returns false - and both the close button and the
     /// escape key go through that - so the menu "refuses to close for no reason" and swallows every
     /// later click too. A player sees the item in their hand; the payload said nothing about it.
+    ///
+    /// Also read by the click witness, for the same reason: a click that picks something up and a
+    /// click that puts it down look identical if you only watch money and the cursor.
     /// </summary>
-    private static string DescribeHeld(IClickableMenu? menu)
+    internal static string DescribeHeld(IClickableMenu? menu)
     {
         if (menu == null)
             return "";
