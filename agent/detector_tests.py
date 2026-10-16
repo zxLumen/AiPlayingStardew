@@ -184,6 +184,57 @@ def runtime_cases() -> list[tuple[str, bool]]:
     cases.append(("a patch nobody touched is not a success",
                   W.judge("till_area", {}, hoed_before, hoed_before)[0] is False))
 
+    # The hand gate's satisfier, fed the shop that defeated it: 36 components in three rows, of which
+    # the shop draws only the first. It picked the first "free" name, believed its own report, and
+    # clicked slot 12 three times in one visit while the seeds stayed on the menu's hand - slot 11, one
+    # row up, was the one that worked.
+    import prescribe as P
+
+    _silent = lambda _message: None
+
+    class _Shop:
+        """A shop where only some of the listed bag slots actually take the item."""
+
+        def __init__(self, works_on: set[str]) -> None:
+            self.works_on = works_on
+            self.hand = "防风草种子 x4"
+            self.tried: list[str] = []
+
+        def action(self, action: str, **kw) -> dict:
+            self.tried.append(str(kw.get("name") or action))
+            if kw.get("name") in self.works_on:
+                self.hand = ""
+            return {"ok": True, "detail": "clicked"}
+
+        def state(self) -> dict:
+            return {"ui": {"held_item": self.hand}}
+
+    shop = {
+        "ui": {
+            "menu_name": "ShopMenu",
+            "held_item": "防风草种子 x4",
+            "shop": [{"slot": "forSaleButtons.0"}],
+            "buttons": (
+                [{"name": f"inventory.{i}", "visible": True} for i in range(4)]
+                + [{"name": "11", "visible": True}]
+                + [{"name": "12", "visible": False}]
+            ),
+        },
+        "inventory": [{"slot": i} for i in range(11)],     # 0..10 full, so 11 and 12 are free
+    }
+
+    shop_draws_only_11 = _Shop({"12"})                     # 11 is tried first and does nothing
+    ran = P.Prescriber(shop_draws_only_11, None, None, None, log=_silent)._put_down(shop)
+    cases.append(("a bag slot that does nothing is not believed - it tries the next one",
+                  ran == "menu_click 12" and shop_draws_only_11.tried == ["11", "12"]))
+
+    cases.append(("and when no slot takes it, the satisfier says so instead of pretending",
+                  P.Prescriber(_Shop(set()), None, None, None, log=_silent)._put_down(shop) is None))
+
+    cases.append(("a shelf row is a purchase, never a put-down",
+                  P.Prescriber(None, None, None, None)
+                  ._is_put_down("menu_click", {"name": "forSaleButtons.0"}, shop) is False))
+
     return cases
 
 

@@ -10,15 +10,15 @@
     },
     "area|refill": {
       "ok": 1,
-      "fail": 5
+      "fail": 6
     },
     "area|till_area": {
       "ok": 1,
       "fail": 44
     },
     "area|water_all": {
-      "ok": 4,
-      "fail": 2
+      "ok": 5,
+      "fail": 3
     },
     "thirsty_crop|work": {
       "ok": 1,
@@ -27,6 +27,10 @@
     "tree|work": {
       "ok": 1,
       "fail": 0
+    },
+    "weed|go_to": {
+      "ok": 0,
+      "fail": 1
     }
   }
 }
