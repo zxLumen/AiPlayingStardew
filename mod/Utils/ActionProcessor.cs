@@ -2129,17 +2129,53 @@ public static class ActionProcessor
         string handBefore = MenuHand(menu);
         string bagBefore = BagSignature();
 
-        // A real click is hover -> press -> release. This used to press ONLY, and that is not a
-        // detail: a shop row got picked up onto the cursor and never put down, so money was spent,
-        // the seeds never reached the bag, and the shop - still holding an item - refused to close,
-        // which blocked exit_building and stopped the day from ever ending. One missing release had
-        // four symptoms, and nothing in the project could see any of them.
+        // THE REAL CLICK FIRST. Move the physical cursor over the button and click it, and let the game
+        // do everything that follows - which menu receives it, the hover, the release, the item
+        // following the cursor, and where it goes. Walking a menu's own receiveLeftClick() by hand is
+        // what produced a week of shop bugs; a player does not do it and neither should this.
+        bool real = NativeInput.ClickAt(cx, cy);
+
+        int moneyAfter = Game1.player?.Money ?? 0;
+        string cursorAfter = CursorName();
+        string handAfter = MenuHand(menu);
+        string bagAfter = BagSignature();
+
+        bool moved = moneyAfter != moneyBefore
+                     || !string.Equals(cursorBefore, cursorAfter, StringComparison.Ordinal)
+                     || !string.Equals(handBefore, handAfter, StringComparison.Ordinal)
+                     || !string.Equals(bagBefore, bagAfter, StringComparison.Ordinal);
+
+        var evidence = new List<string>();
+        if (moneyAfter != moneyBefore)
+            evidence.Add($"money {moneyBefore}->{moneyAfter}");
+        if (!string.Equals(cursorBefore, cursorAfter, StringComparison.Ordinal))
+            evidence.Add($"cursor {cursorBefore}->{cursorAfter}");
+        if (!string.Equals(handBefore, handAfter, StringComparison.Ordinal))
+            evidence.Add($"menu hand {Shown(handBefore)}->{Shown(handAfter)}");
+        if (!string.Equals(bagBefore, bagAfter, StringComparison.Ordinal))
+            evidence.Add($"bag {bagBefore}->{bagAfter}");
+
+        if (real && moved)
+        {
+            string viaReal = moneyAfter != moneyBefore
+                             || !string.Equals(cursorBefore, cursorAfter, StringComparison.Ordinal)
+                             || !string.Equals(bagBefore, bagAfter, StringComparison.Ordinal)
+                ? ""
+                : " (the hand changed but no money did - read it before trusting this)";
+
+            return (true, $"clicked '{name}' at ({cx},{cy}) with the mouse in {menu.GetType().Name} "
+                          + $"[{string.Join(", ", evidence)}]{viaReal}");
+        }
+
+        // Either the machine could not move the cursor, or the game did nothing with the click. The old
+        // path is kept as a fallback - it is a worse instrument, but it is not nothing.
+        string why = real ? "the real click changed nothing" : "the cursor could not be moved";
+
+        // A real click is hover -> press -> release, and the press half is the old shape too: a shop row
+        // that is picked up and never put down was one missing release, with four symptoms.
         try { router.performHoverAction(cx, cy); } catch { /* not every menu implements it */ }
         router.receiveLeftClick(cx, cy, true);
 
-        // Sample BETWEEN press and release. Two very different failures were being conflated: a
-        // click that lands on nothing, and a click that picks something up and then puts it straight
-        // back down. Only the middle of the gesture tells them apart.
         int moneyPressed = Game1.player?.Money ?? 0;
         string cursorPressed = CursorName();
         string handPressed = MenuHand(menu);
@@ -2147,42 +2183,35 @@ public static class ActionProcessor
 
         try { router.releaseLeftClick(cx, cy); } catch { }
 
-        int moneyAfter = Game1.player?.Money ?? 0;
-        string cursorAfter = CursorName();
-        string handAfter = MenuHand(menu);
-        string bagAfter = BagSignature();
+        int moneyFinal = Game1.player?.Money ?? 0;
+        string cursorFinal = CursorName();
+        string handFinal = MenuHand(menu);
+        string bagFinal = BagSignature();
 
-        // The witness. "The call did not throw" is not evidence that anything happened - this is.
-        //
-        // Money and the cursor are not enough. Putting a purchase down into the bag changes the BAG and
-        // nothing else, so this witness used to report the one click that finally worked as "the whole
-        // click changed nothing" - and the model read that sentence and went on trying other things.
-        // A witness that misses the change it is looking for is worse than no witness: it is a witness
-        // that lies in the confident direction.
-        var evidence = new List<string>();
-        if (moneyPressed != moneyBefore)
-            evidence.Add($"press: money {moneyBefore}->{moneyPressed}");
-        if (!string.Equals(cursorBefore, cursorPressed, StringComparison.Ordinal))
-            evidence.Add($"press: cursor {cursorBefore}->{cursorPressed}");
-        if (!string.Equals(handBefore, handPressed, StringComparison.Ordinal))
-            evidence.Add($"press: menu hand {Shown(handBefore)}->{Shown(handPressed)}");
-        if (!string.Equals(bagBefore, bagPressed, StringComparison.Ordinal))
-            evidence.Add($"press: bag {bagBefore}->{bagPressed}");
-        if (moneyAfter != moneyPressed)
-            evidence.Add($"release: money {moneyPressed}->{moneyAfter}");
-        if (!string.Equals(cursorPressed, cursorAfter, StringComparison.Ordinal))
-            evidence.Add($"release: cursor {cursorPressed}->{cursorAfter}");
-        if (!string.Equals(handPressed, handAfter, StringComparison.Ordinal))
-            evidence.Add($"release: menu hand {Shown(handPressed)}->{Shown(handAfter)}");
-        if (!string.Equals(bagPressed, bagAfter, StringComparison.Ordinal))
-            evidence.Add($"release: bag {bagPressed}->{bagAfter}");
+        if (moneyPressed != moneyAfter)
+            evidence.Add($"press: money {moneyAfter}->{moneyPressed}");
+        if (!string.Equals(cursorAfter, cursorPressed, StringComparison.Ordinal))
+            evidence.Add($"press: cursor {cursorAfter}->{cursorPressed}");
+        if (!string.Equals(handAfter, handPressed, StringComparison.Ordinal))
+            evidence.Add($"press: menu hand {Shown(handAfter)}->{Shown(handPressed)}");
+        if (!string.Equals(bagAfter, bagPressed, StringComparison.Ordinal))
+            evidence.Add($"press: bag {bagAfter}->{bagPressed}");
+        if (moneyFinal != moneyPressed)
+            evidence.Add($"release: money {moneyPressed}->{moneyFinal}");
+        if (!string.Equals(cursorPressed, cursorFinal, StringComparison.Ordinal))
+            evidence.Add($"release: cursor {cursorPressed}->{cursorFinal}");
+        if (!string.Equals(handPressed, handFinal, StringComparison.Ordinal))
+            evidence.Add($"release: menu hand {Shown(handPressed)}->{Shown(handFinal)}");
+        if (!string.Equals(bagPressed, bagFinal, StringComparison.Ordinal))
+            evidence.Add($"release: bag {bagPressed}->{bagFinal}");
 
         string via = ReferenceEquals(menu, active) ? "" : $" (via {active.GetType().Name})";
         string proof = evidence.Count > 0
             ? $" [{string.Join(", ", evidence)}]"
             : " [the whole click changed nothing - not money, not the bag, not either hand]";
 
-        return (true, $"clicked '{name}' at ({cx},{cy}) in {menu.GetType().Name}{via}{proof}");
+        return (true, $"clicked '{name}' at ({cx},{cy}) in {menu.GetType().Name}{via}"
+                      + $" - {why}, so it was done the old way{proof}");
     }
 
 
@@ -3526,5 +3555,84 @@ public static class NativeInput
         keybd_event(vk, 0, 0, UIntPtr.Zero);
         Thread.Sleep(30);
         keybd_event(vk, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+    }
+
+
+    // -- the mouse ---------------------------------------------------------
+    //
+    // Everything that went wrong with the shop came from doing this by hand: calling a menu's own
+    // receiveLeftClick(x, y) meant knowing WHICH menu, supplying the hover and the release around it,
+    // and understanding what it does with an item in its hand. Every fix was a reverse-engineered
+    // guess, and each one produced the next bug - the wrong menu, an empty receiveLeftClick, a menu
+    // that would not close.
+    //
+    // A player does not do any of that. A player moves the mouse over the thing and clicks, and the
+    // game does the rest: it dispatches to the right menu, hovers, presses, releases, draws the item
+    // following the cursor, and puts it down where it belongs. So this does the same thing.
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetCursorPos(int x, int y);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ClientToScreen(IntPtr hWnd, ref POINT point);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
+
+    private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+    private const uint MOUSEEVENTF_LEFTUP = 0x0004;
+
+    /// <summary>The screen position of the game window's own (0,0), or null when it cannot be read.</summary>
+    private static POINT? ClientOrigin()
+    {
+        IntPtr handle = GameWindowHandle();
+        if (handle == IntPtr.Zero)
+            return null;
+
+        var origin = new POINT();
+        try
+        {
+            return ClientToScreen(handle, ref origin) ? origin : null;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>
+    /// Moves the real cursor over a point in the game's own coordinates and clicks it.
+    ///
+    /// The coordinates are the same ones the menus use for their components (bounds), which are window
+    /// client pixels - so this is where a player's mouse would be. The window is brought forward for
+    /// the instant of the click and handed back afterwards, exactly as keyboard input already does.
+    /// </summary>
+    public static bool ClickAt(int clientX, int clientY)
+    {
+        POINT? origin = ClientOrigin();
+        if (origin == null)
+            return false;
+
+        if (!IsGameWindowActive())
+            FocusGameWindow();
+
+        try
+        {
+            SetCursorPos(origin.Value.X + clientX, origin.Value.Y + clientY);
+
+            // Give the game a frame to see the cursor before the press: the hover matters, because a
+            // menu highlights by position and some of them do their work in performHoverAction.
+            Thread.Sleep(60);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(50);
+            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(30);
+            return true;
+        }
+        catch { return false; }
     }
 }

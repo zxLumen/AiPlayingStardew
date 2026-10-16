@@ -6,22 +6,22 @@
     },
     "area|harvest_all": {
       "ok": 0,
-      "fail": 4
+      "fail": 6
     },
     "area|plant_all": {
       "ok": 8,
       "fail": 1
     },
     "area|refill": {
-      "ok": 6,
+      "ok": 7,
       "fail": 7
     },
     "area|till_area": {
-      "ok": 2,
+      "ok": 3,
       "fail": 46
     },
     "area|water_all": {
-      "ok": 17,
+      "ok": 18,
       "fail": 14
     },
     "big_debris|go_to": {
