@@ -1,7 +1,8 @@
 """Prove that watering can actually water.
 
-Loads the agent's own save, reports what the can holds, refills, waters, and prints what the world
-did - the numbers, not the action's own report.
+Loads the agent's own save through the pipeline, then refills and waters with the watcher in the
+loop (so a greeting dialogue is advanced instead of killing the chore), and reports what the WORLD
+did - the can's water level and the count of thirsty crops.
 
     python tools/test_watering.py
 """
@@ -14,110 +15,99 @@ import time
 from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT))
+sys.path.insert(0, str(PROJECT / "agent"))
 
-from agent import game_process  # noqa: E402
-from agent.agent import load_ai_save, match_slot  # noqa: E402
-from agent.state_client import StateClient  # noqa: E402
+import witness  # noqa: E402
+from defects import DefectLedger  # noqa: E402
+from runner import Pipeline  # noqa: E402
+from state_client import StateClient  # noqa: E402
+from watcher import Watcher  # noqa: E402
 
 
 def log(m: str) -> None:
     print(m, flush=True)
 
 
-def load_save(client: StateClient, steps: int = 120) -> bool:
-    ai_save = load_ai_save()
-    used: set[str] = set()
-
-    for _ in range(steps):
-        state = client.state()
-        if (state.get("game") or {}).get("has_save"):
-            return True
-
-        menu = (state.get("ui") or {}).get("menu_name") or ""
-
-        if menu == "LoadGameMenu":
-            slot = match_slot((state.get("ui") or {}).get("save_slots") or [], ai_save)
-            if slot is None:
-                return False
-            if "load" not in used:
-                used.add("load")
-                client.action("menu_click", name=str(slot["index"]))
-            time.sleep(2)
-            continue
-
-        if menu == "TitleMenu":
-            if "btn" not in used:
-                used.add("btn")
-                client.action("menu_click", name="Load")
-            time.sleep(2)
-            continue
-
-        time.sleep(1.5)
-
-    return False
+def can_charges(state: dict):
+    for slot in state.get("inventory") or []:
+        if slot.get("name") == "喷壶":
+            return slot.get("charges")
+    item = (state.get("player") or {}).get("current_item") or {}
+    return item.get("charges")
 
 
 def work(state: dict) -> dict:
-    return ((state.get("location") or {}).get("work") or {})
-
-
-def can(state: dict) -> dict:
-    item = (state.get("player") or {}).get("current_item") or {}
-    return {"name": item.get("name"), "charges": item.get("charges"), "max": item.get("charges_max")}
+    return (state.get("location") or {}).get("work") or {}
 
 
 def main() -> int:
-    if game_process.ensure_running():
-        log("[game] launched")
+    ledger = DefectLedger(PROJECT, log=log)
 
     with StateClient(timeout_s=60.0) as client:
-        if not client.wait_until_up():
-            log("[api ] never came up")
-            return 1
-        if not client.wait_until_loaded(timeout_s=25) and not load_save(client):
-            log("[api ] no save in game")
+        from agent import load_ai_save  # noqa: E402  (imported late: agent pulls in the world)
+
+        pipeline = Pipeline(client, ledger, log=log)
+
+        try:
+            pipeline.ensure(load_ai_save())
+        except Exception as exc:
+            log(f"[pipeline] {exc}")
+            ledger.save()
             return 1
 
-        time.sleep(3)
+        watcher = Watcher(client, ledger=ledger, log=log)
         state = client.state()
 
-        # The save may open indoors; the crops are outside.
-        loc = (state.get("player") or {}).get("current_location")
-        if not work(state).get("thirsty_crops") and "FarmHouse" in str(loc):
-            log(f"[state] indoors at {loc} - stepping outside")
-            r = client.action("exit_building")
-            log(f"    exit_building: {r.get('ok')} {r.get('detail')}")
+        if "FarmHouse" in str((state.get("player") or {}).get("current_location")):
+            log(f"[state] indoors - stepping outside")
+            client.action("exit_building")
             time.sleep(4)
-            for _ in range(3):
-                state = client.state()
-                if (state.get("game") or {}).get("is_player_free") and work(state).get("thirsty_crops"):
-                    break
-                time.sleep(2)
+            state = client.state()
 
-        log(f"[state] {json.dumps(can(state), ensure_ascii=False)} work={json.dumps(work(state), ensure_ascii=False)}")
+        log(f"[state] location={(state.get('player') or {}).get('current_location')} "
+            f"can={can_charges(state)} thirsty={work(state).get('thirsty_crops')}")
 
         if not work(state).get("thirsty_crops"):
-            log("[state] nothing thirsty here - the crops are somewhere else; rerun from the field")
+            log("[state] nothing thirsty here - run this on a farm day with crops")
             return 1
 
-        log("\n--- refill ---")
-        r = client.action("refill")
-        log(f"    {r.get('ok')} {r.get('detail')}")
-        after = client.wait_until_chore_done(timeout_s=120)
-        log(f"    chore_last: {after.get('chore_last')}")
-        log(f"    can now: {json.dumps(can(after), ensure_ascii=False)}")
+        # --- refill, watched ---
+        log("\n--- refill (watched) ---")
+        started = time.monotonic()
+        result = client.action("refill")
+        log(f"    start : {result.get('ok')} {result.get('detail')}")
+        watch = watcher.watch("refill", {}, state, budget_s=90.0, timeout_s=90.0,
+                              progress=lambda s: witness.progress_value("refill", s))
+        after = watch.state
+        log(f"    watch : stopped={watch.stopped} remedies={watch.remedies} {watch.seconds:.1f}s")
+        log(f"    chore : {after.get('chore_last')}")
+        log(f"    can   : {can_charges(state)} -> {can_charges(after)}")
 
-        log("\n--- water_all ---")
-        before_thirsty = work(after).get("thirsty_crops")
-        r = client.action("water_all")
-        log(f"    {r.get('ok')} {r.get('detail')}")
-        after2 = client.wait_until_chore_done(timeout_s=300)
-        log(f"    chore_last: {after2.get('chore_last')}")
-        log(f"    thirsty: {before_thirsty} -> {work(after2).get('thirsty_crops')}")
-        log(f"    can now: {json.dumps(can(after2), ensure_ascii=False)}")
+        if not can_charges(after):
+            log("\n!!! the can is still empty - refill did not work")
+            ledger.save()
+            return 1
 
-    return 0
+        # --- water, watched ---
+        log("\n--- water_all (watched) ---")
+        before = work(after).get("thirsty_crops")
+        result = client.action("water_all")
+        log(f"    start : {result.get('ok')} {result.get('detail')}")
+        watch = watcher.watch("water_all", {}, after, budget_s=120.0, timeout_s=120.0,
+                              progress=lambda s: witness.progress_value("water_all", s))
+        final = watch.state
+        after_count = work(final).get("thirsty_crops")
+
+        log(f"    watch : stopped={watch.stopped} remedies={watch.remedies} {watch.seconds:.1f}s")
+        log(f"    chore : {final.get('chore_last')}")
+        log(f"    thirsty: {before} -> {after_count}")
+        log(f"    can   : {can_charges(final)}")
+
+        verdict = "PASS" if (before is not None and after_count is not None and after_count < before) else "FAIL"
+        log(f"\n[{verdict}] watering changed the world: {before} -> {after_count}")
+
+    ledger.save()
+    return 0 if verdict == "PASS" else 1
 
 
 if __name__ == "__main__":

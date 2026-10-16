@@ -225,3 +225,120 @@
 - 去镇子流程：exit_building 落在 Farm (64,15) → go_to (78,15)（约 19 步）→ enter 'BusStop' → 在 BusStop 内再 enter 'Town'。
 - 在 BusStop 内换地图要用该地图自己的出口（Town/Desert/Farm/Backwoods），不要重复 enter 'BusStop'。
 - 到 Town 后可直接发镇内坐标 go_to（如 (30,58) 35 步、(50,55) 24 步），无需再出门动作。
+
+## 2026-10-16
+- 浇水日到 (65,18) 先直接 select_slot 2 + water_all，别再先发 harvest_all（今天它返回 nothing to do）。
+- water_all 队列被某个 thirsty_crop 卡住会整体取消，改单独 go_to 到 (68,18) 附近手动补浇那一格。
+- 夏季浇水量级降到 31 格且可能中途取消，water_all 发完要看返回的 done/given up 计数确认是否真浇完。
+- go_to (65,18) 报 NOT_FREE 时的“补 noop 再重发”只在报错时用；今天首次即 ok，不必预加重试。
+
+## 2026-10-16
+- water_all 连续两次 cancelled 就别再重发，直接 go_to 到卡住的 thirsty_crop 旁边（今天 (66,24)，可站 (67,24)/(66,23) 一带）用喷壶 use_tool_at 手动补浇。
+- 夏季 water_all 会中途取消，每次发完必须读返回的 done/given up 计数，不能默认浇完。
+- 出门 go_to (65,18) 只有报 NOT_FREE 时才补 noop 重发；今天首次即 ok，不用预加重试。
+- 一天浇水被多次取消时，优先保证把 (66,24) 这类顽固 thirsty_crop 手动浇掉，再收工，别把清障/耕地挤进同一天。
+
+## 2026-10-16
+- 夏季 water_all 被个别 thirsty_crop 卡住取消且 0 done 时，直接 go_to 到它旁边一格（如 (66,24) 旁站 (67,24)）用喷壶 use_tool_at 手动补浇，别硬重发。
+- 补浇一个顽固 thirsty_crop 后重发 water_all 往往会在下一个卡住（今天 (68,18)）；连续两次 cancelled 就放弃 water_all，改逐个 go_to + use_tool_at 手动浇。
+- 卡在 (68,18) 时去相邻可行走的 (67,18)（从 (67,24) 约 7 步）站定再 use_tool_at (68,18)。
+- 每次 water_all 发完必读返回的 done/given up 计数，今天两次都是 0 done，等于没浇，不能当成功。
+
+## 2026-10-16
+- water_all 返回 '0 done ... cancelled (thirsty_crop at (x,y) would not budge)' 时不要重发，先 go_to 到该格相邻可行走格（如 (67,23) 旁站 (66,23)，2 步可达）用 use_tool_at 手动补浇。
+- 站在 (66,23) 时 use_tool 打的是 (66,24)，要浇正对的 (67,23) 必须显式 use_tool_at (67,23)。
+- 补浇一个卡住的 thirsty_crop 后重发 water_all 往往会卡在下一个（今天 (67,23)→(68,18)），再次 0 done 就放弃 water_all，改逐个 go_to + use_tool_at 手动浇。
+- water_all 只看 done 计数：done=0 就等于没浇，不能因为 rc=ok 就当当天浇完收工。
+
+## 2026-10-16
+- 去镇子用今天验证过的直达流水线：exit_building → go_to (78,15)（19 步）→ enter 'BusStop' → enter 'Town'，全程无 NOT_FREE，不必预加 noop 重试。
+- 目的地是 BusStop 门口时直接 go_to (78,15)，不要先绕去 (65,18)。
+- Town 内可以一次长距离 go_to（今天 (45,58) 50 步成功），不需要分段走。
+
+## 2026-10-16
+- 夏季 water_all 返回 '0 done' 就是没浇：今天卡在 (65,23)，必须读 done/given up 计数并手动补浇该格。
+- 补浇 water_all 卡住格可直接 go_to 卡住格旁（今天 (65,18) 站定用 use_tool_at (65,23) 一次 ok），不必绕远。
+- 出门 go_to (65,18) 只在报 NOT_FREE 时才补 noop 重发；今天（y1-summer-08）首次即 ok。
+- 去镇子流水线 exit_building → go_to (78,15) → enter 'BusStop' → enter 'Town' 今天再次全程成功，步数按实际返回（今天 21 步）为准。
+
+## 2026-10-16
+- 夏季 water_all 今天又是 0 done 卡在 (65,22)：直接 go_to (66,22)（从 (65,18) 仅 2 步）站定 use_tool_at (65,22) 手动补浇，一次 ok。
+- water_all 返回 '0 done ... cancelled' 时不要重发，改逐个 go_to 卡住格旁 + use_tool_at 补浇，done=0 就等于当天没浇。
+- 补浇完顽固 thirsty_crop 后可直接走镇子流水线：go_to (78,15)（今天 20 步）→ enter 'BusStop' → enter 'Town'，全程无 NOT_FREE。
+- 出门 go_to (65,18) 今天首次即 ok（5 步），不用预加 noop 重试；只有返回 NOT_FREE 时才补 noop 再重发。
+
+## 2026-10-16
+- (65,22) 已连续两天（y1-summer-09/10）卡住 water_all 且 0 done，直接在 (65,18) 站定 use_tool_at (65,22) 手动补浇，不要重发 water_all。
+- use_tool_at 一次只打一格：补完 (65,22) 要再显式 use_tool_at (65,23)，两格各自返回 ok 才算当天浇完。
+- 出门 go_to (65,18) 只在返回 NOT_FREE 时才补 noop 重发；今天首次即 ok（5 步），不必预加重试。
+- 补浇完顽固格后直接走镇子流水线：go_to (78,15)（今天 21 步）→ enter 'BusStop' → enter 'Town'，全程无 NOT_FREE。
+
+## 2026-10-16
+- water_all 已连续三天 0 done 卡在 (65,22)，且手动 use_tool_at (65,22) 返回 ok 后再发 water_all 仍卡同一格：当天直接放弃 water_all，改逐个 go_to 旁站 + use_tool_at 手动浇再收工。
+- use_tool_at 返回 ok 只代表挥了一下工具，不代表 thirsty_crop 被解除；判断浇没浇成只看 water_all 的 done 计数。
+- 出门 go_to (65,18) 今天两次都 ok，不必预加 noop；只有返回 NOT_FREE 时才补 noop 再重发。
+- 补浇顽固格可按相邻格一次站定连打：(65,22)、(65,23)、(66,22) 三个 use_tool_at 今天全 ok，比来回 go_to 省步。
+
+## 2026-10-16
+- 进 SeedShop 用 Town 内流水线：go_to (45,58) → go_to (45,57) → enter 'SeedShop'，今天一次成功。
+- 去镇子仍走 exit_building → go_to (78,15)（今天 19 步）→ enter 'BusStop' → enter 'Town'，不必预加 noop 重试。
+- 今天一整天没浇水：出门前若作物还渴，先补一次 water_all 或手动补浇再进城，别把农活全跳掉。
+
+## 2026-10-16
+- 当天不打算浇水的进城流水线：exit_building → go_to (78,15)（今天 19 步）→ enter 'BusStop' → enter 'Town'，今天四步全 ok，不必预加 noop。
+- 进 SeedShop 前别往 (54,56) 走（今天 NO_PATH）；到 (45,58) 后直接 go_to (45,57)（2 步）再 enter 'SeedShop'。
+- 已连续两天（summer-12/13）没浇水就进城：出门前若看到 thirsty_crop，先手动 use_tool_at 补浇再走镇子流水线。
+
+## 2026-10-16
+- (65,22) 又卡 water_all（summer-09/10/11/14 四次）时不要再重发或指望手动挥壶解卡：今天四次 use_tool_at 全 ok 该格依然卡，判断浇没浇成只看 done 计数。
+- 出门 go_to (65,18) 今天首次即 ok（5 步），不必预加 noop，只有返回 NOT_FREE 时才补 noop 重发。
+- water_all 返回 done=0 就当天没浇：已连续多天（summer-12~14）零浇水，确认计数后干脆改用逐个 use_tool_at 补浇再走镇子流水线。
+- 卡格随顺序漂移（今天 (65,22)→(66,22)），所以别盯单格，用 done 计数判断还剩多少没浇。
+
+## 2026-10-16
+- water_all 第一次返回 'refill: 0 done ... blocked - farmer cannot move right now' 时不要当失败，原样重发一次即可真正开始浇，done 计数才是判断依据。
+- 卡格会漂移（今天 (69,24)），别盯着 (65,22)：看 water_all 返回里的 given up 坐标，再 go_to 格旁 use_tool_at 手动补浇。
+- 出门 go_to (65,18) 首次返回 ok 就不用补 noop；只有 NOT_FREE 时才 noop 后重发。
+- 当天 water_all 有 done>0 就算有效浇水，收工后可再走镇子流水线 go_to (78,15) → enter 'BusStop' → enter 'Town'。
+
+## 2026-10-16
+- water_all 的 'of N' 总量今天从 30 左右掉到 8：先核对 done 与总量，总数骤降说明田地可浇作物大幅减少，别再按旧规模预期 30 多格。
+- 卡格继续漂移，今天漂到 (70,27)：判断卡在哪只看 water_all 返回里的 given up 坐标，不要盯旧的 (65,22)。
+- 出门 go_to (65,18) 今天首次即 ok（5 步），不必预加 noop；只有返回 NOT_FREE 时才补 noop 重发。
+- water_all 返回 done=0 就等于当天没浇，补浇完顽固格后直接走 town 流水线 go_to (78,15)（21 步）→ enter 'BusStop' → enter 'Town'。
+
+## 2026-10-16
+- water_all 已连续五次（summer-09/10/11/14/17）0 done 卡在 (65,22)，且当天三次手动 use_tool_at 全 ok 后重发仍卡同格：当天直接放弃 water_all，只看 done/given up 计数判断浇没浇成。
+- 可浇总量继续走低（今天 28），别再按 30+ 预期 water_all 规模，先看返回里的 of N 与 done。
+- 到 (65,18) 后 go_to (65,21)（4 步）即可站定在顽固格旁手动补浇，比反复 go_to (65,18) 重发 water_all 省步。
+- 出门 go_to (65,18) 今天首次即 ok（5 步），不必预加 noop；只有返回 NOT_FREE 时才补 noop 再重发。
+
+## 2026-10-16
+- 出门 go_to (65,18) 今天首次即 ok（5 步），只有返回 NOT_FREE 时才补 noop 重发。
+- water_all 返回 done=0 就等于当天没浇；卡格今天漂到 (66,22)，只按返回里的 given up 坐标判断，不要盯旧的 (65,22)。
+- 补浇前先 go_to 到返回坐标的相邻格再 use_tool_at，别在原地反复重发 water_all。
+- 当天确认没浇成后直接走镇子流水线 go_to (78,15)（21 步）→ enter 'BusStop' → enter 'Town' → go_to (45,58)（50 步），今天四步全 ok。
+
+## 2026-10-16
+- water_all 又返回 done=0 且卡 (65,22)：当天直接放弃 water_all，改到 (65,21) 用 use_tool_at 逐格补浇，别指望重发能过。
+- 可浇总量继续下滑（今天 28），判断浇没浇只看 done 与 of N，不要按 30+ 预期。
+- 出门 go_to (65,18) 今天首次即 ok（5 步），不必预加 noop；只有 NOT_FREE 时才 noop 重发。
+- 确认没浇成后就走镇子流水线 go_to (78,15)（21 步）→ enter 'BusStop' → enter 'Town'，今天四步全 ok。
+
+## 2026-10-16
+- water_all 又返回 done=0 且卡 (65,22)：当天不要重发或指望手动挥壶解卡，确认计数后直接走镇子流水线。
+- 可浇总量今天 28，与近几天一致，判断浇没浇只看 done 与 of N，不要按 30+ 预期。
+- 确认没浇成后就走 go_to (78,15)（21 步）→ enter 'BusStop' → enter 'Town'，今天三步全 ok。
+- 进城后 go_to (-1,89)（71 步）可走通，可作为 Town 内的一个可用目标点。
+
+## 2026-10-16
+- water_all 卡 (65,22) 时再去 (65,21) 手动 use_tool_at 也没用（今天照旧 0 done 同格），确认 done=0 后当天直接走流水线，别浪费动作。
+- 出门 go_to (65,18) 今天首次即 ok（5 步），不必预加 noop；只有返回 NOT_FREE 时才 noop 重发。
+- 判断浇没浇只看返回里的 done 与 of N（今天 of 28、done 0），不要按 30+ 格预期水量。
+- 收工走镇子流水线时 go_to (78,15)（今天从 (65,21) 出发 24 步）ok，且该点 refill 可用，出 Farm 前可先在这补满喷壶。
+
+## 2026-10-16
+- 判断浇没浇只看返回里的 done 与 of N：今天 of 1、done 1，可浇量已跌到个位数，别再按 30 格预期规模。
+- 可浇总量降到 1 说明田里几乎没剩可浇作物，浇完立刻把当天重点转到播种/收获等别的农活，别在 (65,18) 反复重发 water_all。
+- water_all 返回以 'refill' 开头就是它自己去补喷壶水、随后正常 finished，不必手动补水或重发。
+- 收工照走 go_to (78,15)（今天从 (65,18) 出发 23 步 ok）→ enter 'BusStop' → enter 'Town'。

@@ -227,6 +227,11 @@ def settle_timeout(action: str, args: dict) -> float:
     """How long to wait (by polling state, never by asking the model) for an action to finish."""
     if action == "go_to":
         return 25.0
+    if action == "enter":
+        # `enter` walks to a door and then goes through it, so it needs as long as a walk. Judging
+        # it after a few seconds reads the still-walking farmer as "the location did not change",
+        # which is how `enter` got blacklisted for lying while it was working perfectly.
+        return 30.0
     if action == "move":
         try:
             ms = float(args.get("duration_ms", 400))
@@ -379,7 +384,7 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             day=label, step=step,
             budget_s=shared_budget,
             timeout_s=settle_timeout(action, args) or 60.0,
-            witness_field=witness.CHORE_WORK_FIELD.get(action),
+            progress=(lambda s: witness.progress_value(action, s)) if action in CHORE_ACTIONS else None,
         )
         after_state = watch.state
 
@@ -406,6 +411,8 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
 
         # Judge by whether the world changed, not by what the action claimed. Every action class has
         # a witness; when it does not, that is recorded as no-verdict rather than as success.
+        if tracking and action in TILE_ACTIONS:
+            time.sleep(0.6)        # let the swing land before reading the tile back
         after = observe_tile(client, tx, ty) if (tracking and action in TILE_ACTIONS) else None
         worked, evidence = witness.judge(action, args, state, after_state, before, after)
 

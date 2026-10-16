@@ -76,6 +76,22 @@ def _front(state: dict) -> str:
     return "|".join(str(t.get(k) or "") for k in ("object", "crop", "character", "ground"))
 
 
+def progress_value(action: str, state: dict):
+    """The number that should be moving while this action works, or None if there is not one.
+
+    The watcher uses this to tell "the action is working" apart from "the action is stuck". It has
+    to be the thing the action is *supposed* to change, not the action's own report of itself.
+    """
+    if action == "refill":
+        return _charges(state)
+
+    field = CHORE_WORK_FIELD.get(action)
+    if field:
+        return _work(state, field)
+
+    return None
+
+
 def judge(action: str, args: dict, before_state: dict, after_state: dict,
           before_tile: dict | None = None, after_tile: dict | None = None) -> tuple[bool | None, str]:
     """Did the world change? Returns (worked, evidence); worked is None when there is no witness."""

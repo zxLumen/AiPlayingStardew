@@ -25,7 +25,8 @@ public static class ChoreController
     private const int ChoreTimeoutMs = 300_000;   // give up on a chore that cannot finish
     private const int SwingIntervalMs = 400;      // roughly one tool animation
     private const int MaxAttemptsPerTile = 8;     // before giving up on a stubborn tile
-    private const int BlockedGraceMs = 2_500;     // how long a menu/event may hold a chore
+    /// <summary>How long a chore may be held before it gives up. A safety net, not a policy.</summary>
+    private const int BlockedLimitMs = 60_000;
     private const int WalkTimeoutMs = 9_000;      // how long walking to one tile may take
 
     private sealed class Chore
@@ -159,8 +160,11 @@ public static class ChoreController
             return;
         }
 
-        // Blocked is not "wait a moment" - it is an event that has to be reported. A greeting
-        // dialogue left a chore sitting idle for its whole five-minute deadline, silently.
+        // Blocked is not "wait a moment" - it is an event that has to be reported, every tick, so
+        // that whoever is watching can clear it. But a chore that gives up the instant it is held
+        // never gets anything done: a single greeting beside the pond killed every refill, which
+        // left the can empty, which is why nothing could ever be watered. So: report always, wait,
+        // and only bail out as a last resort.
         if (!GameQuery.IsPlayerFree())
         {
             string why = GameQuery.BlockedReason();
@@ -170,7 +174,7 @@ public static class ChoreController
 
             chore.LastNote = $"({why} is holding the chore)";
 
-            if (Now() - chore.BlockedSince > BlockedGraceMs * TimeSpan.TicksPerMillisecond)
+            if (Now() - chore.BlockedSince > BlockedLimitMs * TimeSpan.TicksPerMillisecond)
                 Finish($"blocked - {why}");
 
             return;

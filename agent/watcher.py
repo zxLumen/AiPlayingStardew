@@ -24,8 +24,6 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 
-import witness
-
 POLL_S = 0.5
 BLOCKED_GRACE_S = 2.5     # how long a dialogue or menu may hold us before we take over
 TRANSIENT_GRACE_S = 7.0   # some blockers are just animation and clear themselves
@@ -62,8 +60,7 @@ def _counter(state: dict, field_name: str):
     return ((state.get("location") or {}).get("work") or {}).get(field_name)
 
 
-def _slug(text: str) -> str:
-    return "".join(c if c.isalnum() else "-" for c in text.lower()).strip("-")[:48]
+def _slug(text: str) -> str:    return "".join(c if c.isalnum() else "-" for c in text.lower()).strip("-")[:48]
 
 
 class Watcher:
@@ -104,13 +101,19 @@ class Watcher:
 
     def watch(self, action: str, args: dict, first_state: dict, *, day: str = "", step: int = 0,
               budget_s: float = 0.0, timeout_s: float = 240.0,
-              witness_field: str | None = None) -> WatchResult:
-        """Follow one action to its end, or until something is clearly wrong."""
+              progress=None, witness_field: str | None = None) -> WatchResult:
+        """Follow one action to its end, or until something is clearly wrong.
+
+        `progress` is a callable that returns the number this action should be moving; it is what
+        tells "working" apart from "stuck". A macro that walks between targets has a counter that
+        sits still for several seconds while it makes perfectly good progress, so a stalled counter
+        alone is not enough to give up on it.
+        """
         started = time.monotonic()
         state = first_state
         result = WatchResult(state=state)
 
-        is_chore = witness_field is not None
+        is_chore = progress is not None
 
         blocked_since = 0.0
         blocked_reason = ""
@@ -118,7 +121,7 @@ class Watcher:
 
         last_pos = _pos(state)
         pos_since = time.monotonic()
-        last_counter = _counter(state, witness_field) if witness_field else None
+        last_counter = progress(state) if progress else None
         counter_since = time.monotonic()
 
         while True:
@@ -208,7 +211,7 @@ class Watcher:
                     result.stopped = "done"
                     break
 
-                counter = _counter(state, witness_field)
+                counter = progress(state)
                 if counter != last_counter:
                     last_counter = counter
                     counter_since = time.monotonic()
@@ -233,11 +236,13 @@ class Watcher:
                     result.stopped = "stalled"
                     break
 
-                if idle_for > NO_PROGRESS_S and not moving:
+                # Give up only when NOTHING is moving: not the count, not the farmer. A macro
+                # walking to its next target sits still on the count for a while and is fine.
+                if idle_for > NO_PROGRESS_S and still_for > NO_PROGRESS_S and not moving:
                     self._note(day, step, event="no progress", action=action,
-                               field=witness_field, value=counter, for_s=round(idle_for, 1))
-                    self.log(f"[守望] {action} 的 {witness_field} 停在 {counter} "
-                             f"{idle_for:.0f} 秒没动 -> 取消")
+                               value=counter, for_s=round(idle_for, 1))
+                    self.log(f"[守望] {action} 的计数停在 {counter}、人也不动 "
+                             f"{idle_for:.0f} 秒 -> 取消")
                     self._cancel_chore(True)
                     result.stopped = "no progress"
                     break
