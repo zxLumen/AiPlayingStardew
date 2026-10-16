@@ -11,8 +11,13 @@ Layout:
 from __future__ import annotations
 
 import json
+import re
 import time
 from pathlib import Path
+
+# Pulls a coordinate out of the bridge's English failure text, so a failure can be shown in Chinese
+# without inventing a translation for every sentence the bridge can produce.
+_COORD = re.compile(r"\((\d{1,3}),\s*(\d{1,3})\)")
 
 
 class RunLog:
@@ -132,68 +137,181 @@ class RunLog:
         self.agent("run", event=kind, **fields)
 
 
+# Everything the audience reads is Chinese, except the agent names on the board. These turn the
+# bridge's own vocabulary - action names, reason codes, verdicts, field names - into words.
+
+ACTIONS = {
+    "go_to": "走过去", "move": "挪一步", "warp": "传送", "enter": "进门",
+    "exit_building": "出门", "sleep": "睡觉", "new_day": "过天",
+    "work": "干活", "use_tool_at": "对着用工具", "use_tool": "用手上的工具",
+    "interact": "互动", "interact_at": "对着互动", "select_slot": "换手持",
+    "clear_area": "清理一片", "till_area": "翻一片地", "plant_all": "全部播种",
+    "water_all": "全部浇水", "harvest_all": "全部收割", "plant": "种一格",
+    "refill": "打满水壶", "scan": "扫一圈", "observe": "看一格",
+    "menu_click": "点菜单", "dialogue_advance": "推进对话",
+    "dialogue_choose": "选择对话", "skip_intro": "跳过开场",
+    "focus_window": "让游戏到前台", "set_display": "调整画面",
+    "pause_time": "暂停时间", "cancel_chore": "取消当前动作",
+    "clear_event": "清除卡住的事件", "press_key": "按键", "stop": "停下",
+    "noop": "待机", "chore": "查询当前动作", "game_data": "查游戏数据",
+    "overlay": "更新面板",
+}
+
+REASONS = {
+    "FAILED": "失败", "NOT_FREE": "玩家被占用", "NO_PATH": "无路可走",
+    "NO_MENU": "没有菜单", "WRONG_TOOL": "用错工具", "ALREADY_OUTDOORS": "已经在户外",
+    "NO_BED": "没有床", "NO_SUCH_BUTTON": "没有这个按钮", "BLOCKED": "被挡住",
+}
+
+VERDICTS = {
+    "good": "好", "ok": "一般", "poor": "差", "bad": "很差",
+    "excellent": "优秀", "great": "很好",
+}
+
+GAP_VERDICTS = {
+    "BROKEN": "坏了", "LYING": "报成功却没用", "NOOP": "空转",
+    "SLOW": "偏慢", "HEALTHY": "正常", "LOW-DATA": "数据不够",
+}
+
+BLOCKED = {
+    "dialogue is open": "有对话打开",
+    "dialogue is waiting for a choice": "对话等着选",
+    "cutscene/event playing": "过场演出中",
+    "farmer cannot move right now": "农民暂时不能动",
+    "no active save": "没有存档",
+}
+
+PIPELINE_STAGES = {
+    "game": "启动游戏", "api": "等接口", "save": "读档", "day": "玩一天",
+}
+
+FIELDS = {
+    "thirsty_crops": "渴作物", "ready_crops": "可收作物", "empty_soil": "空地",
+    "tillable": "可耕", "debris": "杂物", "money": "金钱",
+    "charges": "壶中水", "stamina": "体力", "quests": "任务",
+}
+
+EVENTS = {
+    "remedy": "处置", "gave_up": "放弃", "no progress": "没进展",
+    "stalled": "卡住", "cleared": "已解开", "done": "完成",
+    "ok": "成功", "failed": "失败", "clicked slot": "点了存档位",
+    "stage failed": "阶段失败", "crash": "崩溃", "forced_day_end": "强制过天",
+    "cleared_stuck_event": "清掉卡住的事件",
+}
+
+STOPPED = {
+    "no progress": "没有进展", "stalled": "走不动",
+    "over budget": "超出本轮预算", "timeout": "超时", "done": "完成",
+}
+
+
+def _zh(mapping: dict, key) -> str:
+    text = str(key or "")
+    return mapping.get(text, text)
+
+
+def translate_evidence(text: str) -> str:
+    """The witness writes evidence with field names and arrows; make it read like Chinese."""
+    out = str(text or "")
+    for english, chinese in FIELDS.items():
+        out = out.replace(english, chinese)
+    for english, chinese in BLOCKED.items():
+        out = out.replace(english, chinese)
+    return out.replace(" -> ", " → ").replace("->", "→")
+
+
 def summarize(name: str, f: dict) -> str:
-    """One readable line for the audience, per agent.
+    """One readable Chinese line for the audience, per agent.
 
     The structured streams are for the machine; this is what a person watching the stream reads, so
-    it keeps the decision and drops the bookkeeping.
+    it keeps the decision and drops the bookkeeping - and it never shows them an English identifier
+    they would have to be told the meaning of.
     """
     def short(value, limit=90) -> str:
         if value is None:
             return ""
-        if isinstance(value, (dict, list)):
-            value = json.dumps(value, ensure_ascii=False)
-        return str(value).replace("\n", " ")[:limit]
+
+        if isinstance(value, dict):
+            parts = []
+            for key, item in value.items():
+                label = FIELDS.get(key, key)
+                parts.append(f"{label}={item}")
+            value = " ".join(parts)
+        elif isinstance(value, list):
+            value = " ".join(str(v) for v in value)
+
+        return translate_evidence(str(value).replace("\n", " "))[:limit]
+
+    def where(text: str) -> str:
+        """Pull a coordinate out of the bridge's English failure text, if there is one."""
+        match = _COORD.search(str(text or ""))
+        return f"（坐标 {match.group(1)},{match.group(2)}）" if match else ""
 
     if name == "planner":
         goals = f.get("goals") or []
-        first = short(goals[0] if goals else "", 80)
-        return f"{short(f.get('focus'), 70)}" + (f" · {first}" if first else "")
+        first = str(goals[0])[:70] if goals else ""
+        focus = str(f.get("focus") or "")[:80]
+        return focus + (f" · {first}" if first else "")
 
     if name == "streamer":
-        flag = "OK " if f.get("ok") else "ERR"
-        detail = short(f.get("reason"), 46) if f.get("ok") else short(f.get("detail"), 60)
-        return f"{short(f.get('action'), 14):<14} {short(f.get('args'), 34):<34} {flag} {detail}"
+        action = _zh(ACTIONS, f.get("action"))
+        args = f.get("args") or {}
+        target = args.get("target") or ""
+        if not target and args.get("x") is not None:
+            target = f"({args.get('x')},{args.get('y')})"
+
+        if f.get("ok"):
+            return f"{action} {target} → 成功 {str(f.get('reason') or '')[:40]}".strip()
+
+        reason = _zh(REASONS, f.get("reason_code"))
+        return f"{action} {target} → 失败 {reason}{where(f.get('detail'))}".strip()
 
     if name == "supervisor":
-        return f"{short(f.get('status'), 8)} {short(f.get('note'), 90)}"
+        return str(f.get("note") or "")[:96]
 
     if name == "referee":
-        return f"score={f.get('score')} ({short(f.get('verdict'), 8)}) {short(f.get('why'), 90)}"
+        return f"评分 {f.get('score')}（{_zh(VERDICTS, f.get('verdict'))}）{str(f.get('why') or '')[:96]}"
 
     if name == "watcher":
-        what = f.get("action") or ""
-        because = f.get("reason") or f.get("stopped") or ""
-        remedy = f" -> {f.get('remedy')}" if f.get("remedy") else ""
-        return f"{short(f.get('event'), 12)} {short(what, 12)} {short(because, 40)}{remedy}"
+        event = _zh(EVENTS, f.get("event"))
+        action = _zh(ACTIONS, f.get("action"))
+        held = f.get("reason") or f.get("stopped") or ""
+        reason = _zh(STOPPED, held) if held else ""
+        if reason == held:
+            reason = translate_evidence(str(held))[:40]
+        remedy = _zh(ACTIONS, f.get("remedy")) if f.get("remedy") else ""
+        return f"{event}｜{action} {reason}".strip() + (f" → {remedy}" if remedy else "")
 
     if name == "doctor":
-        return f"[{short(f.get('defect_class'), 10)}] {short(f.get('cause'), 90)}"
+        cause = str(f.get("cause") or "")[:96]
+        cls = {"cognitive": "认知", "capability": "能力", "bridge": "桥"}.get(
+            str(f.get("defect_class") or ""), "")
+        return (f"【{cls}缺口】" if cls else "") + cause
 
     if name == "pipeline":
-        return f"{short(f.get('stage'), 8)} {short(f.get('event'), 14)} {short(f.get('detail'), 70)}"
+        stage = _zh(PIPELINE_STAGES, f.get("stage"))
+        event = _zh(EVENTS, f.get("event"))
+        detail = str(f.get("detail") or "")
+        if event == "成功" and "loaded" in detail:
+            detail = f"已进入 {detail.split('loaded')[-1].strip()} 的存档"
+        return f"{stage} {event} {detail[:70]}".strip()
 
     if name == "witness":
+        action = _zh(ACTIONS, f.get("action"))
         mark = "世界变了" if f.get("worked") else "世界没变"
-        return f"{short(f.get('action'), 12)} {mark} ({short(f.get('evidence'), 50)})"
-
-    if name == "learning":
-        return f"{short(f.get('kind'), 12)}+{short(f.get('action'), 12)} " + \
-               ("成功" if f.get("worked") else "失败")
+        return f"{action} {mark}（{short(f.get('evidence'), 60)}）"
 
     if name == "gatekeeper":
-        return short(f.get("note"), 100)
+        return str(f.get("note") or "")[:110]
 
     if name == "prescription":
-        return f"{short(f.get('action'), 12)} 前置不足 -> 先做 {short(f.get('satisfied_with'), 12)}"
-
-    if name == "memory":
-        return short(f.get("summary") or f.get("fact") or f.get("text"), 100)
+        return (f"{_zh(ACTIONS, f.get('action'))} 前置不足 → "
+                f"先做了 {_zh(ACTIONS, f.get('satisfied_with'))}")
 
     if name == "gaps":
-        return f"{short(f.get('action'), 12)} {short(f.get('verdict'), 8)}"
+        return f"{_zh(ACTIONS, f.get('action'))} 判定 {_zh(GAP_VERDICTS, f.get('verdict'))}"
 
     if name in ("defect", "outcome"):
-        return short(f.get("title") or f.get("detail") or f, 100)
+        return str(f.get("title") or f.get("detail") or "")[:110]
 
-    return short({k: v for k, v in f.items() if k not in ("t", "run")}, 100)
+    return short({k: v for k, v in f.items() if k not in ("t", "run")}, 110)

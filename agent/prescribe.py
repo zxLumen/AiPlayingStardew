@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import time
 
+from witness import ACTION_NAMES, resolve_action
+
 
 def _slug(text: str) -> str:
     return "".join(c if c.isalnum() else "-" for c in str(text).lower()).strip("-")[:48] or "x"
@@ -112,6 +114,14 @@ class Prescriber:
         if not helper:
             return None
 
+        # A prescription may name an action the model invented. Match it against what exists, or
+        # refuse: running a name the bridge does not know is not a repair, it is a typo.
+        resolved = resolve_action(helper)
+        if resolved is None:
+            self.log(f"[处方] 开出的 '{helper}' 不是桥里存在的动作，跳过（可用：{', '.join(ACTION_NAMES[:8])}…）")
+            return None
+
+        helper = resolved
         self.log(f"[处方] {action} 的前置不满足，先执行 {helper}（{rule.get('why', '')}）")
         result = self.client.action(helper)
         self.log(f"[处方]   {helper} -> ok={result.get('ok')} {str(result.get('detail'))[:80]}")

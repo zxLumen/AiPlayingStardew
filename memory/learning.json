@@ -5,23 +5,23 @@
       "fail": 1
     },
     "area|plant_all": {
-      "ok": 8,
-      "fail": 2
+      "ok": 9,
+      "fail": 3
     },
     "area|till_area": {
       "ok": 0,
-      "fail": 16
+      "fail": 20
     },
     "area|water_all": {
       "ok": 1,
-      "fail": 14
+      "fail": 15
     },
     "ready_crop|interact_at": {
       "ok": 0,
       "fail": 3
     },
     "thirsty_crop|go_to": {
-      "ok": 11,
+      "ok": 12,
       "fail": 0
     },
     "tree|go_to": {

@@ -24,6 +24,46 @@ from __future__ import annotations
 # Actions aimed at one tile.
 TILE_ACTIONS = {"work", "use_tool_at", "interact_at"}
 
+# Every action the bridge actually accepts. The doctor is given this list, because a prescription
+# that names an action which does not exist is not a prescription - it is a sentence. (The first
+# time the doctor ran it prescribed "refill_watering_can", which the bridge has never heard of.)
+ACTION_NAMES = (
+    "go_to", "move", "warp", "enter", "exit_building", "sleep", "new_day",
+    "work", "use_tool_at", "use_tool", "interact", "interact_at", "select_slot",
+    "clear_area", "till_area", "plant_all", "water_all", "harvest_all", "plant", "refill",
+    "scan", "observe", "menu_click", "dialogue_advance", "dialogue_choose",
+    "focus_window", "pause_time", "cancel_chore", "clear_event", "press_key", "stop",
+    "noop", "chore", "game_data", "overlay",
+)
+
+
+def resolve_action(name: str) -> str | None:
+    """Match a name the model invented against the actions that exist."""
+    wanted = str(name or "").strip().lower()
+    if not wanted:
+        return None
+
+    if wanted in ACTION_NAMES:
+        return wanted
+
+    # "refill_watering_can" -> "refill", "water all" -> "water_all", "WaterAll" -> "water_all"
+    squashed = wanted.replace(" ", "_").replace("-", "_")
+    flat = "".join(c for c in squashed if c.isalnum())
+
+    for action in ACTION_NAMES:
+        if squashed == action or squashed.startswith(action + "_") or squashed.endswith("_" + action):
+            return action
+
+    for action in ACTION_NAMES:
+        if flat == action.replace("_", ""):
+            return action
+
+    for action in ACTION_NAMES:
+        if action in squashed:
+            return action
+
+    return None
+
 # Reflex macros, and the location.work counter each one is supposed to move (downwards).
 CHORE_WORK_FIELD = {
     "clear_area": "debris",

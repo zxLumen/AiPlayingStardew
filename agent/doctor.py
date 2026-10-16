@@ -74,11 +74,12 @@ def _brief(value, limit: int = 1400) -> str:
 
 
 class Doctor:
-    def __init__(self, llm, client, log=print, catalog=None) -> None:
+    def __init__(self, llm, client, log=print, catalog=None, actions=None) -> None:
         self.llm = llm
         self.client = client
         self.log = log
         self.catalog = catalog or []
+        self.actions = actions or []
 
     # -- data lookups ------------------------------------------------------
 
@@ -114,7 +115,8 @@ class Doctor:
             },
             "what happened": context,
             "current facts": self._facts(state),
-            "data available to ask for": self.catalog[:200],
+            "actions that exist (use these exact names)": list(self.actions),
+            "game data you may ask for": self.catalog[:200],
         }
 
         verdict: dict = {}

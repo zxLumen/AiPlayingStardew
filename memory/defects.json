@@ -4,15 +4,65 @@
       "key": "stalled:water_all",
       "title": "water_all 走不到目标",
       "owner": "agent",
-      "detail": "在 (64, 20) 原地走了 6 秒",
+      "detail": "给 water_all 加了前置条件：{'fact': 'held.charges', 'op': '>', 'value': 0}，不足时先 refill_watering_can。原因：喷壶是空的（charges 0/40），所以每次浇水都没有效果，水壶不会消耗也不改变土壤，agent 就此卡在 (61,20)。",
+      "severity": 2,
+      "count": 3,
+      "first_seen": "2026-10-16 08:59",
+      "last_seen": "2026-10-16 14:18",
+      "cost_s": 23.70540999993682,
+      "days": 0,
+      "status": "mitigated",
+      "evidence": [
+        "给 water_all 加了前置条件：{'fact': 'held.charges', 'op': '>', 'value': 0}，不足时先 refill_watering_can。原因：喷壶是空的（charges 0/40），所以每次浇水都没有效果，水壶不会消耗也不改变土壤，agent 就此卡在 (61,20)。"
+      ]
+    },
+    {
+      "key": "gap:interact",
+      "title": "`interact` 被判定 BROKEN",
+      "owner": "agent",
+      "detail": "BROKEN: 11 次尝试 / 报 OK 0 次 / 空转 0 次",
       "severity": 2,
       "count": 1,
-      "first_seen": "2026-10-16 08:59",
-      "last_seen": "2026-10-16 08:59",
-      "cost_s": 10.33623329992406,
+      "first_seen": "2026-10-16 14:15",
+      "last_seen": "2026-10-16 14:15",
+      "cost_s": 0.0,
       "days": 0,
       "status": "open",
-      "evidence": []
+      "evidence": [
+        "FAILED: checkAction at (9, 23) -> False; FAILED: checkAction at (9, 23) -> False"
+      ]
+    },
+    {
+      "key": "gap:use_tool_at",
+      "title": "`use_tool_at` 被判定 LYING",
+      "owner": "agent",
+      "detail": "LYING: 126 次尝试 / 报 OK 104 次 / 空转 0 次",
+      "severity": 2,
+      "count": 1,
+      "first_seen": "2026-10-16 14:15",
+      "last_seen": "2026-10-16 14:15",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": [
+        "NOTHING_DONE: 镰刀 did nothing at (67,19); NOTHING_DONE: 镰刀 did nothing at (69,21)"
+      ]
+    },
+    {
+      "key": "gap:till_area",
+      "title": "`till_area` 被判定 LYING",
+      "owner": "agent",
+      "detail": "LYING: 50 次尝试 / 报 OK 32 次 / 空转 1 次",
+      "severity": 2,
+      "count": 1,
+      "first_seen": "2026-10-16 14:15",
+      "last_seen": "2026-10-16 14:15",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": [
+        "(none): till_area: 6 done, 1 given up of 7 in 4.6s - finished ((no path to (62,20))); (none): till_area: 1 done, 1 given up of 2 in 1.4s - finished ((no path to (62,20)))"
+      ]
     }
   ]
 }

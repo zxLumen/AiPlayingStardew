@@ -667,7 +667,7 @@ def run_forever(args: argparse.Namespace) -> int:
         referee = RefereeAI(smart)
         watcher = Watcher(client, ledger=ledger, runlog=runlog, log=log)
         pipeline = runner.Pipeline(client, ledger, runlog=runlog, log=log)
-        doctor = Doctor(smart, client, log=log)
+        doctor = Doctor(smart, client, log=log, actions=witness.ACTION_NAMES)
         prescriber = Prescriber(client, ledger, learning, store, log=log)
         outcomes = OutcomeWatch(ledger=ledger, log=log)
 
