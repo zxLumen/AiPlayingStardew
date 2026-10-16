@@ -2172,8 +2172,10 @@ public static class ActionProcessor
         // GAME sees is reported either way: if it disagrees with the point we aimed at, that mismatch
         // IS the diagnosis, and it took a week to find the last one by other means.
         string seen = NativeInput.MouseSeen();
+        bool activeNow = NativeInput.IsGameWindowActive();
         string why = real
-            ? $"the real click changed nothing (aimed at ({cx},{cy}), the game's mouse is {seen})"
+            ? $"the real click changed nothing (aimed at ({cx},{cy}), the game's mouse is {seen}, "
+              + $"window active: {activeNow})"
             : "the cursor could not be moved";
 
         // A real click is hover -> press -> release, and the press half is the old shape too: a shop row
@@ -3533,8 +3535,46 @@ public static class NativeInput
         if (IsIconic(handle))
             ShowWindow(handle, SW_RESTORE);
 
-        return SetForegroundWindow(handle);
+        // SetForegroundWindow is REFUSED when the calling thread is not already the foreground thread:
+        // the window flashes in the taskbar and nothing else happens. From the outside that is
+        // indistinguishable from "the game ignored my click", and it is the other half of why the real
+        // mouse did nothing while keyboard input sometimes seemed to work. Attaching to the foreground
+        // thread for the length of the call is the standard way past the restriction.
+        try
+        {
+            IntPtr foreground = GetForegroundWindow();
+            uint ours = GetCurrentThreadId();
+            uint theirs = foreground == IntPtr.Zero
+                ? 0
+                : GetWindowThreadProcessId(foreground, IntPtr.Zero);
+
+            bool attached = theirs != 0 && ours != theirs
+                            && AttachThreadInput(ours, theirs, true);
+            try
+            {
+                return SetForegroundWindow(handle);
+            }
+            finally
+            {
+                if (attached)
+                    AttachThreadInput(ours, theirs, false);
+            }
+        }
+        catch
+        {
+            return SetForegroundWindow(handle);
+        }
     }
+
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    private static extern uint GetCurrentThreadId();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr processId);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool AttachThreadInput(uint attach, uint attachTo, bool attachFlag);
 
 
     /// <summary>How long the game may hold focus that it borrowed. One injected input's worth.</summary>

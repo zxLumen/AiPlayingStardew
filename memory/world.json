@@ -1,77 +1,77 @@
 {
   "entries": {
     "dialogue_advance@Farm|dialogue_advance": {
-      "works": 14,
-      "fails": 3,
-      "says": "你打算收养这只猫吗？",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "door:BusStop|enter": {
-      "works": 10,
-      "fails": 5,
-      "says": "BusStop",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "tile:something|interact_at": {
-      "works": 13,
-      "fails": 2,
-      "says": "等到皮埃尔经营店铺的时候再回来。",
+      "works": 17,
+      "fails": 4,
+      "says": "它可能是喜欢这里！唔……你不觉得这个农场需要养只好猫吗？",
       "note": "",
       "last": "2026-10-17"
     },
     "ShopMenu:shelf row|menu_click": {
       "works": 0,
-      "fails": 14,
+      "fails": 17,
       "says": "forSaleButtons.0",
       "note": "",
       "last": "2026-10-17"
     },
     "Town:exit_building|exit_building": {
-      "works": 14,
+      "works": 16,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "door:SeedShop|enter": {
-      "works": 13,
-      "fails": 1,
-      "says": "SeedShop",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "go_to@SeedShop|go_to": {
-      "works": 12,
-      "fails": 1,
-      "says": "",
+    "door:BusStop|enter": {
+      "works": 10,
+      "fails": 6,
+      "says": "BusStop",
       "note": "",
       "last": "2026-10-17"
     },
     "go_to@Town|go_to": {
-      "works": 10,
+      "works": 14,
       "fails": 2,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
+    "tile:something|interact_at": {
+      "works": 14,
+      "fails": 2,
+      "says": "等到皮埃尔经营店铺的时候再回来。",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:SeedShop|enter": {
+      "works": 14,
+      "fails": 1,
+      "says": "SeedShop",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "tile:empty|interact_at": {
       "works": 3,
-      "fails": 9,
+      "fails": 12,
       "says": "他们财大气粗，可以先亏本销售，搞倒我这种小本生意……然后再抬高价格割韭菜！",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@SeedShop|go_to": {
+      "works": 13,
+      "fails": 1,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|clear_area": {
       "works": 2,
-      "fails": 9,
+      "fails": 11,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "menu:upperRightCloseButton|menu_click": {
-      "works": 11,
+      "works": 12,
       "fails": 0,
       "says": "upperRightCloseButton",
       "note": "",
@@ -84,6 +84,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "Farm:patch|harvest_all": {
+      "works": 1,
+      "fails": 8,
+      "says": "我看到它坐在你的农场门口！它可能是无家可归了……可怜的小东西。",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "Farm:patch|till_area": {
       "works": 5,
       "fails": 4,
@@ -92,58 +99,58 @@
       "last": "2026-10-17"
     },
     "door:Town|enter": {
-      "works": 7,
+      "works": 8,
       "fails": 1,
       "says": "Town",
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|harvest_all": {
-      "works": 1,
-      "fails": 6,
-      "says": "我看到它坐在你的农场门口！它可能是无家可归了……可怜的小东西。",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "go_to@Farm|go_to": {
-      "works": 5,
+      "works": 6,
       "fails": 2,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "press_key@Farm|press_key": {
-      "works": 3,
-      "fails": 3,
-      "says": "嗨，Juniper！",
+      "works": 4,
+      "fails": 4,
+      "says": "space",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:exit_building|exit_building": {
-      "works": 5,
+      "works": 6,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|water_all": {
-      "works": 4,
+      "works": 5,
       "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "go_to@BusStop|go_to": {
-      "works": 5,
+      "works": 6,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "DialogueBox:doneNamingButton|menu_click": {
-      "works": 4,
+      "works": 5,
       "fails": 0,
       "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "select_slot@Farm|select_slot": {
+      "works": 5,
+      "fails": 0,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -174,13 +181,6 @@
       "says": "",
       "note": "",
       "last": "2026-10-16"
-    },
-    "select_slot@Farm|select_slot": {
-      "works": 3,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
     },
     "select_slot@Town|select_slot": {
       "works": 3,
@@ -224,6 +224,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "tile:亚历克斯|interact_at": {
+      "works": 2,
+      "fails": 0,
+      "says": "我昨天肯定做了一千个俯卧撑。",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "CommunityCenter:exit_building|exit_building": {
       "works": 0,
       "fails": 1,
@@ -239,6 +246,13 @@
       "last": "2026-10-17"
     },
     "interact@CommunityCenter|interact": {
+      "works": 0,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "interact@Farm|interact": {
       "works": 0,
       "fails": 1,
       "says": "",
@@ -267,6 +281,20 @@
       "last": "2026-10-17"
     },
     "tile:hoe_dirt|interact_at": {
+      "works": 0,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:韭葱|interact_at": {
+      "works": 0,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:韭葱|work": {
       "works": 0,
       "fails": 1,
       "says": "",
@@ -353,8 +381,8 @@
     "namingmenu|menu_click": {
       "works": 0,
       "fails": 0,
-      "says": "文本框里是'味噌'",
-      "note": "NamingMenu for the cat has doneNamingButton to confirm; text field is 'textBoxCC'",
+      "says": "味噌",
+      "note": "the cat adoption NamingMenu confirms with doneNamingButton once the text box holds a name",
       "last": "2026-10-17"
     },
     "seedshop_door|enter": {
@@ -411,6 +439,20 @@
       "fails": 0,
       "says": "clicked '6' - nothing changed",
       "note": "包满时点商店货架没有意义：先在 ShopMenu 里点一次 inventory.N 把物品拿到手上，再点 dropItemInvisibleButton 丢掉腾出格子，然后才买种子",
+      "last": "2026-10-17"
+    },
+    "town_npc_alex|interact_at": {
+      "works": 0,
+      "fails": 0,
+      "says": "站在 (64,64) 的亚历克斯就面对着玩家",
+      "note": "出门撞见的人直接 interact_at 他所在格即可打招呼，算进介绍任务",
+      "last": "2026-10-17"
+    },
+    "wild_leek_on_farm|interact_at_work_harvest_all": {
+      "works": 0,
+      "fails": 0,
+      "says": "interact_at (75,11) -> False; work said 'forage at (75,11) did not respond'; harvest_all found nothing",
+      "note": "a Leek showing on Farm objects is not harvestable by interact or harvest_all - maybe it needs a tool or isn't ripe; don't burn more turns on it",
       "last": "2026-10-17"
     },
     "买种子节奏|menu_click_forsalebuttons_0": {

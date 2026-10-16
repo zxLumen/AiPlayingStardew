@@ -2,11 +2,11 @@
   "tally": {
     "area|clear_area": {
       "ok": 15,
-      "fail": 20
+      "fail": 22
     },
     "area|harvest_all": {
       "ok": 1,
-      "fail": 6
+      "fail": 8
     },
     "area|plant_all": {
       "ok": 8,
@@ -21,7 +21,7 @@
       "fail": 48
     },
     "area|water_all": {
-      "ok": 19,
+      "ok": 20,
       "fail": 15
     },
     "big_debris|go_to": {
@@ -30,7 +30,11 @@
     },
     "forage|interact_at": {
       "ok": 1,
-      "fail": 2
+      "fail": 5
+    },
+    "forage|work": {
+      "ok": 0,
+      "fail": 1
     },
     "thirsty_crop|go_to": {
       "ok": 1,
