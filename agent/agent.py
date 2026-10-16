@@ -26,7 +26,10 @@ import runner  # noqa: E402
 import witness  # noqa: E402
 from compact import compact_state  # noqa: E402
 from defects import DefectLedger  # noqa: E402
+from doctor import Doctor  # noqa: E402
 from learning import NOT_ACTIONABLE, LearningStore  # noqa: E402
+from outcomes import OutcomeWatch  # noqa: E402
+from prescribe import Prescriber  # noqa: E402
 from watcher import Watcher  # noqa: E402
 from witness import TILE_ACTIONS  # noqa: E402
 from llm import LlmClient  # noqa: E402
@@ -248,7 +251,8 @@ def settle_timeout(action: str, args: dict) -> float:
 def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
          max_steps: int, store: "memory_mod.MemoryStore",
          learning: LearningStore, runlog: RunLog, budget_s: float = 0.0,
-         watcher: Watcher | None = None) -> tuple[str, str, int]:
+         watcher: Watcher | None = None,
+         prescriber: "Prescriber | None" = None) -> tuple[str, str, int]:
     history: list[str] = []
     directive: str | None = None
     total_llm = total_action = total_watch = 0.0
@@ -370,6 +374,16 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
                          kind=kind, note=note)
             log(f"[守门] {note}")
 
+        # A prescribed precondition is enforced here, by the system, not remembered by the model.
+        # This is the difference between "the doctor found out that a watering can has to be full"
+        # and "the farmer actually fills it before watering".
+        if prescriber is not None and prescriber.unmet(action, state):
+            helper = prescriber.satisfy(action, state)
+            if helper:
+                runlog.agent("prescription", day=label, step=step, action=action,
+                             satisfied_with=helper)
+                time.sleep(1.5)
+
         learning.remember_attempt(action, args)
 
         started = time.perf_counter()
@@ -434,6 +448,10 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             runlog.agent("witness", day=label, step=step, action=action, worked=worked,
                          evidence=evidence, ok=bool(result.get("ok")),
                          detail=str(result.get("detail", ""))[:160])
+
+        # Verification half of the loop: did the prescribed fix actually fix it?
+        if prescriber is not None:
+            prescriber.note_outcome(action, worked)
 
         # A failure invalidates the rest of the queue: it was planned against a world that turned
         # out not to be true. Re-decide immediately rather than replaying stale intentions.
@@ -580,6 +598,43 @@ def reflect(supervisor: SupervisorAI, store: "memory_mod.MemoryStore", known: st
         f"(total {report['total']}) | lessons: +{lessons}")
 
 
+def run_doctor(client: StateClient, ledger: DefectLedger, doctor: Doctor, prescriber: Prescriber,
+               store: "memory_mod.MemoryStore", runlog: RunLog, state: dict, limit: int = 2) -> int:
+    """Find out why the things we could not fix are failing, and change something about it.
+
+    This is the half of the loop that used to be a person reading logs. It runs on its own, only on
+    defects that have repeated (so it is cheap), and every conclusion it reaches is applied and then
+    checked against the world.
+    """
+    pending = [d for d in ledger.for_owner("agent") if d.status == "open" and d.count >= 2]
+    if not pending:
+        return 0
+
+    done = 0
+    for defect in sorted(pending, key=lambda d: -d.cost_s)[:limit]:
+        verdict = doctor.diagnose(defect, state, context=defect.detail)
+
+        if verdict.get("error"):
+            log(f"[医生] {defect.key}: 诊断失败（{verdict['error']}）")
+            runlog.agent("doctor", defect=defect.key, error=str(verdict["error"])[:200])
+            continue
+
+        cause = str(verdict.get("cause") or "").strip()
+        kind = str(verdict.get("class") or "").strip()
+        log(f"[医生] {defect.key}: [{kind}] {cause}")
+
+        applied = prescriber.apply(defect, verdict, state)
+
+        runlog.agent("doctor", defect=defect.key, cause=cause, defect_class=kind,
+                     prescription=verdict.get("prescription"), check=verdict.get("check"),
+                     applied=applied)
+        runlog.line(f"- [医生] `{defect.key}` → [{kind}] {cause} → {applied}")
+        runlog.history_line(f"\n- **{time.strftime('%m-%d %H:%M')}** 医生：{cause} → {applied}\n")
+        done += 1
+
+    return done
+
+
 def run_forever(args: argparse.Namespace) -> int:
     """Unattended loop: play day after day, recover from anything, and keep a progress file."""
     started = time.time()
@@ -612,6 +667,16 @@ def run_forever(args: argparse.Namespace) -> int:
         referee = RefereeAI(smart)
         watcher = Watcher(client, ledger=ledger, runlog=runlog, log=log)
         pipeline = runner.Pipeline(client, ledger, runlog=runlog, log=log)
+        doctor = Doctor(smart, client, log=log)
+        prescriber = Prescriber(client, ledger, learning, store, log=log)
+        outcomes = OutcomeWatch(ledger=ledger, log=log)
+
+        # Everything the agents say also goes on screen, for whoever is watching.
+        runlog.attach_overlay(
+            lambda batch: client.action("overlay", lines=batch)
+        )
+        runlog.feed("run", "agents attached - watch this panel")
+        runlog.feed("outcome", outcomes.summary())
 
         while time.time() < deadline and cycle < args.max_days:
             cycle += 1
@@ -635,15 +700,26 @@ def run_forever(args: argparse.Namespace) -> int:
             for gap in audited:
                 if gap.verdict not in ("BROKEN", "LYING", "NOOP"):
                     continue
+
                 reason = (f"{gap.verdict}: {gap.attempts} 次尝试 / 报 OK {gap.ok_count} 次 / "
                           f"空转 {gap.noop} 次")
-                if learning.blacklist(gap.action, reason):
-                    runlog.agent("gaps", action=gap.action, verdict=gap.verdict,
-                                 attempts=gap.attempts, ok_count=gap.ok_count, noop=gap.noop,
-                                 reasons=gap.reasons, examples=gap.examples)
-                    runlog.line(f"- [缺口] `{gap.action}` **{gap.verdict}** — {reason}")
-                    runlog.history_line(f"\n- **{time.strftime('%m-%d %H:%M')}** 缺口："
-                                        f"`{gap.action}` **{gap.verdict}** — {reason}\n")
+
+                # The detector no longer decides an action's fate. Blacklisting used to be the end
+                # of this loop, and it was wrong as often as it was right: it banned `use_tool_at`
+                # and `enter` - both fine - while the empty watering can behind the failures went
+                # untouched, and the agent lost two things it needed. It now raises a defect, and
+                # the doctor works out why.
+                ledger.raise_defect(
+                    f"gap:{gap.action}",
+                    f"`{gap.action}` 被判定 {gap.verdict}",
+                    "agent",
+                    detail=reason,
+                    evidence="; ".join(gap.examples[:2]) if gap.examples else "",
+                )
+                runlog.agent("gaps", action=gap.action, verdict=gap.verdict,
+                             attempts=gap.attempts, ok_count=gap.ok_count, noop=gap.noop,
+                             reasons=gap.reasons, examples=gap.examples)
+                runlog.line(f"- [缺口] `{gap.action}` **{gap.verdict}** — {reason}")
 
             try:
                 # Every stage before a day is played now has an owner, a retry, and a record.
@@ -679,7 +755,7 @@ def run_forever(args: argparse.Namespace) -> int:
 
                 outcome, label, steps = play(client, streamer, supervisor, args.steps, store,
                                              learning, runlog, budget_s=args.day_seconds,
-                                             watcher=watcher)
+                                             watcher=watcher, prescriber=prescriber)
 
                 # Never let the run sit on the same day forever.
                 if outcome in ("steps_exhausted", "budget_exhausted"):
@@ -714,6 +790,15 @@ def run_forever(args: argparse.Namespace) -> int:
                 known = store.cheat_sheet()
                 streamer.memory_block = known
                 days_done += 1
+
+                # Is anything actually getting better? Nothing was watching this, which is how a
+                # night of sixty game days could pass with the quest counter, the money and the day
+                # scores all exactly where they started.
+                outcomes.observe(label, end_state, verdict.get("score"))
+
+                # Then find out why whatever is still broken is broken, and change something.
+                run_doctor(client, ledger, doctor, prescriber, store, runlog, end_state)
+
                 ledger.save()          # a defect must survive a crash to be worth writing down
 
                 runlog.agent("referee", day=label, score=verdict.get("score"),

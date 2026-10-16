@@ -41,6 +41,22 @@ public class ModEntry : Mod
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
+        helper.Events.Display.RenderedHud += OnRenderedHud;
+    }
+
+
+    /// <summary>Draws the agent activity panel over the game, for anyone watching.</summary>
+    private void OnRenderedHud(object? sender, RenderedHudEventArgs e)
+    {
+        try
+        {
+            OverlayPanel.Draw(e.SpriteBatch, _config);
+        }
+        catch (Exception ex)
+        {
+            // A drawing error must never take the game down mid-stream.
+            Monitor.Log($"overlay draw failed: {ex.Message}", LogLevel.Trace);
+        }
     }
 
 

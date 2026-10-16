@@ -14,6 +14,18 @@ public class ModConfig
     /// <summary>Bind address. 127.0.0.1 keeps it local-only; 0.0.0.0 exposes it to LAN.</summary>
     public string BindAddress { get; set; } = "127.0.0.1";
 
+    /// <summary>Draw the agents' activity down the left of the screen, for people watching.</summary>
+    public bool ShowOverlay { get; set; } = true;
+
+    /// <summary>How many activity lines the overlay keeps on screen at once.</summary>
+    public int OverlayLines { get; set; } = 26;
+
+    /// <summary>Overlay panel width in pixels.</summary>
+    public int OverlayWidth { get; set; } = 470;
+
+    /// <summary>Seconds before an overlay line fades out. 0 keeps everything until it scrolls off.</summary>
+    public int OverlayFadeSeconds { get; set; } = 0;
+
     /// <summary>How many nearby tiles to scan for objects/crops when building state.</summary>
     public int ScanRadius { get; set; } = 12;
 

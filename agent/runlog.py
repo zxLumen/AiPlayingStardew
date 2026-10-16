@@ -27,6 +27,11 @@ class RunLog:
         self.run_id = time.strftime("%Y-%m-%d_%H%M%S")
         self.report = self.runs / f"run-{self.run_id}.md"
 
+        # The on-screen panel. Lines are batched so the API is not called once per event.
+        self._push = None
+        self._feed: list[dict] = []
+        self._last_push = 0.0
+
         # One continuous human record across every run, so there is always a single file to read
         # even when a run is restarted many times.
         self.history = self.logs / "history.md"
@@ -92,8 +97,103 @@ class RunLog:
         event.update(fields)
         self._append(self.agents / f"{name}.jsonl",
                      json.dumps(event, ensure_ascii=False, default=str) + "\n")
+        self.feed(name, summarize(name, fields))
+
+    # -- the on-screen feed ------------------------------------------------
+
+    def attach_overlay(self, push) -> None:
+        """Give the log somewhere to send lines for the in-game panel.
+
+        push(batch) is called with a list of {"tag", "text"} when there is something worth showing.
+        """
+        self._push = push
+
+    def feed(self, tag: str, text: str) -> None:
+        """Queue one line for the on-screen panel, without spamming the API per event."""
+        if self._push is None or not text:
+            return
+
+        self._feed.append({"tag": tag, "text": text})
+
+        now = time.monotonic()
+        if len(self._feed) < 8 and now - self._last_push < 1.5:
+            return
+
+        batch, self._feed = self._feed, []
+        self._last_push = now
+        try:
+            self._push(batch)
+        except Exception:
+            pass        # the panel is a nicety; it must never break the run
 
     # -- convenience -------------------------------------------------------
 
     def event(self, kind: str, **fields) -> None:
         self.agent("run", event=kind, **fields)
+
+
+def summarize(name: str, f: dict) -> str:
+    """One readable line for the audience, per agent.
+
+    The structured streams are for the machine; this is what a person watching the stream reads, so
+    it keeps the decision and drops the bookkeeping.
+    """
+    def short(value, limit=90) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, (dict, list)):
+            value = json.dumps(value, ensure_ascii=False)
+        return str(value).replace("\n", " ")[:limit]
+
+    if name == "planner":
+        goals = f.get("goals") or []
+        first = short(goals[0] if goals else "", 80)
+        return f"{short(f.get('focus'), 70)}" + (f" · {first}" if first else "")
+
+    if name == "streamer":
+        flag = "OK " if f.get("ok") else "ERR"
+        detail = short(f.get("reason"), 46) if f.get("ok") else short(f.get("detail"), 60)
+        return f"{short(f.get('action'), 14):<14} {short(f.get('args'), 34):<34} {flag} {detail}"
+
+    if name == "supervisor":
+        return f"{short(f.get('status'), 8)} {short(f.get('note'), 90)}"
+
+    if name == "referee":
+        return f"score={f.get('score')} ({short(f.get('verdict'), 8)}) {short(f.get('why'), 90)}"
+
+    if name == "watcher":
+        what = f.get("action") or ""
+        because = f.get("reason") or f.get("stopped") or ""
+        remedy = f" -> {f.get('remedy')}" if f.get("remedy") else ""
+        return f"{short(f.get('event'), 12)} {short(what, 12)} {short(because, 40)}{remedy}"
+
+    if name == "doctor":
+        return f"[{short(f.get('defect_class'), 10)}] {short(f.get('cause'), 90)}"
+
+    if name == "pipeline":
+        return f"{short(f.get('stage'), 8)} {short(f.get('event'), 14)} {short(f.get('detail'), 70)}"
+
+    if name == "witness":
+        mark = "世界变了" if f.get("worked") else "世界没变"
+        return f"{short(f.get('action'), 12)} {mark} ({short(f.get('evidence'), 50)})"
+
+    if name == "learning":
+        return f"{short(f.get('kind'), 12)}+{short(f.get('action'), 12)} " + \
+               ("成功" if f.get("worked") else "失败")
+
+    if name == "gatekeeper":
+        return short(f.get("note"), 100)
+
+    if name == "prescription":
+        return f"{short(f.get('action'), 12)} 前置不足 -> 先做 {short(f.get('satisfied_with'), 12)}"
+
+    if name == "memory":
+        return short(f.get("summary") or f.get("fact") or f.get("text"), 100)
+
+    if name == "gaps":
+        return f"{short(f.get('action'), 12)} {short(f.get('verdict'), 8)}"
+
+    if name in ("defect", "outcome"):
+        return short(f.get("title") or f.get("detail") or f, 100)
+
+    return short({k: v for k, v in f.items() if k not in ("t", "run")}, 100)

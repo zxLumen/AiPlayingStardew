@@ -64,6 +64,9 @@ public static class ActionProcessor
                 if (action == "game_data")
                     return GameData(root, monitor);
 
+                if (action == "overlay")
+                    return Overlay(root);
+
                 (bool ok, string detail) = action switch
                 {
                     "select_slot" => SelectSlot(root),
@@ -500,7 +503,55 @@ public static class ActionProcessor
 
 
     /// <summary>
-    /// Returns the game's own data, by name.
+    /// Feeds the on-screen agent panel. The agent side pushes what the agents just did, tagged with
+    /// who said it; the game draws it down the left. Nothing is read back - this is one-way.
+    /// </summary>
+    private static (bool ok, string detail, Dictionary<string, object?>? data) Overlay(JsonElement root)
+    {
+        if (root.TryGetProperty("clear", out JsonElement clearEl)
+            && clearEl.ValueKind == JsonValueKind.True)
+        {
+            OverlayPanel.Clear();
+            return (true, "overlay cleared", null);
+        }
+
+        var items = new List<KeyValuePair<string, string>>();
+
+        if (root.TryGetProperty("lines", out JsonElement linesEl)
+            && linesEl.ValueKind == JsonValueKind.Array)
+        {
+            foreach (JsonElement entry in linesEl.EnumerateArray())
+            {
+                if (entry.ValueKind == JsonValueKind.String)
+                {
+                    items.Add(new KeyValuePair<string, string>("", entry.GetString() ?? ""));
+                    continue;
+                }
+
+                if (entry.ValueKind != JsonValueKind.Object)
+                    continue;
+
+                string tag = entry.TryGetProperty("tag", out JsonElement tagEl)
+                    ? tagEl.GetString() ?? ""
+                    : "";
+
+                string text = entry.TryGetProperty("text", out JsonElement textEl)
+                    ? textEl.GetString() ?? ""
+                    : "";
+
+                items.Add(new KeyValuePair<string, string>(tag, text));
+            }
+        }
+
+        if (items.Count == 0)
+            return (false, "nothing to show (send 'lines')", null);
+
+        OverlayPanel.Push(items);
+        return (true, $"overlay +{items.Count} line(s), {OverlayPanel.Count} kept", null);
+    }
+
+
+
     ///
     /// Call it with what="catalog" to list every data asset the game ships. Nothing about Stardew
     /// Valley's rules lives in this mod - the agent reads the same tables the game itself reads, and

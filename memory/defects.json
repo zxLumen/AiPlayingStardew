@@ -1,0 +1,18 @@
+{
+  "defects": [
+    {
+      "key": "stalled:water_all",
+      "title": "water_all 走不到目标",
+      "owner": "agent",
+      "detail": "在 (64, 20) 原地走了 6 秒",
+      "severity": 2,
+      "count": 1,
+      "first_seen": "2026-10-16 08:59",
+      "last_seen": "2026-10-16 08:59",
+      "cost_s": 10.33623329992406,
+      "days": 0,
+      "status": "open",
+      "evidence": []
+    }
+  ]
+}
