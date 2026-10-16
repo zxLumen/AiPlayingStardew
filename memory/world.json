@@ -1,25 +1,53 @@
 {
   "entries": {
+    "go_to@Town|go_to": {
+      "works": 9,
+      "fails": 2,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:something|interact_at": {
+      "works": 9,
+      "fails": 1,
+      "says": "镇子很小，所有人自然都十分熟络。",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "Town:exit_building|exit_building": {
+      "works": 9,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:SeedShop|enter": {
+      "works": 8,
+      "fails": 1,
+      "says": "SeedShop",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:empty|interact_at": {
+      "works": 1,
+      "fails": 8,
+      "says": "嗯。我才想起我好像需要做某件事……但又不记得是什么事了。",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@SeedShop|go_to": {
       "works": 8,
       "fails": 0,
       "says": "",
       "note": "",
-      "last": "2026-10-16"
+      "last": "2026-10-17"
     },
-    "go_to@Town|go_to": {
-      "works": 6,
-      "fails": 2,
-      "says": "",
+    "ShopMenu:shelf row|menu_click": {
+      "works": 0,
+      "fails": 7,
+      "says": "forSaleButtons.0",
       "note": "",
-      "last": "2026-10-16"
-    },
-    "tile:something|interact_at": {
-      "works": 7,
-      "fails": 1,
-      "says": "镇子很小，所有人自然都十分熟络。",
-      "note": "",
-      "last": "2026-10-16"
+      "last": "2026-10-17"
     },
     "dialogue_advance@Farm|dialogue_advance": {
       "works": 7,
@@ -28,26 +56,26 @@
       "note": "",
       "last": "2026-10-16"
     },
-    "door:SeedShop|enter": {
-      "works": 6,
-      "fails": 1,
-      "says": "SeedShop",
-      "note": "",
-      "last": "2026-10-16"
-    },
-    "go_to@SeedShop|go_to": {
-      "works": 6,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-16"
-    },
     "menu:upperRightCloseButton|menu_click": {
-      "works": 6,
+      "works": 7,
       "fails": 0,
       "says": "upperRightCloseButton",
       "note": "",
-      "last": "2026-10-16"
+      "last": "2026-10-17"
+    },
+    "door:BusStop|enter": {
+      "works": 1,
+      "fails": 4,
+      "says": "BusStop",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:Farm|enter": {
+      "works": 1,
+      "fails": 4,
+      "says": "Farm",
+      "note": "",
+      "last": "2026-10-17"
     },
     "go_to@Farm|go_to": {
       "works": 3,
@@ -56,38 +84,10 @@
       "note": "",
       "last": "2026-10-16"
     },
-    "tile:empty|interact_at": {
-      "works": 0,
-      "fails": 5,
-      "says": "",
-      "note": "",
-      "last": "2026-10-16"
-    },
     "Farm:patch|harvest_all": {
       "works": 0,
       "fails": 4,
       "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
-      "note": "",
-      "last": "2026-10-16"
-    },
-    "ShopMenu:shelf row|menu_click": {
-      "works": 0,
-      "fails": 4,
-      "says": "forSaleButtons.0",
-      "note": "",
-      "last": "2026-10-16"
-    },
-    "door:BusStop|enter": {
-      "works": 0,
-      "fails": 4,
-      "says": "",
-      "note": "",
-      "last": "2026-10-16"
-    },
-    "door:Farm|enter": {
-      "works": 0,
-      "fails": 4,
-      "says": "Farm",
       "note": "",
       "last": "2026-10-16"
     },
@@ -111,6 +111,13 @@
       "says": "",
       "note": "",
       "last": "2026-10-16"
+    },
+    "tile:Junimo|interact_at": {
+      "works": 0,
+      "fails": 3,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
     },
     "DialogueBox:doneNamingButton|menu_click": {
       "works": 2,
@@ -147,12 +154,33 @@
       "note": "",
       "last": "2026-10-16"
     },
+    "door:Town|enter": {
+      "works": 2,
+      "fails": 0,
+      "says": "Town",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@CommunityCenter|go_to": {
+      "works": 2,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "select_slot@Town|select_slot": {
       "works": 2,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-16"
+    },
+    "CommunityCenter:exit_building|exit_building": {
+      "works": 0,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
     },
     "Farm:patch|till_area": {
       "works": 0,
@@ -168,6 +196,13 @@
       "note": "",
       "last": "2026-10-16"
     },
+    "door:CommunityCenter|enter": {
+      "works": 1,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "door:FarmHouse|enter": {
       "works": 1,
       "fails": 0,
@@ -175,12 +210,12 @@
       "note": "",
       "last": "2026-10-16"
     },
-    "door:Town|enter": {
-      "works": 1,
-      "fails": 0,
-      "says": "Town",
+    "interact@CommunityCenter|interact": {
+      "works": 0,
+      "fails": 1,
+      "says": "",
       "note": "",
-      "last": "2026-10-16"
+      "last": "2026-10-17"
     },
     "move@Town|move": {
       "works": 0,
@@ -209,6 +244,13 @@
       "says": "the door at (80,15) would not open - it may be locked or shut at this hour",
       "note": "Farm→BusStop 的门在 9:00 前不开，9 点后才放行",
       "last": "2026-10-16"
+    },
+    "communitycenter_junimo|interact_at": {
+      "works": 0,
+      "fails": 0,
+      "says": "interacted with (14,27) -> False",
+      "note": "Junimo 本体不可交互，旁边的可交互物（如墙上的纸）才是调查目标",
+      "last": "2026-10-17"
     },
     "forsalebuttons_0_purchase|menu_click": {
       "works": 0,

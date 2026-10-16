@@ -297,6 +297,40 @@ class StepClock:
         return f"{total:.1f}s ({tail})"
 
 
+def _day_never_ended(client, day_start: dict, sleep_attempts: int, label: str, log, runlog) -> None:
+    """Say out loud that the day did not end, and why - instead of leaving it to a person watching.
+
+    This is the failure that has cost the most in this project and been noticed the least: the round
+    budget runs out, the harness moves on, and the farmer is still standing in the kitchen at the next
+    session. For days the only thing that knew was whoever was watching the stream. A monitor that
+    waits 12 seconds and a guard that blocks an action can both be wrong in silence; this line cannot.
+    """
+    try:
+        state = client.state()
+    except Exception as exc:
+        log(f"[日子] 结束不了，而且连状态都读不到：{exc}")
+        return
+
+    game = state.get("game") or {}
+    if session_finished(day_start, game):
+        return
+
+    where = (state.get("player") or {}).get("current_location")
+    block = game.get("blocked_reason") or ""
+    log(f"[日子] 这一天没有结束：现在是 {game.get('season')} {game.get('day_of_month')} "
+        f"{game.get('time_of_day')}，人在 {where}"
+        + (f"，被「{block}」挡住" if block else "")
+        + f"，sleep 试过 {sleep_attempts} 次。"
+        + (" clock 已经过了 2:00，游戏本该把他送上床。" if not game.get("is_player_free", True) else ""))
+
+    if runlog is not None:
+        try:
+            runlog.agent("run", day=label, event="day_did_not_end", time=game.get("time_of_day"),
+                         location=where, blocked=block, sleep_attempts=sleep_attempts)
+        except Exception:
+            pass
+
+
 def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
          max_steps: int, store: "memory_mod.MemoryStore",
          learning: LearningStore, runlog: RunLog, budget_s: float = 0.0,
@@ -316,6 +350,10 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
 
     # The player's own notes on how this game behaves. See world.py.
     world = world_mod.current(log=log)
+
+    # How many times it tried to go to bed. A day that ends in bed is the one thing a round MUST be
+    # able to do, and "it never once managed" was noticed by a person, not by the code.
+    sleep_attempts = 0
 
     # A supervisor review being worked out in the background. See anticipate.Review.
     pending_review: object | None = None
@@ -349,6 +387,7 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         # day is ended and scored as it stands - a fast failure is a data point, a slow one is a loss.
         if deadline and time.monotonic() > deadline:
             log(f"[day] round budget ({budget_s:.0f}s) spent at step {step} - ending the day here")
+            _day_never_ended(client, day_start, sleep_attempts, label, log, runlog)
             return "budget_exhausted", label, step - 1
 
         state = client.state()
@@ -492,6 +531,8 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             log(f"[世界] 记不下来这次学到的：{exc}")
 
         action = str(item.get("action") or "noop").strip()
+        if action == "sleep":
+            sleep_attempts += 1
 
         # Arguments belong at the top level, but tolerate a model that nests them.
         nested = item.get("args")
@@ -734,6 +775,7 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
     elapsed = total_llm + total_action + total_watch
     log(f"[perf] steps={max_steps} total={elapsed:.0f}s | llm={total_llm:.0f}s "
         f"action={total_action:.0f}s supervisor={total_watch:.0f}s")
+    _day_never_ended(client, day_start, sleep_attempts, label, log, runlog)
     return "steps_exhausted", label, max_steps
 
 
