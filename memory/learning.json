@@ -1,8 +1,8 @@
 {
   "tally": {
     "area|clear_area": {
-      "ok": 6,
-      "fail": 3
+      "ok": 7,
+      "fail": 4
     },
     "area|plant_all": {
       "ok": 1,
@@ -10,11 +10,11 @@
     },
     "area|refill": {
       "ok": 0,
-      "fail": 4
+      "fail": 5
     },
     "area|till_area": {
       "ok": 0,
-      "fail": 32
+      "fail": 33
     },
     "area|water_all": {
       "ok": 1,

@@ -41,8 +41,12 @@ IDLE_ANGLES = [
 
 # Actions that a viewer can see happen, and would want the streamer to talk about. Talking about
 # every step is noise; NOT talking about these is a silent stream. Anything not here is bookkeeping.
+#
+# No placeholders in this table. One used to read "走进了 {target}" and was never formatted, so the
+# model received that literal text, could not tell where the farmer had gone, and filled the gap
+# with a place it invented - which is how the commentary ends up describing a walk that never
+# happened. Anything that needs a field from the event is built in _beat, where the event is.
 NOTABLE = {
-    "enter": "走进了 {target}",
     "exit_building": "走出了建筑",
     "harvest_all": "收了一轮作物",
     "plant_all": "把种子都种下去了",
@@ -367,6 +371,18 @@ class Commentator:
 
             self._failures.pop(action, None)
 
+            if action == "enter":
+                # The whole point of this event is *where*. Built here, from the event's own args,
+                # rather than left as a placeholder in a table that is never asked to format one.
+                now = time.monotonic()
+                if now - self._notable_at.get(action, 0.0) < self.beat_cooldown_s:
+                    return None
+                self._notable_at[action] = now
+
+                where = str((event.get("args") or {}).get("target") or "").strip()
+                line = f"走进了{where}" if where else "走进了建筑"
+                return line, f"action:{action}"
+
             if action in NOTABLE:
                 # Twelve menu clicks are one piece of news, not twelve. Without this the streamer
                 # narrates the same trivial action until it sounds like a tape loop - which is the
@@ -430,19 +446,22 @@ class Commentator:
             self._speak_queued()
         else:
             # Nothing is happening. On a teaching stream that is not a reason to stay quiet - but a
-            # quiet moment is also the easiest place to sound broken, because there is no new fact to
-            # report and the obvious thing to do is describe the situation again, in slightly
-            # different words, which is exactly what the audience has just heard. So the material
-            # rotates through a fixed list of angles, and each consecutive lull waits longer than the
-            # last: a real pause in the game becomes a thought, then a longer thought, then a question
-            # to the room - never the same minute narrated twice.
+            # quiet moment is also the easiest place to sound broken: with no new fact to report,
+            # the easy thing to do is describe the situation again in slightly different words, and
+            # with nothing to describe at all the easy thing is to drift onto a topic with no
+            # relation to what is on screen. Both are worse than silence.
+            #
+            # So the order is: the machine's own state first (that is what this channel is about,
+            # and it is always current), and the rotating angles only once that is exhausted.
             idle_wait = self.idle_gap_s * (1.0 + 0.6 * min(3, self._idle_count))
             if time.monotonic() - self._last_spoke >= idle_wait:
                 angle = IDLE_ANGLES[self._idle_angle % len(IDLE_ANGLES)]
                 self._idle_angle += 1
-                self._speak(beat="（现在没有特别的事发生，随便聊聊。这一句请讲：\n" + angle +
-                                 "\n注意：别把现在的情况再描述一遍，也别重复你上面刚说过的事 —— "
-                                 "上面已经说过的，换个角度说点新的。）",
+                self._speak(beat="（现在没有新的进展。这一句请先看「系统现状」：有没有还没讲过的 —— "
+                                 "卡在哪、刚才试了什么、学到了什么、下一步打算怎么办。"
+                                 "有就如实讲出来，用你自己的话，别念术语。\n"
+                                 "实在没有可讲的了，再按这个角度聊：\n" + angle +
+                                 "\n不管是哪一种，都别把刚才那句话换个说法再讲一遍。）",
                             topic="idle")
 
     def _work_pending(self) -> bool:

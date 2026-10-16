@@ -454,11 +454,23 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
                 result = dict(result)
                 result["detail"] = f"{result.get('detail', '')} | 守望者处置: {', '.join(watch.remedies)}"
 
-        # A macro reports what it *queued*, not what it *did*. The real outcome - how many tiles
-        # it finished and how many it gave up on - only exists once the chore has stopped.
+        # A macro reports what it *queued*, not what it *did*. The real outcome - how many tiles it
+        # finished and how many it gave up on - only exists once the chore has stopped, and it arrives
+        # in `chore_last`.
+        #
+        # But `chore_last` is ONE slot that anything can leave a value in, so reading it without asking
+        # "is this mine?" pins somebody else's result onto this action: `refill` came back reporting
+        # till_area's "5 tiles, 0 gave up", and the AI then reasoned about a failure that never
+        # happened, in the wrong action, on the wrong evidence. (`refill` is not even a macro over a
+        # patch - it is one swing at water - yet it was in the list that reads this slot.)
+        #
+        # It is this action's outcome only if it MOVED during this action. Same rule as everywhere else
+        # in this project: a value that did not change is not evidence of anything.
         if action in CHORE_ACTIONS:
             outcome = str(after_state.get("chore_last") or "").strip()
-            if outcome:
+            was = str((state or {}).get("chore_last") or "").strip()
+
+            if outcome and outcome != was:
                 result = dict(result)
                 result["queued"] = result.get("detail", "")
                 result["detail"] = outcome

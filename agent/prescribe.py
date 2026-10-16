@@ -77,6 +77,20 @@ def _compare(fact, op: str, want) -> bool | None:
     return None
 
 
+# Is the hand gate allowed to BLOCK anything?
+#
+# It was on for one afternoon and turned a bad situation into a deadlock. The gate blocks every action
+# while a hand is full, and the thing that satisfies it - clicking a free bag slot - does nothing in the
+# real game: measured, `menu_click 12` on an empty slot, and the held stack did not move off the menu's
+# hand. A gate whose remedy does not exist is worse than the bug it was written for, because the original
+# bug at least let the day continue.
+#
+# Detection stays ON: the witness says the hand is not empty, the doctor can see both hands, and every
+# journal line carries `[hand: ...]`. Blocking comes back when putting an item down has been PROVEN -
+# not when it has been written.
+HAND_GATE = False
+
+
 class Prescriber:
     """Turns the doctor's prescription into a change, and checks whether it worked."""
 
@@ -103,7 +117,7 @@ class Prescriber:
         # (ui.held_item is in its payload) and asked for something else anyway, which is exactly why
         # this is enforced by the harness rather than requested in a prompt - the same reason a
         # watering can gets filled before watering.
-        if self._hand_full(state) and not self._is_put_down(action, args):
+        if HAND_GATE and self._hand_full(state) and not self._is_put_down(action, args):
             return True
 
         rule = self.preconditions.get(action)
@@ -118,7 +132,7 @@ class Prescriber:
 
     def satisfy(self, action: str, state: dict, args: dict | None = None) -> str | None:
         """Run whatever satisfies the precondition first. Returns what it ran."""
-        if self._hand_full(state) and not self._is_put_down(action, args):
+        if HAND_GATE and self._hand_full(state) and not self._is_put_down(action, args):
             return self._put_down(state)
 
         rule = self.preconditions.get(action)
@@ -179,8 +193,25 @@ class Prescriber:
             except (TypeError, ValueError):
                 pass
 
-        bag = [str(b.get("name") or "") for b in (ui.get("buttons") or [])
-               if str(b.get("name") or "").startswith("inventory")]
+        def bag_index(name: str) -> int:
+            digits = "".join(c for c in name.split(".")[-1] if c.isdigit())
+            return int(digits) if digits else -1
+
+        # EVERY bag slot, not only the ones whose name starts with "inventory".
+        #
+        # A shop's panel is 36 slots. The few that collide with a shelf row get prefixed
+        # ("inventory.0"); the other thirty-two keep their plain number ("12"). Filtering on the prefix
+        # therefore found four slots - the tool row, which is always full - concluded "no free slot",
+        # and clicked the axe. That is the difference between putting the hand down and not being able
+        # to act at all, and it is why this gate looked like a trap instead of a repair.
+        bag = []
+        for button in (ui.get("buttons") or []):
+            name = str(button.get("name") or "")
+            if not name:
+                continue
+            tail = name.split(".")[-1]
+            if name.startswith("inventory") or tail.isdigit():
+                bag.append(name)
 
         if not bag:
             # Either the hand is the player's cursor (not the menu's), or the panel is not addressable.
@@ -189,15 +220,17 @@ class Prescriber:
             self.log(f"[处方]   press_key escape -> ok={result.get('ok')} {str(result.get('detail'))[:80]}")
             return "press_key escape"
 
-        def bag_index(name: str) -> int:
-            digits = "".join(c for c in name.split(".")[-1] if c.isdigit())
-            return int(digits) if digits else -1
-
         free = [n for n in bag if bag_index(n) not in occupied]
-        target = (free or bag)[0]
 
-        self.log(f"[处方] 手上有东西（{self._hand_full(state)}），先放进背包：menu_click {target}"
-                 + ("" if free else "（没有空闲格，冒险用第一个）"))
+        if not free:
+            # Do NOT click a full slot "anyway". Placing onto an occupied slot can swap that item onto
+            # the hand and leave the farmer worse off than before. A satisfier that cannot satisfy has
+            # to SAY so - the gate it feeds is blocking everything else, so silence is a deadlock.
+            self.log(f"[处方] 手上有东西（{self._hand_full(state)}），但背包没有空闲格 - 不冒险点已占用的格子")
+            return None
+
+        target = free[0]
+        self.log(f"[处方] 手上有东西（{self._hand_full(state)}），先放进背包：menu_click {target}")
         result = self.client.action("menu_click", name=target)
         self.log(f"[处方]   menu_click {target} -> ok={result.get('ok')} {str(result.get('detail'))[:90]}")
         return f"menu_click {target}"
