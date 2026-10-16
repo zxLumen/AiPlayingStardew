@@ -1769,6 +1769,13 @@ public static class ActionProcessor
         if (!free)
             return (false, why);
 
+        // ALREADY ON THE WAY. This is not a nicety: the harness re-issues `sleep` whenever the watcher
+        // runs out of patience, and this used to stop the movement and re-plan the walk to the bed
+        // every time - so the farmer was restarted on the way to bed, over and over, and never
+        // arrived. "He has never once managed to get into bed" is exactly what that produces.
+        if (_pendingSleep)
+            return (true, "already walking to the bed - it will lie down on arrival");
+
         MovementController.Stop();
         GameLocation location = Game1.currentLocation;
         BedFurniture? bed = FindBed(location);
@@ -1783,6 +1790,7 @@ public static class ActionProcessor
                 "will put you to bed itself.");
         }
 
+        Point spot = bed.GetBedSpot();
         return LieDown(location, bed);
     }
 

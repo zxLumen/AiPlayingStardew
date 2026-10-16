@@ -2,11 +2,11 @@
   "tally": {
     "area|clear_area": {
       "ok": 13,
-      "fail": 12
+      "fail": 13
     },
     "area|harvest_all": {
       "ok": 0,
-      "fail": 2
+      "fail": 4
     },
     "area|plant_all": {
       "ok": 8,
@@ -18,11 +18,11 @@
     },
     "area|till_area": {
       "ok": 2,
-      "fail": 44
+      "fail": 45
     },
     "area|water_all": {
-      "ok": 16,
-      "fail": 12
+      "ok": 17,
+      "fail": 14
     },
     "big_debris|go_to": {
       "ok": 0,

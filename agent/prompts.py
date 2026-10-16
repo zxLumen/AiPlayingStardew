@@ -437,6 +437,18 @@ Rules
   Good: "把农舍外的 6 株防风草全部浇水"
   Good: "去皮埃尔商店买 15 个防风草种子"
   Bad:  "努力干活" / "多交朋友"
+- NEVER WRITE A COORDINATE. Not one. A coordinate that was right yesterday is a different tile today -
+  the farmer's position differs by a step or two and the whole map shifts with it - and a plan full of
+  numbers is what sends it walking into walls, into beds that are not there, and to doors that do not
+  exist. Name the thing and let the step look up where it is:
+      BAD : "go_to (64,15) 然后 enter FarmHouse，再到床格 (10,9) 睡觉"
+      GOOD: "回农舍睡觉" / "把商店柜台的种子买了" / "把 (61,18) 那一片清出来" <- only if the STATE said so
+  A coordinate may appear in a goal ONLY if it came out of the state you were handed, and even then the
+  step is free to look it up again rather than trusting you.
+- Say what you WANT to be true by the end of the day, not a list of keystrokes. Three things you would
+  be pleased to have done beats five you will not finish, and if the first one turns out to be
+  impossible - the shop is shut, the door is locked - you still want the rest of the day to be worth
+  something. Say so in the goal ("...如果店没开就先去镇上转转").
 - You can only plan things a player could do. There is no teleporting and no skipping time:
 walking somewhere IS the plan, and a route that does not work means a different route, not a
 shortcut. The actions available are ordinary ones: go_to, enter, use_tool_at, interact_at,

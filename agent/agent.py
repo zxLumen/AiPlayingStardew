@@ -477,6 +477,14 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         # rides along with the decision it is already making, so learning costs no extra call.
         try:
             learned = decision.get("learned") if isinstance(decision, dict) else None
+            if not isinstance(learned, dict) and queued:
+                # The model sometimes puts it inside the first action instead of at the top of the
+                # reply. That is a shape difference, not a failure - take it from there rather than
+                # losing what it worked out (and rather than passing it to the bridge as an argument).
+                learned = {k: v for k, v in queued[0].items() if k != "action"} or None
+                if isinstance(learned, dict):
+                    learned = learned.get("learned")
+                    queued[0] = {k: v for k, v in queued[0].items() if k != "learned"}
             if isinstance(learned, dict):
                 world.learn(str(learned.get("about") or ""), str(learned.get("action") or ""),
                             str(learned.get("result") or ""), str(learned.get("note") or ""))
@@ -505,14 +513,23 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             log(f"[守门] {note}")
 
             # A note used to be advice nobody read: it went to the log, the action ran anyway, and
-            # the model was never told - so it repeated it, every step, for a whole day. If the
-            # gatekeeper says "do not do this", the honest thing is to not do it AND to put the
-            # reason in the history the model reads on its next turn.
-            if action == original_action and args == original_args:
-                history.append(f"BLOCKED BY GATEKEEPER - this did not run: {note}")
-                store.log_step(label, f"- step {step}: 守门器拦下，未执行 - {note}")
-                log(f"[守门] 本步已拦下，未执行")
-                continue
+            # the model was never told - so it repeated it, every step, for a whole day. So the note
+            # goes into the history the model reads.
+            #
+            # But the note does NOT stop the action any more, and that reversal is the important one.
+            # Blocking it for the rest of the day sounds like safety and is the opposite: the guard
+            # blocks on an action+argument pair with no knowledge of why it failed, and the situation
+            # changes - the shop opens at nine, the farmer moves next to the door, the queue empties.
+            # It blocked `menu_click forSaleButtons.0` so a whole day could not buy a seed, and it
+            # blocked `enter Farm` so a whole day could not go home. A rule that can only ever say no
+            # is not a guard, it is a wall.
+            #
+            # What actually stops a person repeating a failure is that they are told, in plain words,
+            # what happened last time - which is what the note is for.
+            history.append(f"YOU HAVE ALREADY TRIED THIS AND IT DID NOT WORK - {note}. "
+                           f"Think about what was different this time before you do it again.")
+            store.log_step(label, f"- step {step}: 重复提醒（仍然执行） - {note}")
+            log(f"[守门] 提醒已给（仍会执行）：{note[:60]}")
 
         # A prescribed precondition is enforced here, by the system, not remembered by the model.
         # This is the difference between "the doctor found out that a watering can has to be full"
