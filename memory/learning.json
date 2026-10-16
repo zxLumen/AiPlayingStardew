@@ -2,23 +2,35 @@
   "tally": {
     "area|clear_area": {
       "ok": 13,
-      "fail": 9
+      "fail": 12
+    },
+    "area|harvest_all": {
+      "ok": 0,
+      "fail": 2
     },
     "area|plant_all": {
-      "ok": 7,
+      "ok": 8,
       "fail": 1
     },
     "area|refill": {
-      "ok": 5,
-      "fail": 6
+      "ok": 6,
+      "fail": 7
     },
     "area|till_area": {
-      "ok": 1,
+      "ok": 2,
       "fail": 44
     },
     "area|water_all": {
-      "ok": 13,
-      "fail": 8
+      "ok": 16,
+      "fail": 12
+    },
+    "big_debris|go_to": {
+      "ok": 0,
+      "fail": 1
+    },
+    "forage|interact_at": {
+      "ok": 1,
+      "fail": 1
     },
     "thirsty_crop|go_to": {
       "ok": 1,
@@ -38,7 +50,7 @@
     },
     "weed|go_to": {
       "ok": 0,
-      "fail": 1
+      "fail": 2
     }
   }
 }

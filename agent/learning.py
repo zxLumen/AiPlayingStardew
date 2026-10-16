@@ -90,7 +90,13 @@ class LearningStore:
             entry["worked"] = worked
 
     def is_loop(self, action: str, args: dict, threshold: int = 4) -> bool:
-        """Repeat attempts that changed NOTHING. A repeat that moved the world is progress."""
+        """Repeat attempts that FAILED. A repeat that moved the world is progress.
+
+        `worked is False` and not `is not True`: an action with no witness at all (a sleep, a noop, a
+        look) is never True, so counting those blocked `sleep` after four tries - and the day could not
+        end. The farmer walked round the house until half past midnight while the guard called the one
+        action that ends a day a loop. Only a measured failure is evidence of a loop.
+        """
         needle = (action, json.dumps(args, sort_keys=True, ensure_ascii=False))
         same = [a for a in self.attempts
                 if a.get("action") == needle[0] and a.get("args") == needle[1]]
@@ -99,7 +105,7 @@ class LearningStore:
             return False
 
         # Only the tail, so an action that used to work and has now stopped is still caught.
-        return all(a.get("worked") is not True for a in same[-threshold:])
+        return all(a.get("worked") is False for a in same[-threshold:])
 
     def blacklist(self, action: str, reason: str) -> bool:
         """Stop using an action that has been shown not to work. Returns True when newly blocked."""
@@ -226,8 +232,10 @@ class LearningStore:
             return action, args, f"'{action}' 已被能力缺口检测器拉黑（{self.blocked[action]}）- 换个做法"
 
         if self.is_loop(action, args):
-            return action, args, (f"'{action}' {json.dumps(args, ensure_ascii=False)} "
-                                  "本日已重复 4 次 - 这是个循环，别再做了")
+            return action, args, (
+                f"'{action}' {json.dumps(args, ensure_ascii=False)} 今天已经重复 4 次，而且世界一次都没变。"
+                "这不是'再试一次'的场景：先想清楚游戏到底说了什么（看上面那条 detail 里的原话），"
+                "再换一个变量——换个目标、换工具、换时间，或者先用 observe / inspect 看清楚你要动的东西是什么。")
 
         if self.is_repeat(action, args):
             return action, args, f"'{action}' {args} 已连续失败 2 次，被拦截 - 换个做法"

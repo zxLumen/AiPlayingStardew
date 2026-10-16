@@ -25,11 +25,28 @@ More examples:
 
 {"reason": "stand still and look around", "actions": [{"action": "noop"}]}
 
+LEARNING. Add one optional field, "learned", when this turn TAUGHT YOU SOMETHING about how the game
+works - a rule, not a place. It is how you get to know the game instead of being told about it:
+
+{"reason": "the shop door is shut and it told me why", "actions": [{"action": "exit_building"}],
+ "learned": {"about": "SeedShop door", "action": "enter",
+             "result": "上锁了……（营业时间：9:00~21:00）",
+             "note": "shut outside 9:00~21:00 - check the clock before walking over"}}
+
+Fill "result" with the game's OWN words when it printed any (a message, a sign, a price), and "note"
+with the rule in your own words. NEVER put a coordinate in here - where a rock was today is not a rule
+of the game. Leave "learned" out entirely when nothing surprised you; most turns teach nothing.
+
 Play the way a person does: a person decides "I will clear this patch, then sow it" and then simply
 does it, without re-deciding between the steps. You are asked again when your queue runs out, when
 something fails, or when a supervisor directive arrives - so queue only what you are reasonably
 sure of, and keep it short when the world is uncertain. A queue that fails is fine; a queue that
 wanders is not.
+
+A PERSON DOES NOT DO THE SAME FAILING THING AGAIN. If an attempt failed, the honest next move is
+almost never the same attempt: look at what the game actually said and what changed, and change one
+thing - a different target, a different tool, a different time of day, or gather information first
+(observe / inspect). When you are stuck, say out loud what you think is going on before you act.
 
 Never nest the arguments inside an "args" object. Never output markdown or prose."""
 
@@ -202,10 +219,6 @@ RULES
 11. A day is limited. If something is impossible right now - a shop is shut, a door is locked, you
     are out of stamina, the place is not there on this weekday - do not keep trying it. Do
     something useful instead, and remember the reason.
-12. A SHUT SHOP DOES NOT OPEN BY KNOCKING. location.shops gives each shop's hours and open_now, and
-    the game says the same thing when you try the door ("the door is locked ..."). If a shop is shut,
-    that is information, not an obstacle: come back after opens_at, or spend the hours until then on
-    something else. Knocking a second time is a loop; knocking a third is a wasted day.
 
 GOAL
 {{

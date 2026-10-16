@@ -11,12 +11,13 @@ from llm import LlmClient, LlmError
 
 class StreamerAI:
     def __init__(self, llm: LlmClient, goal: str, persona: str = "",
-                 memory_block: str = "", plan: dict | None = None) -> None:
+                 memory_block: str = "", plan: dict | None = None, world=None) -> None:
         self.llm = llm
         self.goal = goal
         self.persona = persona
         self.memory_block = memory_block
         self.plan = plan or {}
+        self.world = world
 
         # A single decision may not take longer than this. Beyond it the answer is worthless anyway -
         # the world it was reasoning about has moved on - so the harness gives up and looks around
@@ -86,6 +87,16 @@ class StreamerAI:
         plan_block = self._plan_block()
         if plan_block:
             system += f"\n\n{plan_block}"
+
+        # What it has worked out about the game BY PLAYING IT. Not advice, not a rule table written by
+        # somebody else - the game's own words for what happened, kept from its own attempts, and read
+        # back before it tries the same kind of thing again. This is what makes it a player who has
+        # met a shut door rather than a script that was told about doors.
+        if self.world is not None:
+            learned = self.world.brief()
+            if learned:
+                system += ("\n\nWHAT YOU HAVE WORKED OUT ABOUT THIS GAME (from your own attempts - "
+                           "trust it, and update it when the game proves you wrong):\n" + learned)
 
         messages = [
             {"role": "system", "content": system},

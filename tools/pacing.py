@@ -224,9 +224,7 @@ def beat_alignment(said: list[dict], worst: int = 5) -> list[str]:
     overlaps = sorted(r[0] for r in rows)
     zero = sum(1 for o in overlaps if o < 0.06)
 
-    out = ["  台词与触发事件的关键词重叠（粗指标，低不等于错，但完全无关通常就是跑偏了）：",
-           "   中位 %.2f   低于 0.06 的 %d/%d 句（%.0f%%）"
-           % (overlaps[len(overlaps) // 2], zero, len(overlaps), 100 * zero / len(overlaps))]
+    out = ["  最不像的几句（供人眼看。台词本来就该换词重讲，所以低分**不代表**错）："]
     for overlap, when, beat, say in sorted(rows)[:worst]:
         out.append("   %.2f  %s  事件=%-22s 台词=%s"
                    % (overlap, when, beat[:22], say[:26]))

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -32,6 +33,7 @@ from brainwatch import BrainWatch  # noqa: E402
 from chatfeed import ChatFeed  # noqa: E402
 from compact import compact_state  # noqa: E402
 import anticipate  # noqa: E402
+import world as world_mod  # noqa: E402
 from defects import DefectLedger  # noqa: E402
 from doctor import Doctor  # noqa: E402
 from learning import NOT_ACTIONABLE, LearningStore  # noqa: E402
@@ -312,6 +314,9 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
     # Where the seconds of each step actually go. See StepClock.
     clock = StepClock()
 
+    # The player's own notes on how this game behaves. See world.py.
+    world = world_mod.current(log=log)
+
     # A supervisor review being worked out in the background. See anticipate.Review.
     pending_review: object | None = None
     batch_reason = ""
@@ -468,6 +473,16 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         item = queued.pop(0)
         clock.mark("think")
 
+        # What the model worked out while deciding this turn - the game's rules in its own words. It
+        # rides along with the decision it is already making, so learning costs no extra call.
+        try:
+            learned = decision.get("learned") if isinstance(decision, dict) else None
+            if isinstance(learned, dict):
+                world.learn(str(learned.get("about") or ""), str(learned.get("action") or ""),
+                            str(learned.get("result") or ""), str(learned.get("note") or ""))
+        except Exception as exc:
+            log(f"[世界] 记不下来这次学到的：{exc}")
+
         action = str(item.get("action") or "noop").strip()
 
         # Arguments belong at the top level, but tolerate a model that nests them.
@@ -604,6 +619,15 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         learning.note_attempt_outcome(attempt_entry, worked)
         clock.mark("judge")
 
+        # The player's own notes on how this game behaves, written from what just happened.
+        #
+        # It already had the game's words once: the witness recorded "上锁了……（营业时间：9:00~21:00）"
+        # and nothing learned it, so the same door was knocked on seventeen times. This is the line
+        # that turns an attempt into knowledge, and it is deliberately the KIND of thing (a shop door)
+        # rather than the tile, because a tile is this morning and a rule of the game is forever.
+        world.observe(action, args, after_state, worked,
+                      says=_spoken_by_the_game(after_state, result))
+
         # Reconcile the two verdicts. "提前结束: timeout" and "OK" used to be printed one line apart,
         # and only the OK was handed to the agent. If the watcher had to step in AND the world did not
         # move, this was not a success on any reading, whatever the action claimed. (A walk that ran
@@ -734,6 +758,24 @@ def run_calibration(supervisor: SupervisorAI, store: "memory_mod.MemoryStore", k
         log(f"[cal ]   MISS {qid}: expected '{want}', answered '{got}'")
 
     return {"right": right, "total": total, "missed": missed}
+
+
+def _spoken_by_the_game(state: dict, result: dict) -> str:
+    """The game's own words about what just happened, if it said any.
+
+    A shut door prints its opening hours; a shop tells you what you just bought; a refusal often says
+    why. That sentence is the single most valuable thing a step produces - it is the game teaching the
+    rules - and it used to be written into a log file that nothing ever read back.
+    """
+    dialogue = ((state.get("ui") or {}).get("dialogue") or {})
+    spoken = str(dialogue.get("text") or "").strip()
+    if spoken:
+        return spoken
+
+    detail = str((result or {}).get("detail") or "")
+    # The bridge quotes the game inside its own sentence: ... ('上锁了……（营业时间：9:00~21:00）')
+    match = re.search(r"'([^']{4,})'", detail)
+    return match.group(1).strip() if match else ""
 
 
 def observe_tile(client: StateClient, x: int, y: int) -> dict | None:
@@ -899,7 +941,7 @@ def run_forever(args: argparse.Namespace) -> int:
         ai_save = load_ai_save()
         known = store.cheat_sheet()
         streamer = StreamerAI(fast, args.goal, persona=(ai_save or {}).get("persona", ""),
-                              memory_block=known)
+                              memory_block=known, world=world_mod.current(log=log))
         supervisor = SupervisorAI(fast, escalate=smart)
         planner = PlannerAI(smart)
         referee = RefereeAI(smart)
@@ -1246,7 +1288,7 @@ def main() -> int:
             known = store.cheat_sheet()
 
             streamer = StreamerAI(fast, args.goal, persona=(ai_save or {}).get("persona", ""),
-                                  memory_block=known)
+                                  memory_block=known, world=world_mod.current(log=log))
             supervisor = SupervisorAI(fast, escalate=smart)
 
             # The audience layer, so a single day can be watched the way the stream will be.

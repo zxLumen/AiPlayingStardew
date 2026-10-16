@@ -1,0 +1,137 @@
+{
+  "entries": {
+    "door:BusStop|enter": {
+      "works": 0,
+      "fails": 4,
+      "says": "",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "dialogue_advance@Farm|dialogue_advance": {
+      "works": 3,
+      "fails": 0,
+      "says": "它可能是喜欢这里！唔……你不觉得这个农场需要养只好猫吗？",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "go_to@Farm|go_to": {
+      "works": 1,
+      "fails": 2,
+      "says": "",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "Farm:patch|harvest_all": {
+      "works": 0,
+      "fails": 2,
+      "says": "",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "go_to@BusStop|go_to": {
+      "works": 2,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "press_key@Farm|press_key": {
+      "works": 1,
+      "fails": 1,
+      "says": "space",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "tile:empty|interact_at": {
+      "works": 0,
+      "fails": 2,
+      "says": "",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "DialogueBox:doneNamingButton|menu_click": {
+      "works": 1,
+      "fails": 0,
+      "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "Farm:exit_building|exit_building": {
+      "works": 1,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "Farm:patch|clear_area": {
+      "works": 0,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "Farm:patch|water_all": {
+      "works": 1,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "door:SeedShop|enter": {
+      "works": 0,
+      "fails": 1,
+      "says": "上锁了……（营业时间：9:00~21:00）",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "door:Town|enter": {
+      "works": 1,
+      "fails": 0,
+      "says": "Town",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "move@BusStop|move": {
+      "works": 0,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-16"
+    },
+    "busstop_warp|enter": {
+      "works": 0,
+      "fails": 0,
+      "says": "the door at (80,15) would not open - it may be locked or shut at this hour",
+      "note": "the Farm->BusStop warp refuses entry at 8:50; retry after 9:00 like the shops",
+      "last": "2026-10-16"
+    },
+    "busstop_门|enter": {
+      "works": 0,
+      "fails": 0,
+      "says": "the door at (80,15) would not open - it may be locked or shut at this hour",
+      "note": "Farm→BusStop 门9:00前不开，9点后应放行",
+      "last": "2026-10-16"
+    },
+    "busstop_门口营业时间|enter": {
+      "works": 0,
+      "fails": 0,
+      "says": "the door at (80,15) would not open - it may be locked or shut at this hour",
+      "note": "Farm→BusStop 的门在 9:00 前不开，9 点后才放行",
+      "last": "2026-10-16"
+    },
+    "namingmenu|menu_click": {
+      "works": 0,
+      "fails": 0,
+      "says": "doneNamingButton",
+      "note": "NamingMenu（命名弹窗，比如给作物/动物取名）卡住时会挡住 harvest_all 等 chore，用 menu_click doneNamingButton 确认即可关闭",
+      "last": "2026-10-16"
+    },
+    "seedshop_door|enter": {
+      "works": 0,
+      "fails": 0,
+      "says": "上锁了……（营业时间：9:00~21:00）",
+      "note": "店 9:00~21:00 开，去之前先看钟",
+      "last": "2026-10-16"
+    }
+  }
+}
