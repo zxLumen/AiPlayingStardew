@@ -113,6 +113,22 @@ def compact_state(state: dict) -> dict:
             "farm": location.get("is_farm"),
         }
 
+        # Shops whose door shuts outside opening hours. The hours are on the door, and the plan needs
+        # them before the walk, not after the knock.
+        shops = location.get("shops") or []
+        if shops:
+            compact["location"]["shops"] = [
+                {
+                    "at": s.get("at"),
+                    "to": s.get("leads_to"),
+                    "hours": f"{s.get('opens_text') or s.get('opens_at')}~"
+                             f"{s.get('closes_text') or s.get('closes_at')}",
+                    "open_now": s.get("open_now"),
+                    "note": s.get("note") or "",
+                }
+                for s in shops[:6]
+            ]
+
         # The character map - the only way the agent can see walls.
         ascii_map = location.get("ascii_map")
         if ascii_map:

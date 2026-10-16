@@ -33,6 +33,22 @@ from pathlib import Path
 
 KINDS = ("action", "knowledge", "read", "recovery", "illegal")
 
+# Actions the bridge refuses ON PURPOSE, because a player cannot do them: no teleporting, no stopping
+# the clock, no skipping a day. The bridge says so itself in each refusal (see ActionProcessor).
+#
+# This list exists a second time as a READER: the memory file kept recommending `warp` for days after
+# the action was disabled - "long trips: warp, one step instead of 20" - so the streamer kept being
+# told to do the one thing it was forbidden to do, and the actor had to refuse it, over and over. A
+# rule that the memory is allowed to contradict is not a rule, so the loader throws away any lesson
+# that RECOMMENDS one of these. (A lesson that FORBIDS one is fine - that is the good lesson.)
+ILLEGAL_ACTIONS = {
+    "warp": "teleporting",
+    "pause_time": "stopping the clock while playing",
+    "new_day": "skipping to tomorrow without sleeping",
+    "set_display": "changing the zoom mid-play through the API",
+    "teleport": "teleporting",
+}
+
 # What "a player cannot do this" looks like in the code. These are unarguable: they are not the
 # action's description, they are the action.
 CHEAT_PRIMITIVES = {

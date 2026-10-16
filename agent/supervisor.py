@@ -10,10 +10,18 @@ from llm import LlmClient
 class SupervisorAI:
     """Reviews the streamer on a schedule, and immediately whenever it looks stuck."""
 
-    def __init__(self, llm: LlmClient, review_every: int = 8, repeat_threshold: int = 3) -> None:
+    def __init__(self, llm: LlmClient, review_every: int = 12, repeat_threshold: int = 3,
+                 escalate: LlmClient | None = None) -> None:
+        # Two brains, because this is two different jobs. The scheduled review is a one-line "is it
+        # drifting?" and does not need a reasoning model; the review that fires because the farmer is
+        # genuinely stuck is a judgement call and does. It used to be the reasoning brain for both,
+        # between steps, on a live stream - which is where a large share of the visible stutter came
+        # from (every 8th step, unmeasured, unlogged, off the critical path of nothing).
         self.llm = llm
+        self.escalate = escalate or llm
         self.review_every = review_every
         self.repeat_threshold = repeat_threshold
+        self._escalating = False
 
     # -- cheap rules first, so we do not pay for an LLM call every turn -----
 
@@ -31,11 +39,9 @@ class SupervisorAI:
         return all("ok=False" in line for line in history[-3:])
 
     def should_review(self, steps: int, history: list[str]) -> bool:
-        return (
-            steps % self.review_every == 0
-            or self.looks_stuck(history)
-            or self.repeated_failures(history)
-        )
+        stuck = self.looks_stuck(history) or self.repeated_failures(history)
+        self._escalating = stuck
+        return stuck or steps % self.review_every == 0
 
     def review(self, state: dict, history: list[str], steps: int, day_start: dict) -> dict:
         messages = [
@@ -47,7 +53,8 @@ class SupervisorAI:
         ]
 
         try:
-            verdict, _ = self.llm.chat_json(messages, max_tokens=350)
+            verdict, _ = (self.escalate if self._escalating else self.llm).chat_json(
+                messages, max_tokens=350)
         except Exception as exc:  # the supervisor must never kill the session
             return {"status": "ok", "directive": "", "note": f"supervisor unavailable: {exc}"}
 

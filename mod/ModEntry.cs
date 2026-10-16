@@ -197,6 +197,11 @@ public class ModEntry : Mod
         }
 
         MovementController.OnUpdateTicked();
+
+        // The farmer runs. A player holds shift for this; the game keeps it on for them with
+        // Options.autoRun, and the walking is the largest single cost left in a step.
+        if (Game1.player != null && Game1.options != null && !Game1.options.autoRun)
+            TurnOnAlwaysRun();
         NativeInput.ReturnBorrowedFocus();
         ActionProcessor.ProcessPendingNewGame(Monitor);
         ActionProcessor.ProcessPendingClicks(Monitor);
@@ -279,7 +284,48 @@ public class ModEntry : Mod
         // Stardew re-fits the window to its own preferred resolution once a save loads, so the
         // maximise applied at launch gets undone here. This is the moment that sticks.
         MaximizeWhenReady();
+
+        TurnOnAlwaysRun();
     }
+
+
+    /// <summary>
+    /// Runs instead of walking, using the game's own "Always Run" option.
+    ///
+    /// Measured: the largest remaining cost of a step is not thinking (3.1s) and not the harness
+    /// (0.3s) - it is the farmer WALKING, 7.8s in the middle of a step and 14-19s to cross town. A
+    /// person holds shift; the game makes that permanent with a checkbox in its own Options menu
+    /// (StardewValley.Options.autoRun, which is what setAutoRun sets), so switching it on is something
+    /// a player does, not a shortcut. Nothing about the world changes - the walk is the same walk, it
+    /// just takes the time a person's walk takes.
+    /// </summary>
+    private void TurnOnAlwaysRun()
+    {
+        try
+        {
+            if (Game1.options == null || Game1.player == null)
+                return;
+
+            // Done in the tick as well, because the option is read back into the farmer every frame;
+            // setting it once here is enough in practice and harmless if it is not.
+            Game1.options.autoRun = true;
+            Game1.player.setRunning(true);
+
+            if (!_alwaysRunReported)
+            {
+                _alwaysRunReported = true;
+                Monitor.Log("always-run on: the farmer runs, so a walk across town costs seconds " +
+                            "instead of half a minute (Options.autoRun, a player setting)", LogLevel.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"could not turn on always-run: {ex.Message}", LogLevel.Warn);
+        }
+    }
+
+
+    private bool _alwaysRunReported;
 
 
     private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)

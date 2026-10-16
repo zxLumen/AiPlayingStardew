@@ -143,6 +143,8 @@ class Commentator:
         density_target_s: float = 7.0,
         beat_cooldown_s: float = 25.0,
         look_ahead: int = 0,
+        quiet_room_max: float = 6.0,
+        welcome_backlog_max: int = 3,
         pause_continue: tuple[float, float] = (1.0, 2.5),
         pause_new_topic: tuple[float, float] = (2.5, 4.5),
         pause_moment: tuple[float, float] = (0.8, 1.8),
@@ -182,6 +184,15 @@ class Commentator:
         # between sentences but decides each line five to ten seconds before it is heard - the
         # audience hears the game described a moment late. That trade is the operator's to make.
         self.look_ahead = max(0, int(look_ahead or 0))
+
+        # What counts as "a quiet room". With a handful of people watching, a new arrival is the
+        # whole audience and missing the hello is rude; with a crowd, greeting everybody properly
+        # costs more airtime than the greeting is worth, and the stream should answer questions
+        # instead. Two ways of being busy, both checked: people arriving/spoke in the last minute,
+        # and names already queued up waiting for their hello.
+        self.quiet_room_max = float(quiet_room_max)              # 人/分钟 以下算人少
+        self.welcome_backlog_max = max(1, int(welcome_backlog_max))
+        self._room_events: deque = deque(maxlen=300)             # when somebody arrived or spoke
 
         # callable() -> bool: is the mouth still working (queued, rendering, or speaking)? The gate
         # in the no-look-ahead mode.
@@ -298,6 +309,7 @@ class Commentator:
         text = str(event.get("text") or "").strip()
 
         with self._cond:
+            self._room_events.append(time.monotonic())
             if kind == "enter":
                 if user:
                     if user not in self._welcome:
@@ -498,6 +510,24 @@ class Commentator:
         except Exception:
             return 0
 
+    def _room_traffic(self) -> int:
+        """How many people arrived or spoke in the last minute."""
+        now = time.monotonic()
+        return sum(1 for t in self._room_events if now - t <= 60.0)
+
+    def _must_greet(self) -> bool:
+        """Is the room quiet enough that a missed welcome would be noticed?
+
+        The answer decides between the two ways of treating a greeting, and the difference is real:
+        when it is quiet the welcome is guaranteed (the name is forced into the sentence if the
+        model forgets it), and when it is busy the welcome is best-effort and may simply not happen.
+        Spending retries on a room with a queue of twenty people would trade the questions of the
+        many for the hello of the one.
+        """
+        if len(self._welcome) + len(self._follows) >= self.welcome_backlog_max:
+            return False
+        return self._room_traffic() <= self.quiet_room_max
+
     def _pause_for(self, topic: str) -> float:
         """How long to wait before this line, in seconds.
 
@@ -588,19 +618,27 @@ class Commentator:
             anon_enter, self._anon_enter = self._anon_enter, 0
             anon_follow, self._anon_follow = self._anon_follow, 0
 
+        if not (welcomes or follows or anon_enter or anon_follow):
+            self._speak(beat="；".join(beats[:3]), answer=None, topic=topic)
+            return
+
+        # Two ways of treating a hello, chosen by how busy the room is. See _must_greet.
+        must = self._must_greet()
+        limit = 5 if must else 3          # a crowd does not get every name spelled out
+
         greetings: list[str] = []
 
         # Only facts go in here - never an explanation, and never an instruction. Anything phrased
         # as "you cannot see the name, so say X" gets read out loud as "I cannot see your name",
         # which is exactly the sentence a viewer should never hear.
         if welcomes:
-            who = "、".join(welcomes[:5])
-            if len(welcomes) > 5:
+            who = "、".join(welcomes[:limit])
+            if len(welcomes) > limit:
                 who += f" 等 {len(welcomes)} 位"
             greetings.append(f"刚进直播间的人：{who}")
 
         if follows:
-            who = "、".join(follows[:5])
+            who = "、".join(follows[:limit])
             greetings.append(f"刚关注直播间的人：{who}")
 
         if anon_enter:
@@ -609,17 +647,28 @@ class Commentator:
         if anon_follow:
             greetings.append(f"又有 {anon_follow} 位观众关注了直播间")
 
-        if greetings:
-            beat = "\n".join(greetings)
-            if beats:
-                beat += "\n" + "；".join(beats[:2])
+        beat = "\n".join(greetings)
+        if beats:
+            beat += "\n" + "；".join(beats[:2])
 
-            # No chat history on a greeting turn: given both, the model thanks a gift and then
-            # thanks it again next turn, and the room hears the same sentence twice.
-            self._speak(beat=beat, answer=None, include_chat=False, topic="greet")
-            return
+        names = (welcomes + follows)[:5]
+        prefix = ""
 
-        self._speak(beat="；".join(beats[:3]), answer=None, topic=topic)
+        if must and names:
+            # An imperative, not a fact. The rules for this live in the system prompt, several
+            # paragraphs up, and a small talking model follows the last thing it was told far more
+            # reliably than a rule stated earlier - especially when the rest of its context is
+            # inviting it to carry on with whatever it was already doing.
+            beat += ("\n现在需要你做的：这一句先欢迎 " + "、".join(names) +
+                     "，把名字念出来；念完可以再补半句别的，但这一句不要只讲你手上正在做的事。")
+            if welcomes:
+                prefix += "欢迎 " + "、".join(welcomes[:3]) + " 进来～"
+            if follows:
+                prefix += "谢谢 " + "、".join(follows[:3]) + " 关注～"
+
+        self._speak(beat=beat, answer=None, include_chat=False, topic="greet",
+                    require_names=names if must else None, prefix_if_missing=prefix,
+                    must_greet=must)
 
     def _system_block(self) -> str:
         """What the machine itself is doing and stuck on - the material for a teaching stream."""
@@ -642,7 +691,9 @@ class Commentator:
         return "\n".join(parts)
 
     def _speak(self, beat: str, answer: dict | None = None, idle: bool = False,
-               include_chat: bool = True, topic: str = "event") -> None:
+               include_chat: bool = True, topic: str = "event",
+               require_names: list[str] | None = None, prefix_if_missing: str = "",
+               must_greet: bool | None = None) -> None:
         self._last_spoke = time.monotonic()
         self._spoken_at.append(self._last_spoke)
 
@@ -692,7 +743,10 @@ class Commentator:
                     memory=already,
                     pending=pending_text,
                     system=self._system_block(),
-                    thread=self._topic,
+                    # No topic thread on a greeting: it is the one signal pulling the talker back to
+                    # what it was already doing, and a hello that continues the previous subject is
+                    # how a viewer who just walked in gets ignored.
+                    thread="" if topic == "greet" else self._topic,
                 ),
             },
         ]
@@ -709,6 +763,19 @@ class Commentator:
         say = _clamp(str(reply.get("say") or "").strip(), self.max_chars)
         if not say:
             return
+
+        # The welcome, guaranteed when the room is quiet. The model forgets the name about one time
+        # in ten - it fills the "to" field correctly and then talks about its own business - and a
+        # personal hello is exactly the thing that must not be missed when the audience is small.
+        # Prepending costs no extra thinking time (a re-ask would cost the audience three seconds of
+        # silence in real-time mode); the price is that the sentence reads as a person would say it,
+        # which is what it is.
+        guard_fired = False
+        if require_names and prefix_if_missing:
+            if not any(name and name in say for name in require_names):
+                say = prefix_if_missing + " " + say
+                guard_fired = True
+                self.log(f"[解说] 模型没念名字，已补上：{prefix_if_missing}")
 
         to = str(reply.get("to") or "").strip()
         suggestion = str(reply.get("suggestion") or "").strip()
@@ -749,10 +816,12 @@ class Commentator:
             # via_bus=False: this event has already been published above, and saying the same
             # sentence twice is worse than not saying it. `gap_s` travels with the line because the
             # mouth may well be in another process - the window reads this file and speaks it, and
-            # the pause is part of the sentence.
+            # the pause is part of the sentence. The two greeting fields are recorded so the welcome
+            # rate can be measured instead of guessed: they are what "_reply_gaps" reads back.
+            extra = {"must_greet": bool(must_greet), "guard": guard_fired} if topic == "greet" else {}
             self.runlog.agent("commentary", via_bus=False, say=say, to=to, beat=beat[:120],
                               suggestion=suggestion, latency_s=round(latency, 2), gap_s=gap_s,
-                              thread=self._topic[:60])
+                              thread=self._topic[:60], **extra)
 
         if suggestion and self.on_suggestion is not None:
             self.on_suggestion(suggestion, to or "观众")

@@ -319,4 +319,169 @@ public static class WorldMapper
 
         return result;
     }
+
+
+    /// <summary>The raw "Action" property of a tile, or "" when it has none.</summary>
+    private static string TileAction(GameLocation location, int x, int y)
+    {
+        // The game reads doors off the "Buildings" layer (GameLocation builds `location.doors` from
+        // exactly that layer and that property). Back/Front are tried too because a map may put a
+        // door property on either.
+        foreach (string layer in new[] { "Buildings", "Back", "Front" })
+        {
+            try
+            {
+                string? action = location.doesTileHaveProperty(x, y, "Action", layer);
+                if (!string.IsNullOrWhiteSpace(action))
+                    return action;
+            }
+            catch { }
+        }
+
+        return "";
+    }
+
+
+    /// <summary>
+    /// The opening hours of one door, read off that door's own tile, or null when it is not a door
+    /// that shuts.
+    ///
+    /// Stardew writes the answer on the tile:
+    ///
+    ///     Action: LockedDoorWarp &lt;destX&gt; &lt;destY&gt; &lt;LocationName&gt; &lt;openTime&gt; &lt;closeTime&gt; [npc] [friendship]
+    ///
+    /// (GameLocation:9539 parses exactly these arguments and hands them to GameLocation.lockedDoorWarp.)
+    /// Note that arg 1 is a POINT, which ArgUtility.TryGetPoint reads as two consecutive tokens - so
+    /// the location name is arg 3, not arg 2.
+    ///
+    /// Nothing read this before, and that is the whole shop story: the hours were written on the door
+    /// the agent was knocking on, and it knocked seventeen times in one day.
+    /// </summary>
+    public static ShopDoorInfo? LockedDoorAt(GameLocation location, int x, int y)
+    {
+        string action = TileAction(location, x, y);
+        if (action.Length == 0)
+            return null;
+
+        string[] parts = action.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 6 || !parts[0].Equals("LockedDoorWarp", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        string leadsTo = parts[3];
+        if (!int.TryParse(parts[4], out int opens) || !int.TryParse(parts[5], out int closes))
+            return null;
+
+        return new ShopDoorInfo
+        {
+            At = new List<int> { x, y },
+            LeadsTo = leadsTo,
+            OpensAt = opens,
+            ClosesAt = closes,
+            OpensText = ClockText(opens),
+            ClosesText = ClockText(closes),
+            OpenNow = OpensNow(location, leadsTo, opens, closes),
+            Note = ClosedNote(leadsTo),
+        };
+    }
+
+
+    /// <summary>Every door here that shuts outside opening hours, with its hours.</summary>
+    public static List<ShopDoorInfo> BuildLockedDoors(GameLocation location)
+    {
+        var doors = new List<ShopDoorInfo>();
+        if (location == null)
+            return doors;
+
+        try
+        {
+            foreach (KeyValuePair<Point, string> entry in location.doors.Pairs)
+            {
+                ShopDoorInfo? door = LockedDoorAt(location, entry.Key.X, entry.Key.Y);
+                if (door != null)
+                    doors.Add(door);
+            }
+        }
+        catch { }
+
+        return doors;
+    }
+
+
+    /// <summary>A game clock value written the way the game writes it (900 -> "9:00am").</summary>
+    public static string ClockText(int time)
+    {
+        try { return Game1.getTimeOfDayString(time).Replace(" ", ""); }
+        catch { return time.ToString(); }
+    }
+
+
+    /// <summary>
+    /// The sentence the game itself says when this door is knocked on: LockedDoor_OpenRange renders
+    /// as "上锁了……（营业时间：9:00~21:00）" (GameLocation:10368 builds it from exactly these two
+    /// times). A shop that shuts for a reason that is not the hour carries the game's own words for
+    /// that instead.
+    /// </summary>
+    public static string LockedSentence(ShopDoorInfo door)
+    {
+        if (!string.IsNullOrWhiteSpace(door.Note))
+            return door.Note.Trim();
+
+        try
+        {
+            return Game1.content.LoadString("Strings\\Locations:LockedDoor_OpenRange",
+                                            door.OpensText, door.ClosesText);
+        }
+        catch { return ""; }
+    }
+
+
+    /// <summary>
+    /// Whether the clock is inside the door's own range. This is NOT the last word on whether the
+    /// door opens - friends-only doors and festival days are not about the hour - which is why the
+    /// action remains the authority and reports LOCKED when the game refuses.
+    /// </summary>
+    private static bool OpensNow(GameLocation location, string leadsTo, int opens, int closes)
+    {
+        try
+        {
+            if (IsWeekdayClosed(leadsTo))
+                return false;
+
+            return Game1.timeOfDay >= opens && Game1.timeOfDay < closes;
+        }
+        catch { return true; }
+    }
+
+
+    /// <summary>
+    /// The extra reasons a shop is shut that are not its hours, in the game's own words.
+    ///
+    /// This mirrors one branch of GameLocation.lockedDoorWarp (StardewValley.GameLocation:10327) - a
+    /// single, long-standing special case for Pierre, who shuts on Wednesdays until you have seen
+    /// event 191393 or bought the town key. Everything else is left to the action to report, rather
+    /// than re-deriving game rules here and getting one wrong.
+    /// </summary>
+    private static bool IsWeekdayClosed(string leadsTo)
+    {
+        if (!leadsTo.Equals("SeedShop", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        try
+        {
+            return Game1.shortDayNameFromDayOfSeason(Game1.dayOfMonth).Equals("Wed")
+                   && !Utility.HasAnyPlayerSeenEvent("191393")
+                   && !Game1.player.HasTownKey;
+        }
+        catch { return false; }
+    }
+
+
+    private static string ClosedNote(string leadsTo)
+    {
+        if (!IsWeekdayClosed(leadsTo))
+            return "";
+
+        try { return Game1.content.LoadString("Strings\\Locations:SeedShop_LockedWed"); }
+        catch { return ""; }
+    }
 }

@@ -368,6 +368,22 @@ public static class UiStateBuilder
     }
 
 
+    /// <summary>
+    /// The text of the dialogue box that is open right now, or "" when there is none.
+    ///
+    /// Used to ask the GAME what just happened rather than inferring it: a shut door paints its own
+    /// sentence ("上锁了……（营业时间：9:00~21:00）") and an open one fades the screen instead.
+    /// </summary>
+    public static string OpenDialogueText()
+    {
+        try
+        {
+            return GetEffectiveMenu() is DialogueBox box ? (box.getCurrentString() ?? "") : "";
+        }
+        catch { return ""; }
+    }
+
+
     private static DialogueInfo? BuildDialogue(IClickableMenu? menu)
     {
         if (menu is not DialogueBox box)

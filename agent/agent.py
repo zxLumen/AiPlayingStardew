@@ -31,13 +31,15 @@ import witness  # noqa: E402
 from brainwatch import BrainWatch  # noqa: E402
 from chatfeed import ChatFeed  # noqa: E402
 from compact import compact_state  # noqa: E402
+import anticipate  # noqa: E402
 from defects import DefectLedger  # noqa: E402
 from doctor import Doctor  # noqa: E402
 from learning import NOT_ACTIONABLE, LearningStore  # noqa: E402
 from outcomes import OutcomeWatch  # noqa: E402
 from prescribe import Prescriber  # noqa: E402
-from watcher import Watcher  # noqa: E402
+from watcher import WatchResult, Watcher  # noqa: E402
 from witness import TILE_ACTIONS  # noqa: E402
+from witness import INFORMATIONAL  # noqa: E402
 from llm import LlmClient  # noqa: E402
 from planner import PlannerAI  # noqa: E402
 from referee import RefereeAI  # noqa: E402
@@ -231,6 +233,12 @@ def stable_day(client: StateClient, tries: int = 20, gap_s: float = 1.5) -> dict
 
 CHORE_ACTIONS = {"clear_area", "till_area", "plant_all", "water_all", "harvest_all", "refill"}
 
+# Informational actions that are nevertheless still DOING something: a sleep is a walk to the bed and
+# then a cutscene, and the character menus animate. The rest of the informational set is instant, and
+# following them only spends the settle timeout.
+SLOW_INFORMATIONAL = {"sleep", "new_day", "create_character", "set_appearance", "set_text",
+                      "title_button", "new_game", "open_screen"}
+
 
 def settle_timeout(action: str, args: dict) -> float:
     """How long to wait (by polling state, never by asking the model) for an action to finish."""
@@ -254,6 +262,39 @@ def settle_timeout(action: str, args: dict) -> float:
     return 0.0
 
 
+class StepClock:
+    """Where the time between two actions goes.
+
+    The number the audience actually feels is the wall clock between one step line and the next, and
+    for a long time nobody measured it: a step's median was 5.00s while think (1.56s) and action
+    (0.20s) accounted for less than half of it. A third of every step was going somewhere no log named,
+    which is exactly the kind of cost that survives by being invisible.
+    """
+
+    def __init__(self) -> None:
+        self._t = time.perf_counter()
+        self._start = self._t
+        self.parts: dict[str, float] = {}
+
+    def mark(self, name: str) -> None:
+        now = time.perf_counter()
+        self.parts[name] = self.parts.get(name, 0.0) + (now - self._t)
+        self._t = now
+
+    def total(self) -> float:
+        return time.perf_counter() - self._start
+
+    def report(self, threshold_s: float = 4.0) -> str:
+        """One line, worst part first. Silent for steps fast enough not to be worth reading."""
+        total = self.total()
+        if total < threshold_s:
+            return ""
+
+        ordered = sorted(self.parts.items(), key=lambda kv: -kv[1])
+        tail = " ".join(f"{name}={seconds:.1f}" for name, seconds in ordered[:4] if seconds >= 0.3)
+        return f"{total:.1f}s ({tail})"
+
+
 def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
          max_steps: int, store: "memory_mod.MemoryStore",
          learning: LearningStore, runlog: RunLog, budget_s: float = 0.0,
@@ -264,6 +305,12 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
     directive: str | None = None
     total_llm = total_action = total_watch = 0.0
     queued: list[dict] = []
+
+    # Where a decision that is being thought about while the farmer acts is kept. See anticipate.py.
+    spec_holder: dict = {}
+
+    # Where the seconds of each step actually go. See StepClock.
+    clock = StepClock()
     batch_reason = ""
     # How long an event flag may hold the farmer with nothing on screen before it counts as
     # wreckage rather than a scene. Generous on purpose: a cutscene IS content, the audience is
@@ -297,6 +344,7 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             return "budget_exhausted", label, step - 1
 
         state = client.state()
+        clock.mark("state")
         game = state.get("game") or {}
 
         # Whatever the game says out loud is a fact the world just handed us. Record it now -
@@ -355,14 +403,33 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             # A directive means "stop what you are doing" - drop the rest of the queue.
             queued.clear()
 
+        clock.mark("supervisor")
+
         # One model call per queue, not per action. The queue is what makes this play at a human
         # pace: a person does not re-decide between walking somewhere and opening the door.
+        #
+        # And if a decision was already being thought about while the last action ran (see
+        # anticipate.py), it costs nothing at all - it is taken here, and only if the world it was
+        # decided for is the world we are actually in.
         if queued:
             llm_s = 0.0
         else:
-            started = time.perf_counter()
-            decision = streamer.decide(state, history, directive)
-            llm_s = time.perf_counter() - started
+            decision, llm_s, why = anticipate.take(spec_holder, state)
+
+            if decision is not None:
+                actions = streamer.extract_actions(decision)
+                first = actions[0] if actions else {}
+                if not anticipate.still_valid(str(first.get("action") or ""), first, state):
+                    decision = None
+                    why = "它想好的那一步在真实世界里不成立"
+
+            if decision is None and why != "没有抢跑的决策":
+                log(f"[抢先] 丢掉一个抢跑的决策（{why}）")
+
+            if decision is None:
+                started = time.perf_counter()
+                decision = streamer.decide(state, history, directive)
+                llm_s = time.perf_counter() - started
             directive = None
             queued = streamer.extract_actions(decision)
             batch_reason = str(decision.get("reason", ""))
@@ -386,6 +453,7 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
                 log(f"[思考] {batch_reason[:70]}  -> {len(queued)} 步")
 
         item = queued.pop(0)
+        clock.mark("think")
 
         action = str(item.get("action") or "noop").strip()
 
@@ -426,25 +494,56 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             if helper:
                 runlog.agent("prescription", day=label, step=step, action=action,
                              satisfied_with=helper)
-                time.sleep(1.5)
+                time.sleep(0.4)
 
         attempt_entry = learning.remember_attempt(action, args)
 
         started = time.perf_counter()
         result = client.action(action, **args)
+        clock.mark("dispatch")
+
+        # Think while the farmer acts. The next step is decided against the world this action is
+        # expected to leave - a walk lands on its tile, `enter` lands on the warp's target, a look
+        # changes nothing - and it is adopted only if that world came true AND the action it wants
+        # still makes sense. Skipped when the next step is already queued (that one is free already).
+        spec_holder.clear()
+        if not queued and streamer is not None:
+            predicted = anticipate.predict(state, action, args)
+            if predicted is not None:
+                spec_holder["spec"] = anticipate.Speculation(streamer, predicted, history, directive)
 
         # Watch the world while it happens. The blind waits this replaces polled the state once a
         # second and looked at a single boolean, so a farmer held by a greeting dialogue waited out
         # the whole five-minute deadline while every agent sat idle.
+        #
+        # A REFUSED action is not watched at all. It moved nothing by definition, so following it can
+        # only cost the settle timeout - and those were the worst stalls in the stream: 4 seconds for
+        # a refused interact_at, 12.5 for a refused exit_building, every one of them pure delay.
         shared_budget = max(10.0, deadline - time.monotonic()) if deadline else 0.0
-        watch = watcher.watch(
-            action, args, state,
-            day=label, step=step,
-            budget_s=shared_budget,
-            timeout_s=settle_timeout(action, args) or 60.0,
-            progress=(lambda s: witness.progress_value(action, s)) if action in CHORE_ACTIONS else None,
-        )
+
+        # Actions that change nothing by definition are not followed either. `noop` was being watched
+        # for its full settle timeout - sixty seconds of the farmer standing still, on a live stream,
+        # waiting for a world change the witness itself declares cannot happen. `sleep` and the
+        # character-creation menu steps are the exceptions: those really are in progress.
+        followable = action not in INFORMATIONAL or action in SLOW_INFORMATIONAL
+
+        if result.get("ok") and followable:
+            watch = watcher.watch(
+                action, args, state,
+                day=label, step=step,
+                budget_s=shared_budget,
+                timeout_s=settle_timeout(action, args) or 60.0,
+                progress=(lambda s: witness.progress_value(action, s)) if action in CHORE_ACTIONS else None,
+            )
+        else:
+            try:
+                settled = client.state()
+            except Exception:
+                settled = state
+            watch = WatchResult(state=settled, stopped="refused")
+
         after_state = watch.state
+        clock.mark("watch")
 
         if watch.stopped not in ("done",):
             log(f"[守望] {action} 提前结束：{watch.stopped}"
@@ -483,13 +582,14 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         # Judge by whether the world changed, not by what the action claimed. Every action class has
         # a witness; when it does not, that is recorded as no-verdict rather than as success.
         if tracking and action in TILE_ACTIONS:
-            time.sleep(0.6)        # let the swing land before reading the tile back
+            time.sleep(0.25)       # let the swing land before reading the tile back
         after = observe_tile(client, tx, ty) if (tracking and action in TILE_ACTIONS) else None
-        worked, evidence = witness.judge(action, args, state, after_state, before, after)
+        worked, evidence = witness.judge(action, args, state, after_state, before, after, result)
 
         # Hand the verdict back to the attempt it judged: the loop check asks what the repeats DID
         # (see LearningStore.is_loop), and until now it could only ask how many there were.
         learning.note_attempt_outcome(attempt_entry, worked)
+        clock.mark("judge")
 
         # Reconcile the two verdicts. "提前结束: timeout" and "OK" used to be printed one line apart,
         # and only the OK was handed to the agent. If the watcher had to step in AND the world did not
@@ -569,6 +669,13 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
                      worked=worked, evidence=evidence)
         log(f"[主播 {step:>3}] {action:<15} {json.dumps(args, ensure_ascii=False)[:44]:<44} {flag} "
             f"llm {llm_s:4.1f}s act {action_s:4.1f}s  {tail}")
+
+        # The number the audience feels. Printed whenever a step was slow enough to notice, with the
+        # worst parts named - a cost nobody can see is a cost nobody fixes.
+        timing = clock.report()
+        if timing:
+            log(f"[步时] step {step}: {timing}")
+        clock = StepClock()
 
     elapsed = total_llm + total_action + total_watch
     log(f"[perf] steps={max_steps} total={elapsed:.0f}s | llm={total_llm:.0f}s "
@@ -780,7 +887,7 @@ def run_forever(args: argparse.Namespace) -> int:
         known = store.cheat_sheet()
         streamer = StreamerAI(fast, args.goal, persona=(ai_save or {}).get("persona", ""),
                               memory_block=known)
-        supervisor = SupervisorAI(smart)
+        supervisor = SupervisorAI(fast, escalate=smart)
         planner = PlannerAI(smart)
         referee = RefereeAI(smart)
         watcher = Watcher(client, ledger=ledger, runlog=runlog, log=log)
@@ -1127,7 +1234,7 @@ def main() -> int:
 
             streamer = StreamerAI(fast, args.goal, persona=(ai_save or {}).get("persona", ""),
                                   memory_block=known)
-            supervisor = SupervisorAI(smart)
+            supervisor = SupervisorAI(fast, escalate=smart)
 
             # The audience layer, so a single day can be watched the way the stream will be.
             runlog.attach_overlay(lambda batch: client.action("overlay", lines=batch))

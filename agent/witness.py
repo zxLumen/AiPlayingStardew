@@ -185,10 +185,23 @@ def progress_value(action: str, state: dict):
 
 
 def judge(action: str, args: dict, before_state: dict, after_state: dict,
-          before_tile: dict | None = None, after_tile: dict | None = None) -> tuple[bool | None, str]:
+          before_tile: dict | None = None, after_tile: dict | None = None,
+          result: dict | None = None) -> tuple[bool | None, str]:
     """Did the world change? Returns (worked, evidence); worked is None when there is no witness."""
     if action in INFORMATIONAL:
         return None, "informational - no world change expected"
+
+    # The bridge has already asked the game, and the game has already answered: this door is shut, and
+    # here are its hours. That beats every inference below, and it is the one verdict that was missing
+    # for a whole week.
+    #
+    # Knocking on Pierre's shut door was recorded as a WIN. The bridge returned ok=true (checkAction
+    # did handle the tile - it painted the locked-door dialogue), so this witness saw "a dialogue box
+    # opened", called it progress, and the learning layer rewarded it: seventeen knocks in one day,
+    # every one of them a recorded success, which is exactly why nothing ever corrected it. The game
+    # was printing the answer while the agent knocked.
+    if str((result or {}).get("reason_code") or "") == "LOCKED":
+        return False, f"the door is shut: {str((result or {}).get('detail') or '')[:120]}"
 
     if action in TILE_ACTIONS:
         if before_tile is None or after_tile is None:

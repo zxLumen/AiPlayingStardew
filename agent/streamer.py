@@ -98,7 +98,7 @@ class StreamerAI:
         # bounded, and a timed-out turn falls back to looking around - which is cheap, useful, and
         # never leaves the farmer frozen.
         try:
-            decision, _ = self.llm.chat_json(messages, max_tokens=2500, timeout_s=self.deadline_s)
+            decision, _ = self.llm.chat_json(messages, max_tokens=1200, timeout_s=self.deadline_s)
             self.consecutive_failures = 0
         except Exception as exc:
             self.consecutive_failures += 1

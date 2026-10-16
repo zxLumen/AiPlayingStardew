@@ -330,6 +330,12 @@ public static class StateSnapshotBuilder
         try { info.Warps = WorldMapper.BuildWarps(loc); }
         catch { info.Warps = new List<WarpInfo>(); }
 
+        // Shops whose door shuts outside opening hours, WITH the hours. Nothing read them before, so
+        // the plan could only be "go to the shop and find out", and finding out cost seventeen
+        // knocks in one day while the game was saying the hours out loud.
+        try { info.Shops = WorldMapper.BuildLockedDoors(loc); }
+        catch { info.Shops = new List<ShopDoorInfo>(); }
+
         // Work available anywhere in this location, so planning does not have to guess coordinates.
         try
         {

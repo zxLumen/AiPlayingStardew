@@ -95,6 +95,105 @@ def read_said(limit: int) -> list[dict]:
     return rows[-limit:] if limit else rows
 
 
+CHAT_LOG = ROOT / "logs" / "agents" / "chat.jsonl"
+
+
+def read_chat(limit: int) -> list[dict]:
+    """The room as the daemon heard it: who arrived, who spoke, who followed, who sent a gift."""
+    if not CHAT_LOG.exists():
+        return []
+
+    rows: list[dict] = []
+    for line in CHAT_LOG.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            data = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(data, dict) or not data.get("t"):
+            continue
+        rows.append(data)
+
+    return rows[-limit:] if limit else rows
+
+
+def _clock_of(stamp: str) -> int:
+    try:
+        hh, mm, ss = str(stamp).split(":")[:3]
+        return int(hh) * 3600 + int(mm) * 60 + int(float(ss))
+    except (TypeError, ValueError):
+        return -1
+
+
+def reply_gaps(chat: list[dict], said: list[dict], window_s: float = 90.0) -> list[str]:
+    """Who spoke, arrived or followed and then heard nothing back.
+
+    Three questions, and only one of them has an exact answer:
+
+      * the greetings. Every line the talker wrote to greet somebody records whether it had to be a
+        guaranteed one and whether the name had to be forced in, so this is measurable exactly.
+      * the questions. "Asked something and nobody answered" is counted as a danmaku containing a
+        question mark with no line addressing that person within the next window. A heuristic, but a
+        fair one: it under-counts rhetorical questions and over-counts nothing much.
+      * the follows. Same shape, with the name looked for in the line instead of the "to" field.
+
+    The point is not a perfect number. It is that "the streamer ignored me" stops being something
+    only the audience can see.
+    """
+    out: list[str] = []
+
+    greet_lines = [row for row in said if str(row.get("beat") or "").startswith("刚进直播间的人：")
+                   or "刚关注直播间的人：" in str(row.get("beat") or "")]
+    if greet_lines:
+        forced = sum(1 for row in greet_lines if row.get("guard"))
+        musts = [row for row in greet_lines if row.get("must_greet")]
+        named = 0
+        for row in musts:
+            names = re.findall(r"刚(?:进|关注)直播间的人：(.+)", str(row.get("beat") or ""))
+            people = [n.strip() for group in names for n in group.split("、")]
+            if any(p and p in str(row.get("say") or "") for p in people):
+                named += 1
+        out.append("  欢迎轮 %d 次（其中「人少必须欢迎」%d 次，念到名字 %d 次%s，兜底补名字 %d 次）"
+                   % (len(greet_lines), len(musts), named,
+                      "  ← 人少那档成功率 %d%%" % (100 * named // max(1, len(musts))) if musts else "",
+                      forced))
+
+    # Who spoke, and whether anything answered them.
+    if chat and said:
+        stamps = [(str(row.get("t") or ""), str(row.get("to") or ""), str(row.get("say") or ""))
+                  for row in said]
+        missed_ask, asked = [], 0
+        missed_follow, followed = [], 0
+
+        for event in chat[-400:]:
+            kind = str(event.get("chat_kind") or "")
+            user = str(event.get("user") or "").strip()
+            text = str(event.get("text") or "").strip()
+            at = _clock_of(event.get("t"))
+            if at < 0 or not user:
+                continue
+
+            if kind == "danmaku" and any(mark in text for mark in "?？"):
+                asked += 1
+                if not any(user == to or user in say
+                           for stamp, to, say in stamps if 0 <= _clock_of(stamp[11:]) - at <= window_s):
+                    missed_ask.append((event.get("t"), user, text))
+
+            elif kind == "follow":
+                followed += 1
+                if not any(user in say or "关注" in say
+                           for stamp, to, say in stamps if 0 <= _clock_of(stamp[11:]) - at <= window_s):
+                    missed_follow.append((event.get("t"), user, ""))
+
+        out.append("  弹幕提问 %d 条，其中 %d 条 %ds 内没人回应%s"
+                   % (asked, len(missed_ask), int(window_s),
+                      "（例：%s）" % missed_ask[-1][2][:18] if missed_ask else ""))
+        out.append("  新增关注 %d 个，其中 %d 个没被提到%s"
+                   % (followed, len(missed_follow),
+                      "（例：%s）" % missed_follow[-1][1] if missed_follow else ""))
+
+    return out
+
+
 def report(limit: int, show_lines: int) -> str:
     spoken = read_spoken(limit)
     said = read_said(limit * 2)
@@ -176,6 +275,12 @@ def report(limit: int, show_lines: int) -> str:
         for row in doubled[-5:]:
             out.append("   音频 %4.1fs 实播 %4.1fs ｜ %s"
                        % (row["seconds"], row["played"], row["text"][:36]))
+
+    gaps = reply_gaps(read_chat(400), read_said(400))
+    if gaps:
+        out.append("")
+        out.append("该回没回（观众的视角）：")
+        out.extend(gaps)
 
     out.append("")
     return "\n".join(out)

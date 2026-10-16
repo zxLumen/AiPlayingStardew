@@ -98,6 +98,12 @@ def _compare(fact, op: str, want) -> bool | None:
 HAND_GATE = True
 
 
+def _slot_index(name: str) -> int:
+    """The bag index a slot name refers to, or a large number when it does not name one."""
+    digits = "".join(c for c in str(name).split(".")[-1] if c.isdigit())
+    return int(digits) if digits else 10_000
+
+
 class Prescriber:
     """Turns the doctor's prescription into a change, and checks whether it worked."""
 
@@ -213,7 +219,11 @@ class Prescriber:
 
             (drawn if button.get("visible", True) else rest).append(name)
 
-        return drawn + rest
+        # Lowest bag index first. A shop's panel is 36 components in three rows and the shop draws only
+        # the first, so a click on slot 12+ is accepted and does nothing - and one visit tried 12, 13,
+        # 14, 15 while slot 11, the last cell of the drawn row, was the one that worked. Sorting by
+        # index puts the hotbar (where the free space usually is) in front of the undrawn rows.
+        return sorted(drawn, key=_slot_index) + sorted(rest, key=_slot_index)
 
     def _put_down(self, state: dict) -> str | None:
         """Put the carried stack down. Returns what it ran, or None when there is no way to."""

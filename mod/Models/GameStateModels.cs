@@ -158,6 +158,45 @@ public class LocationInfo
     /// ends up hoeing a path outside the farmhouse for three days.
     /// </summary>
     [JsonPropertyName("work")] public WorkSummaryInfo? Work { get; set; }
+
+    /// <summary>
+    /// Shops and buildings whose door shuts outside opening hours, with the hours the door itself
+    /// declares. See ShopDoorInfo - the hours are on the door tile, and nothing used to read them.
+    /// </summary>
+    [JsonPropertyName("shops")] public List<ShopDoorInfo> Shops { get; set; } = new();
+}
+
+
+/// <summary>
+/// A door that is shut outside opening hours, with the hours taken from the door tile itself.
+///
+/// Stardew puts the answer on the tile: `Action: LockedDoorWarp &lt;tile&gt; &lt;dest&gt; &lt;Location&gt;
+/// &lt;openTime&gt; &lt;closeTime&gt;` (StardewValley.GameLocation:9539), and when you knock it says so out
+/// loud - `Strings/Locations:LockedDoor_OpenRange` renders as "上锁了……（营业时间：9:00~21:00）".
+/// The agent knocked on Pierre's door seventeen times in one day with that sentence on screen, so
+/// this turns the sentence into a number it can plan around.
+/// </summary>
+public class ShopDoorInfo
+{
+    /// <summary>The door tile: [x, y].</summary>
+    [JsonPropertyName("at")] public List<int> At { get; set; } = new();
+
+    /// <summary>The location this door leads into, e.g. "SeedShop".</summary>
+    [JsonPropertyName("leads_to")] public string LeadsTo { get; set; } = "";
+
+    /// <summary>Opening and closing time on the game clock (900 = 9:00), as written on the tile.</summary>
+    [JsonPropertyName("opens_at")] public int OpensAt { get; set; }
+    [JsonPropertyName("closes_at")] public int ClosesAt { get; set; }
+
+    /// <summary>The same two times, written the way the game writes them ("9:00am").</summary>
+    [JsonPropertyName("opens_text")] public string OpensText { get; set; } = "";
+    [JsonPropertyName("closes_text")] public string ClosesText { get; set; } = "";
+
+    /// <summary>Whether the clock is inside the door's own range right now. The action is the authority.</summary>
+    [JsonPropertyName("open_now")] public bool OpenNow { get; set; }
+
+    /// <summary>Extra reason the door is shut today, in the game's own words (e.g. SeedShop shuts on Wednesdays).</summary>
+    [JsonPropertyName("note")] public string Note { get; set; } = "";
 }
 
 

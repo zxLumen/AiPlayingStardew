@@ -1,15 +1,15 @@
 {
   "tally": {
     "area|clear_area": {
-      "ok": 12,
-      "fail": 6
+      "ok": 13,
+      "fail": 9
     },
     "area|plant_all": {
-      "ok": 4,
+      "ok": 7,
       "fail": 1
     },
     "area|refill": {
-      "ok": 1,
+      "ok": 5,
       "fail": 6
     },
     "area|till_area": {
@@ -17,12 +17,20 @@
       "fail": 44
     },
     "area|water_all": {
-      "ok": 5,
-      "fail": 3
+      "ok": 13,
+      "fail": 8
+    },
+    "thirsty_crop|go_to": {
+      "ok": 1,
+      "fail": 0
+    },
+    "thirsty_crop|use_tool_at": {
+      "ok": 1,
+      "fail": 18
     },
     "thirsty_crop|work": {
       "ok": 1,
-      "fail": 0
+      "fail": 6
     },
     "tree|work": {
       "ok": 1,

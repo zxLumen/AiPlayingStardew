@@ -252,9 +252,13 @@ class Watcher:
                 # in progress. Leave it alone and keep waiting; the agent will click or close it
                 # when it is done. Only a menu nobody asked for (a stray Escape) is a fault.
                 if reason.startswith("menu open") and any(n in reason for n in HANDS_OFF_MENUS):
-                    if action in MENU_ACTIONS:
-                        # The action IS the menu interaction, so the menu is not holding it up: it is
-                        # where it happened. Nothing to wait for - hand the verdict to the witness.
+                    if not is_chore:
+                        # For anything that is not a running macro the menu is not holding the action
+                        # up: the action has already returned, and the menu is simply the state it
+                        # returned into. Waiting here until the settle timeout was the largest single
+                        # cost in a step - a refused exit_building cost 12.5 seconds of live stream,
+                        # a refused interact_at 4.2 - and it bought nothing, because the verdict
+                        # belongs to the witness (money / bag / hand / screen), not to the clock.
                         result.stopped = "done"
                         break
 

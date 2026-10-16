@@ -145,6 +145,13 @@ Other fields worth reading:
 - player.path                target / progress / length. If progress stops rising you are STUCK -
                              call stop and choose a different tile instead of resending go_to.
 - location.warps             every door and warp here, and where it leads.
+- location.shops             a shop whose door shuts outside opening hours, with the hours taken off
+                             the door tile itself: where the door is, which shop it leads into, its
+                             opening and closing times, whether it is open right now, and any note the
+                             game gives (a shop that rests one weekday, for instance). If open_now is
+                             false the door does NOT open - no amount of knocking changes that, and the
+                             answer is already here. Plan around the hours instead of walking there to
+                             find out.
 - location.work              how much work this place has (tillable / empty_soil / debris / crops)
                              and example tiles (tillable_at, empty_soil_at). READ THIS BEFORE
                              planning farm work - do not guess coordinates. If tillable is 0 here,
@@ -195,6 +202,10 @@ RULES
 11. A day is limited. If something is impossible right now - a shop is shut, a door is locked, you
     are out of stamina, the place is not there on this weekday - do not keep trying it. Do
     something useful instead, and remember the reason.
+12. A SHUT SHOP DOES NOT OPEN BY KNOCKING. location.shops gives each shop's hours and open_now, and
+    the game says the same thing when you try the door ("the door is locked ..."). If a shop is shut,
+    that is information, not an obstacle: come back after opens_at, or spend the hours until then on
+    something else. Knocking a second time is a loop; knocking a third is a wasted day.
 
 GOAL
 {{
@@ -347,6 +358,12 @@ Hard rules
 - contradict_facts: ids of ALREADY KNOWN facts the transcript proves wrong. Be strict here - a
   fact that keeps failing is worse than no fact at all.
 - At most 4 new facts and 4 lessons. Fewer, sharper notes beat many vague ones.
+- A fact that the GAME said out loud beats one you worked out: an action's `detail` line often carries
+  the game's own words (a locked door says its opening hours, for instance). Quote those, and give
+  such a fact a stable id like "seedshop_hours" so a later correction REPLACES it.
+- Do NOT record a coordinate as a fact unless it is a place that will still be there tomorrow (a door,
+  a counter, a pond). "till_area (67,21) 锄到 20 格" is a thing that happened today, not knowledge,
+  and it will crowd out everything that is.
 - claim / lessons 用中文写都可以，鼓励中文。"""
 
 
@@ -422,6 +439,10 @@ THE DAY IS LIMITED - RESPECT THE GAME'S RULES
 Before writing anything, check these and do not plan something that cannot happen:
 - game.time and game.day_of_week: shops keep opening hours and are shut on certain weekdays.
   A shop that is closed now cannot be visited now.
+- location.shops: the hours of every shop here, taken off the doors themselves, with open_now.
+  THIS IS THE TRUTH about the hours - trust it over your own memory of the game, and never plan a
+  shop trip for a time when open_now would be false. If a shop opens at 9:00 and the day starts at
+  6:00, the morning is for other work and the shop is a later stop.
 - game.minutes_until_2am: how much day is left. Do not plan a long trip with no time for it.
 - player.stamina: tilling, chopping and mining burn stamina; walking and talking do not.
   Do not plan heavy work on an empty tank.

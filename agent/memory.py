@@ -20,6 +20,8 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from authenticity import ILLEGAL_ACTIONS
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MEMORY_DIR = PROJECT_ROOT / "memory"
 FACTS_PATH = MEMORY_DIR / "facts.json"
@@ -29,6 +31,10 @@ SKILLS_DIR = MEMORY_DIR / "skills"
 CALIBRATION_PATH = MEMORY_DIR / "calibration.json"
 
 LESSONS_HEADER = "# 主播AI 的学习笔记\n\n每条都是它在实战里验证过的结论。可以手动删改——它下次开局会照读。\n"
+
+# How many facts may be handed to the model at once. See merge_facts: a store that only grows buries
+# the one thing worth knowing under a hundred coordinates.
+MAX_FACTS = 60
 
 DEFAULT_CALIBRATION = [
     {
@@ -70,6 +76,20 @@ def _slug(text: str) -> str:
     return slug[:40] or "fact"
 
 
+def _fact_key(claim: str) -> str:
+    """What a fact is ABOUT, so a newer claim can replace an older one instead of fighting it.
+
+    Without this the store kept every version of the same subject and handed all of them to the model:
+    one fact read "menu_click '0' 是典型的空转循环" and another "menu_click '0' 它不是空转，会扣钱",
+    both at 0.9 confidence, both in the prompt. Two contradicting beliefs are worse than one uncertain
+    one, and numbers inside a claim - coordinates above all - are the part that goes stale fastest, so
+    they are stripped out of the identity: "till_area (67,21) 半径 2" and "till_area (64,18) 半径 2"
+    are the same thing learned twice.
+    """
+    squashed = re.sub(r"\d+", "#", str(claim).lower())
+    return _slug(squashed)[:40]
+
+
 @dataclass
 class Fact:
     id: str
@@ -79,22 +99,30 @@ class Fact:
     evidence: int = 1
     first_seen: str = ""
     last_seen: str = ""
+    key: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.key:
+            self.key = _fact_key(self.claim)
 
     @classmethod
     def from_dict(cls, raw: dict) -> "Fact":
+        claim = str(raw.get("claim", "")).strip()
         return cls(
-            id=str(raw.get("id") or _slug(str(raw.get("claim", "")))),
-            claim=str(raw.get("claim", "")).strip(),
+            id=str(raw.get("id") or _slug(claim)),
+            claim=claim,
             scope=str(raw.get("scope", "global") or "global"),
             confidence=float(raw.get("confidence", 0.6)),
             evidence=int(raw.get("evidence", 1)),
             first_seen=str(raw.get("first_seen", "")),
             last_seen=str(raw.get("last_seen", "")),
+            key=str(raw.get("key") or _fact_key(claim)),
         )
 
     def to_dict(self) -> dict:
         return {
             "id": self.id,
+            "key": self.key,
             "claim": self.claim,
             "scope": self.scope,
             "confidence": round(self.confidence, 2),
@@ -102,6 +130,29 @@ class Fact:
             "first_seen": self.first_seen,
             "last_seen": self.last_seen,
         }
+
+
+# Ways a lesson says "do NOT". Without one of these, a line naming a forbidden action is teaching it.
+_FORBIDS = ("别", "不要", "不能", "禁止", "已停用", "已禁用", "不可", "never", "do not", "don't",
+            "disabled", "refus")
+
+
+def lesson_recommends_illegal(line: str) -> str:
+    """The forbidden action this lesson TELLS the streamer to use, or "" when the lesson is fine.
+
+    A lesson that forbids `warp` is a good lesson - that is the whole point of having banned it. A
+    lesson that recommends it is poison, and the file was full of those: five entries still said
+    "long trips: warp, one step instead of 20 go_to" days after `warp` started refusing. The planner
+    read them, the streamer believed them, and the bridge turned every attempt down.
+    """
+    low = line.lower()
+    if any(word in line or word in low for word in _FORBIDS):
+        return ""
+
+    for action in ILLEGAL_ACTIONS:
+        if action in low:
+            return action
+    return ""
 
 
 def day_label(game: dict | None) -> str:
@@ -141,7 +192,7 @@ class MemoryStore:
         return [Fact.from_dict(e) for e in entries if isinstance(e, dict) and e.get("claim")]
 
     def save_facts(self, facts: list[Fact]) -> None:
-        facts = sorted(facts, key=lambda f: (-f.confidence, -f.evidence))
+        facts = sorted(facts, key=lambda f: (-f.confidence, -f.evidence, f.last_seen))[:MAX_FACTS]
         self.facts_path.write_text(
             json.dumps({"facts": [f.to_dict() for f in facts]}, ensure_ascii=False, indent=2),
             encoding="utf-8",
@@ -174,6 +225,7 @@ class MemoryStore:
                 continue
             fid = str(raw.get("id") or _slug(str(raw["claim"])))
             claim = str(raw["claim"]).strip()
+            key = str(raw.get("key") or _fact_key(claim))
 
             if fid in facts:
                 existing = facts[fid]
@@ -185,6 +237,21 @@ class MemoryStore:
                 updated += 1
                 continue
 
+            # The same subject, learned again - and this time it says something different. The newer
+            # observation wins and the old wording goes: keeping both is how the store ended up with
+            # two confident, opposite beliefs about the same action.
+            clash = next((f for f in facts.values() if f.key == key), None)
+            if clash is not None:
+                changed = claim != clash.claim
+                clash.claim = claim
+                clash.last_seen = today
+                clash.evidence += 1
+                clash.confidence = (min(0.95, max(0.3, float(raw.get("confidence", 0.6))))
+                                    if changed else min(0.99, clash.confidence + 0.05))
+                clash.id = fid if changed else clash.id
+                updated += 1
+                continue
+
             facts[fid] = Fact(
                 id=fid,
                 claim=claim,
@@ -193,10 +260,18 @@ class MemoryStore:
                 evidence=int(raw.get("evidence", 1)),
                 first_seen=today,
                 last_seen=today,
+                key=key,
             )
             added += 1
 
         kept = [f for f in facts.values() if f.confidence >= min_confidence]
+
+        # A store that only ever grows is a store that eventually fills the prompt with trivia. The
+        # one fact the agent needed - the shop's opening hours - was never in it, while a hundred
+        # coordinates were. Keep the best MAX_FACTS and let the rest go.
+        if len(kept) > MAX_FACTS:
+            kept.sort(key=lambda f: (-f.confidence, -f.evidence, f.last_seen), reverse=False)
+            kept = kept[:MAX_FACTS]
         dropped = len(facts) - len(kept)
         self.save_facts(kept)
 
@@ -232,7 +307,26 @@ class MemoryStore:
     def lesson_lines(self, max_lines: int = 40) -> list[str]:
         text = self.load_lessons()
         lines = [ln.strip() for ln in text.splitlines() if ln.strip().startswith("- ")]
-        return lines[-max_lines:]
+
+        # Order matters: the sharpest, most recent lessons are the ones worth the tokens.
+        lines = lines[-max_lines:]
+
+        kept = []
+        dropped = 0
+        for line in lines:
+            if lesson_recommends_illegal(line):
+                dropped += 1
+                continue
+            if line in kept:
+                continue
+            kept.append(line)
+
+        if dropped:
+            # Said out loud rather than silently filtered: a memory that quietly hides what it thinks
+            # is poison teaches nobody, least of all the person reading the log.
+            print(f"[mem ] 丢掉 {dropped} 条教被禁动作的笔记（warp/pause_time/new_day 之类）")
+
+        return kept
 
     # -- journal -----------------------------------------------------------
 

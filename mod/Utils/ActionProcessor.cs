@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -166,6 +167,7 @@ public static class ActionProcessor
 
         string text = detail ?? "";
 
+        if (text.Contains("the door is locked")) return "LOCKED";
         if (text.Contains("no walkable path")) return "NO_PATH";
         if (text.Contains("not free")) return "NOT_FREE";
         if (text.Contains("current item is not a tool")) return "WRONG_TOOL";
@@ -345,8 +347,109 @@ public static class ActionProcessor
 
         Farmer f = Game1.player;
         (int x, int y) = GameQuery.FacingTile(f);
-        bool handled = Game1.currentLocation.checkAction(new Location(x, y), Game1.viewport, f);
+
+        string locked = CheckTileAction(Game1.currentLocation, x, y, f, out bool handled);
+        if (locked.Length > 0)
+            return (false, locked);
+
         return (handled, $"checkAction at ({x}, {y}) -> {handled}");
+    }
+
+
+    /// <summary>
+    /// Runs the game's own tile action and READS THE RESULT rather than its return value.
+    ///
+    /// checkAction returns true when it handled the tile - and "handled" includes painting the
+    /// locked-door dialogue. So knocking on a shop that is shut has been reported as SUCCESS every
+    /// day: the bridge said ok, the witness saw "a dialogue box opened" and called it progress, and
+    /// the learning layer recorded a win - which is precisely why nothing ever corrected it. The
+    /// streamer knocked on Pierre's door seventeen times in one day, every knock a recorded success,
+    /// while the game was printing the answer on the screen: 上锁了……（营业时间：9:00~21:00）.
+    ///
+    /// Returns the reason the tile refused, or "" when there is nothing to explain. `handled` is the
+    /// game's own return value, unchanged.
+    /// </summary>
+    internal static string CheckTileAction(GameLocation location, int x, int y, Farmer farmer, out bool handled)
+    {
+        handled = false;
+
+        try { handled = location.checkAction(new Location(x, y), Game1.viewport, farmer); }
+        catch { }
+
+        // A door that opened is a different location - but NOT YET: warpFarmer fades the screen out
+        // first, so being still here a moment later proves nothing. Judging on that reported a shop
+        // that had just let the farmer in as LOCKED, with its own opening hours quoted back at it.
+        // The game's own words are the discriminator: a shut door PAINTS its message, so compare what
+        // is on the screen with the sentence the game says for this door.
+        ShopDoorInfo? door = WorldMapper.LockedDoorAt(location, x, y);
+        if (door == null)
+            return "";
+
+        if (!ReferenceEquals(Game1.currentLocation, location))
+            return "";
+
+        string sentence = WorldMapper.LockedSentence(door);
+        string shown = UiStateBuilder.OpenDialogueText();
+        if (sentence.Length == 0 || shown.Length == 0)
+            return "";
+
+        string a = sentence.Replace(" ", "").Replace("\n", "");
+        string b = shown.Replace(" ", "").Replace("\n", "");
+        if (a.Length == 0 || !b.Contains(a, StringComparison.Ordinal))
+            return "";
+
+        return LockedDetail(door);
+    }
+
+
+    /// <summary>
+    /// "This door is shut, here is why and until when", in the game's own words and then the clock.
+    /// The hours are on the tile, so they can be said before the knock as well - see
+    /// LockedDoorRefusal.
+    /// </summary>
+    private static string LockedDetail(ShopDoorInfo door)
+    {
+        string sentence = WorldMapper.LockedSentence(door);
+        var text = new StringBuilder("the door is locked");
+
+        if (sentence.Length > 0)
+            text.Append($" ('{sentence}')");
+
+        text.Append($" - {door.LeadsTo} opens {door.OpensText} and shuts {door.ClosesText}");
+
+        try
+        {
+            int now = Game1.timeOfDay;
+            int wait = door.OpensAt - now;
+
+            if (now >= door.ClosesAt)
+                text.Append($". It is {WorldMapper.ClockText(now)} and it is shut for the day - come back tomorrow");
+            else if (wait > 0)
+                text.Append($". It is {WorldMapper.ClockText(now)}, so {wait} game-minutes to wait");
+        }
+        catch { }
+
+        text.Append(". Standing here knocking is not something a player does; the hours are known, so plan around them.");
+        return text.ToString();
+    }
+
+
+    /// <summary>
+    /// Shut by its own declared hours? Then say so instead of walking the farmer across town to find
+    /// out. Note that this is the SAME fact the game prints when you knock, and it is only refused
+    /// when the CLOCK is the reason: a friends-only door or a festival is not about the hour, and
+    /// guessing wrong there would refuse a door that would have opened.
+    /// </summary>
+    private static string LockedDoorRefusal(GameLocation location, int x, int y)
+    {
+        ShopDoorInfo? door = WorldMapper.LockedDoorAt(location, x, y);
+        if (door == null)
+            return "";
+
+        if (door.OpenNow)
+            return "";
+
+        return LockedDetail(door);
     }
 
 
@@ -942,6 +1045,12 @@ public static class ActionProcessor
 
         (int dx, int dy) = (match.X, match.Y);
 
+        // Shut by its own hours? Then do not walk the farmer across town to find out. Same fact, said
+        // before the trip instead of after it.
+        string shut = LockedDoorRefusal(location, dx, dy);
+        if (shut.Length > 0)
+            return (false, shut);
+
         if (!IsAdjacent(Game1.player, dx, dy))
         {
             Point? stand = FindAdjacentWalkable(location, dx, dy);
@@ -968,7 +1077,11 @@ public static class ActionProcessor
         }
 
         FaceTowards(Game1.player, dx, dy);
-        bool opened = location.checkAction(new Location(dx, dy), Game1.viewport, Game1.player);
+
+        string locked = CheckTileAction(location, dx, dy, Game1.player, out bool opened);
+        if (locked.Length > 0)
+            return (false, locked);
+
         return (opened,
             opened ? $"entered via the door at ({dx},{dy})"
                    : $"the door at ({dx},{dy}) would not open - it may be locked or shut at this hour");
@@ -1256,8 +1369,13 @@ public static class ActionProcessor
             }
             else if (pending.Kind == "enter")
             {
-                // A door opens through checkAction, not by standing on it.
-                location.checkAction(new Location(tx, ty), Game1.viewport, farmer);
+                // A door opens through checkAction, not by standing on it. And a door that does NOT
+                // open has to say why: this was the last place a locked door still reported success.
+                string locked = CheckTileAction(location, tx, ty, farmer, out bool handled);
+                monitor.Log(locked.Length > 0
+                    ? $"pending enter: {locked}"
+                    : $"pending enter: checkAction at ({tx},{ty}) -> {handled}", LogLevel.Trace);
+                return;
             }
             else if (farmer.CurrentItem is Tool tool)
             {
@@ -1425,7 +1543,16 @@ public static class ActionProcessor
         Farmer farmer = Game1.player;
         FaceTowards(farmer, x, y);
 
-        bool handled = Game1.currentLocation.checkAction(new Location(x, y), Game1.viewport, farmer);
+        // Shut by its own hours? Same answer as the game would give, said without drawing the
+        // dialogue - the agent does not need to knock seventeen times to be told the hours.
+        string shut = LockedDoorRefusal(Game1.currentLocation, x, y);
+        if (shut.Length > 0)
+            return (false, shut);
+
+        string locked = CheckTileAction(Game1.currentLocation, x, y, farmer, out bool handled);
+        if (locked.Length > 0)
+            return (false, locked);
+
         return (handled, $"interacted with ({x},{y}) -> {handled}");
     }
 

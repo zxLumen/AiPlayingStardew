@@ -153,3 +153,9 @@
 
 ## 2026-10-16
 - [处方] 给 refill 加了前置条件：{'fact': 'held.name', 'op': '==', 'value': '喷壶'}，不足时先 select_slot。原因：refill 从来不是孤立的动作：它要求浇水壶正拿在手上、且农夫面向/紧邻一格水面，而每次调用时这两个前置条件一个都没满足，所以桥只能如实回报失败。
+
+## 2026-10-16
+- 进屋流程：go_to (64,15) → enter FarmHouse 走门 (64,14)；从别处直接 enter FarmHouse 只会 FAILED。
+- plant_all 排队后不要再发 refill/water_all，会 FAILED『already busy』；等它走完再 select_slot 2 + refill + water_all。
+- (61,18) 已锄完，换 (70,17)-(71,20) 这一带：先 clear_area 半径 3，再 till_area 半径 0 逐格锄，最后 plant_all。
+- Town 里被 dialogue/cutscene 卡住时，用 press_key 'space'（必要时 'enter'）推进；只剩一次 escape 推进机会，别连点同一动作被守门器拦。

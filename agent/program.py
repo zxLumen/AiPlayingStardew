@@ -85,6 +85,19 @@ DEFAULTS: dict = {
         "_auto_tune_note": [
             "true = 改上面任何一个数字都不用重启，解说脑每 5 秒自己读一次。",
         ],
+        "quiet_room_max": 6.0,
+        "_quiet_room_note": [
+            "判断「人少 / 人多」的阈值：最近 60 秒里「进场 + 弹幕」条数。",
+            "  ≤ 这个数 = 人少 → **保证欢迎**：名字一定会被念出来（模型忘了就在句首补上）。",
+            "  > 这个数 = 人多 → 尽力而为：做同样的提示，但漏了就漏了，不为欢迎花额外时间；",
+            "     并且回答弹幕优先于欢迎，人一多欢迎自动让路。",
+            "人少人多都只看最近一分钟，所以开播没人时一定热情，热闹时不会卡在打招呼上。",
+        ],
+        "welcome_backlog_max": 3,
+        "_welcome_backlog_note": [
+            "还有多少个名字在排队等着被欢迎，就算「人多」（人）。达到这个数就不再保证欢迎了 ——",
+            "这一条比人数更能反映「欢迎不过来」。",
+        ],
     },
     "voice": {
         "enabled": True,
@@ -339,6 +352,8 @@ class Program:
                     density_target_s=float(commentary_cfg.get("density_target_s") or 7.0),
                     beat_cooldown_s=float(commentary_cfg.get("beat_cooldown_s") or 25.0),
                     look_ahead=int(commentary_cfg.get("look_ahead") or 0),
+                    quiet_room_max=float(commentary_cfg.get("quiet_room_max") or 6.0),
+                    welcome_backlog_max=int(commentary_cfg.get("welcome_backlog_max") or 3),
                     pause_continue=_pause_pair(commentary_cfg, "pause_continue", 1.0, 2.5),
                     pause_new_topic=_pause_pair(commentary_cfg, "pause_new_topic", 2.5, 4.5),
                     pause_moment=_pause_pair(commentary_cfg, "pause_moment", 0.8, 1.8),
@@ -533,6 +548,8 @@ class Program:
             put("density_target_s", float(cfg.get("density_target_s") or 7.0))
             put("beat_cooldown_s", float(cfg.get("beat_cooldown_s") or 25.0))
             put("look_ahead", max(0, int(cfg.get("look_ahead") if cfg.get("look_ahead") is not None else 0)))
+            put("quiet_room_max", float(cfg.get("quiet_room_max") or 6.0))
+            put("welcome_backlog_max", max(1, int(cfg.get("welcome_backlog_max") or 3)))
             for key in ("pause_continue", "pause_new_topic", "pause_moment"):
                 value = cfg.get(key)
                 if isinstance(value, (list, tuple)) and len(value) == 2:
