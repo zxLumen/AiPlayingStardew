@@ -392,6 +392,26 @@ public class MenuButtonInfo
     [JsonPropertyName("width")] public int Width { get; set; }
     [JsonPropertyName("height")] public int Height { get; set; }
     [JsonPropertyName("visible")] public bool Visible { get; set; }
+
+    /// <summary>
+    /// What this control is SHOWING, when the game draws something on it.
+    ///
+    /// A shop's panel is a grid of buttons named "4", "12", "inventory.0" - names are all the agent
+    /// had, and a name is not a thing. It asked to "go and sell the parsnips" and had nowhere to click,
+    /// because nothing anywhere said that the slot showing a parsnip is a parsnip. The shelf rows were
+    /// joined onto their goods long ago for exactly this reason; the player's own half of the same
+    /// screen was never done.
+    /// </summary>
+    [JsonPropertyName("item")] public string Item { get; set; } = "";
+
+    /// <summary>
+    /// Whether the GAME would accept this item from this control right now.
+    ///
+    /// Asked rather than assumed: a shop sets the highlight function that decides which of your slots
+    /// it will buy, so this is the shop's own answer for this slot at this moment. False means the
+    /// click would do nothing, which is worth knowing before spending a step on it.
+    /// </summary>
+    [JsonPropertyName("sellable")] public bool Sellable { get; set; }
 }
 
 

@@ -1,8 +1,8 @@
 {
   "tally": {
     "area|clear_area": {
-      "ok": 13,
-      "fail": 15
+      "ok": 15,
+      "fail": 17
     },
     "area|harvest_all": {
       "ok": 0,

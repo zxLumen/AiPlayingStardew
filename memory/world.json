@@ -1,16 +1,44 @@
 {
   "entries": {
-    "go_to@Town|go_to": {
-      "works": 9,
-      "fails": 2,
+    "Town:exit_building|exit_building": {
+      "works": 13,
+      "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "tile:something|interact_at": {
-      "works": 10,
+      "works": 12,
       "fails": 1,
-      "says": "镇子很小，所有人自然都十分熟络。",
+      "says": "等到皮埃尔经营店铺的时候再回来。",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:SeedShop|enter": {
+      "works": 11,
+      "fails": 1,
+      "says": "SeedShop",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:BusStop|enter": {
+      "works": 7,
+      "fails": 4,
+      "says": "BusStop",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@SeedShop|go_to": {
+      "works": 11,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@Town|go_to": {
+      "works": 9,
+      "fails": 2,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -21,24 +49,10 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Town:exit_building|exit_building": {
+    "menu:upperRightCloseButton|menu_click": {
       "works": 10,
       "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "door:SeedShop|enter": {
-      "works": 9,
-      "fails": 1,
-      "says": "SeedShop",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "go_to@SeedShop|go_to": {
-      "works": 9,
-      "fails": 0,
-      "says": "",
+      "says": "upperRightCloseButton",
       "note": "",
       "last": "2026-10-17"
     },
@@ -49,10 +63,17 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "menu:upperRightCloseButton|menu_click": {
-      "works": 8,
-      "fails": 0,
-      "says": "upperRightCloseButton",
+    "Farm:patch|clear_area": {
+      "works": 2,
+      "fails": 6,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:Farm|enter": {
+      "works": 4,
+      "fails": 4,
+      "says": "Farm",
       "note": "",
       "last": "2026-10-17"
     },
@@ -63,31 +84,17 @@
       "note": "",
       "last": "2026-10-16"
     },
-    "door:BusStop|enter": {
-      "works": 3,
-      "fails": 4,
-      "says": "BusStop",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "door:Farm|enter": {
-      "works": 2,
-      "fails": 4,
-      "says": "Farm",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "go_to@Farm|go_to": {
-      "works": 3,
+      "works": 5,
       "fails": 2,
       "says": "",
       "note": "",
-      "last": "2026-10-16"
+      "last": "2026-10-17"
     },
-    "Farm:patch|clear_area": {
-      "works": 0,
-      "fails": 4,
-      "says": "",
+    "door:Town|enter": {
+      "works": 5,
+      "fails": 1,
+      "says": "Town",
       "note": "",
       "last": "2026-10-17"
     },
@@ -105,10 +112,24 @@
       "note": "",
       "last": "2026-10-16"
     },
-    "door:Town|enter": {
+    "Farm:exit_building|exit_building": {
       "works": 3,
       "fails": 0,
-      "says": "Town",
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "ShopMenu:bag slot|menu_click": {
+      "works": 0,
+      "fails": 3,
+      "says": "inventory.8",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:FarmHouse|enter": {
+      "works": 3,
+      "fails": 0,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -126,6 +147,13 @@
       "note": "",
       "last": "2026-10-16"
     },
+    "select_slot@Town|select_slot": {
+      "works": 3,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "tile:Junimo|interact_at": {
       "works": 0,
       "fails": 3,
@@ -137,13 +165,6 @@
       "works": 2,
       "fails": 0,
       "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
-      "note": "",
-      "last": "2026-10-16"
-    },
-    "Farm:exit_building|exit_building": {
-      "works": 2,
-      "fails": 0,
-      "says": "",
       "note": "",
       "last": "2026-10-16"
     },
@@ -161,6 +182,13 @@
       "note": "",
       "last": "2026-10-16"
     },
+    "ShopMenu:dropItemInvisibleButton|menu_click": {
+      "works": 0,
+      "fails": 2,
+      "says": "dropItemInvisibleButton",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "Town:patch|water_all": {
       "works": 0,
       "fails": 2,
@@ -174,13 +202,6 @@
       "says": "",
       "note": "",
       "last": "2026-10-17"
-    },
-    "select_slot@Town|select_slot": {
-      "works": 2,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-16"
     },
     "CommunityCenter:exit_building|exit_building": {
       "works": 0,
@@ -202,13 +223,6 @@
       "says": "",
       "note": "",
       "last": "2026-10-17"
-    },
-    "door:FarmHouse|enter": {
-      "works": 1,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-16"
     },
     "interact@CommunityCenter|interact": {
       "works": 0,
@@ -301,6 +315,13 @@
       "note": "forSaleButtons.0 这次点击后金钱和背包都没变，可能没真正买到；下次购买后要立刻核对 money 和 inventory",
       "last": "2026-10-16"
     },
+    "shopmenu_bag_drops|menu_click": {
+      "works": 0,
+      "fails": 0,
+      "says": "the whole click changed nothing - not money, not the bag, not either hand",
+      "note": "when the hotbar is full you cannot make room by clicking an inventory slot then dropItemInvisibleButton in ShopMenu - clicks land but change nothing; better to ",
+      "last": "2026-10-17"
+    },
     "shopmenu_forsalebuttons_0|menu_click": {
       "works": 0,
       "fails": 0,
@@ -308,12 +329,33 @@
       "note": "连点 forSaleButtons.0 也不总是扣钱，菜单可能没真正接到点击；买种子不可靠时别恋战，直接关店回家干活",
       "last": "2026-10-16"
     },
+    "shopmenu_inventory_clicks|menu_click": {
+      "works": 0,
+      "fails": 0,
+      "says": "no button 'inventory.8' in ShopMenu",
+      "note": "ShopMenu背包格在菜单里叫纯数字 '4'-'24'，inventory.4 以上不存在；且包满时点格子也不会腾出空间",
+      "last": "2026-10-17"
+    },
+    "shopmenu_背包格|menu_click": {
+      "works": 0,
+      "fails": 0,
+      "says": "clicked '6' - nothing changed",
+      "note": "包满时点商店货架没有意义：先在 ShopMenu 里点一次 inventory.N 把物品拿到手上，再点 dropItemInvisibleButton 丢掉腾出格子，然后才买种子",
+      "last": "2026-10-17"
+    },
     "买种子节奏|menu_click_forsalebuttons_0": {
       "works": 0,
       "fails": 0,
       "says": "钱 240，每个 20 金",
       "note": "每天限 4 次点击，一次只买 2 个最稳：点两下立刻关菜单，绝不贪第三个",
       "last": "2026-10-16"
+    },
+    "背包满时买种|enter": {
+      "works": 0,
+      "fails": 0,
+      "says": "HOTBAR FULL - a shop has nowhere to put a purchase",
+      "note": "12格背包全满时进店买种子没有意义：没有丢物动作可腾格，先回农场干活，别在店里耗时间",
+      "last": "2026-10-17"
     }
   }
 }

@@ -95,13 +95,34 @@ public static class UiStateBuilder
 
             try
             {
+                // A shop shows the player's own items in the same panel it sells from, and clicking one
+                // of those slots is how you SELL. Nothing said so: the agent asked to "go and sell the
+                // parsnips" and had a grid of buttons called "4", "12", "inventory.0" to click, so the
+                // one thing it wanted to do was the one thing it could not find. What each slot holds,
+                // and whether the shop will take it, comes from the shop's own inventory and the shop's
+                // own highlight function - the answer the GAME uses to decide what is sellable.
+                IList<Item?>? shopBag = null;
+                Delegate? shopAccepts = null;
+                bool shopBuys = false;
+
+                if (menu is ShopMenu shop)
+                {
+                    shopBag = ReadMember(shop, "inventory") is InventoryMenu panel
+                        ? panel.actualInventory
+                        : null;
+                    shopAccepts = ReadMember(shop, "inventory") is InventoryMenu panel2
+                        ? panel2.highlightMethod as Delegate
+                        : null;
+                    shopBuys = !(ReadMember(shop, "readOnly") is bool readOnly && readOnly);
+                }
+
                 foreach ((string name, MenuComponent mc) in DescribeMenu(menu))
                 {
                     if (ui.Buttons.Count >= MaxButtons)
                         break;
 
                     ClickableComponent c = mc.Component;
-                    ui.Buttons.Add(new MenuButtonInfo
+                    var button = new MenuButtonInfo
                     {
                         Name = name,
                         Source = mc.Source,
@@ -111,7 +132,16 @@ public static class UiStateBuilder
                         Width = c.bounds.Width,
                         Height = c.bounds.Height,
                         Visible = c.visible,
-                    });
+                    };
+
+                    if (shopBag != null && int.TryParse(c.name, out int slot)
+                        && slot >= 0 && slot < shopBag.Count && shopBag[slot] is Item held)
+                    {
+                        button.Item = held.DisplayName ?? "";
+                        button.Sellable = shopBuys && Accepts(shopAccepts, held);
+                    }
+
+                    ui.Buttons.Add(button);
                 }
             }
             catch (Exception ex)
@@ -760,6 +790,27 @@ public static class UiStateBuilder
     {
         object? raw = ReadMember(target, name);
         return raw is int value ? value : 0;
+    }
+
+
+    /// <summary>
+    /// Asks the shop's own highlight function whether it would take this item.
+    ///
+    /// That delegate IS the shop's answer to "which of your slots will I buy" - it is what the game
+    /// uses to light the slot up for a player. Calling it is asking the game rather than deciding for
+    /// it; if it cannot be called, the item is reported without a verdict rather than with a guess.
+    /// </summary>
+    private static bool Accepts(Delegate? highlight, Item item)
+    {
+        if (highlight == null)
+            return false;
+
+        try
+        {
+            object? verdict = highlight.DynamicInvoke(item);
+            return verdict is bool ok && ok;
+        }
+        catch { return false; }
     }
 
 
