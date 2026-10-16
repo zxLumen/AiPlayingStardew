@@ -2,7 +2,7 @@
   "tally": {
     "area|clear_area": {
       "ok": 13,
-      "fail": 13
+      "fail": 15
     },
     "area|harvest_all": {
       "ok": 0,
@@ -18,7 +18,7 @@
     },
     "area|till_area": {
       "ok": 2,
-      "fail": 45
+      "fail": 46
     },
     "area|water_all": {
       "ok": 17,

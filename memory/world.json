@@ -8,23 +8,37 @@
       "last": "2026-10-17"
     },
     "tile:something|interact_at": {
-      "works": 9,
+      "works": 10,
       "fails": 1,
       "says": "镇子很小，所有人自然都十分熟络。",
       "note": "",
       "last": "2026-10-17"
     },
+    "ShopMenu:shelf row|menu_click": {
+      "works": 0,
+      "fails": 10,
+      "says": "forSaleButtons.0",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "Town:exit_building|exit_building": {
-      "works": 9,
+      "works": 10,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "door:SeedShop|enter": {
-      "works": 8,
+      "works": 9,
       "fails": 1,
       "says": "SeedShop",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@SeedShop|go_to": {
+      "works": 9,
+      "fails": 0,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -35,17 +49,10 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@SeedShop|go_to": {
+    "menu:upperRightCloseButton|menu_click": {
       "works": 8,
       "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "ShopMenu:shelf row|menu_click": {
-      "works": 0,
-      "fails": 7,
-      "says": "forSaleButtons.0",
+      "says": "upperRightCloseButton",
       "note": "",
       "last": "2026-10-17"
     },
@@ -56,22 +63,15 @@
       "note": "",
       "last": "2026-10-16"
     },
-    "menu:upperRightCloseButton|menu_click": {
-      "works": 7,
-      "fails": 0,
-      "says": "upperRightCloseButton",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "door:BusStop|enter": {
-      "works": 1,
+      "works": 3,
       "fails": 4,
       "says": "BusStop",
       "note": "",
       "last": "2026-10-17"
     },
     "door:Farm|enter": {
-      "works": 1,
+      "works": 2,
       "fails": 4,
       "says": "Farm",
       "note": "",
@@ -83,6 +83,13 @@
       "says": "",
       "note": "",
       "last": "2026-10-16"
+    },
+    "Farm:patch|clear_area": {
+      "works": 0,
+      "fails": 4,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
     },
     "Farm:patch|harvest_all": {
       "works": 0,
@@ -97,6 +104,13 @@
       "says": "space",
       "note": "",
       "last": "2026-10-16"
+    },
+    "door:Town|enter": {
+      "works": 3,
+      "fails": 0,
+      "says": "Town",
+      "note": "",
+      "last": "2026-10-17"
     },
     "go_to@BusStop|go_to": {
       "works": 3,
@@ -133,12 +147,12 @@
       "note": "",
       "last": "2026-10-16"
     },
-    "Farm:patch|clear_area": {
+    "Farm:patch|till_area": {
       "works": 0,
       "fails": 2,
       "says": "",
       "note": "",
-      "last": "2026-10-16"
+      "last": "2026-10-17"
     },
     "Farm:patch|water_all": {
       "works": 2,
@@ -153,13 +167,6 @@
       "says": "",
       "note": "",
       "last": "2026-10-16"
-    },
-    "door:Town|enter": {
-      "works": 2,
-      "fails": 0,
-      "says": "Town",
-      "note": "",
-      "last": "2026-10-17"
     },
     "go_to@CommunityCenter|go_to": {
       "works": 2,
@@ -181,13 +188,6 @@
       "says": "",
       "note": "",
       "last": "2026-10-17"
-    },
-    "Farm:patch|till_area": {
-      "works": 0,
-      "fails": 1,
-      "says": "",
-      "note": "",
-      "last": "2026-10-16"
     },
     "dialogue_choose@Farm|dialogue_choose": {
       "works": 1,
@@ -252,6 +252,13 @@
       "note": "Junimo 本体不可交互，旁边的可交互物（如墙上的纸）才是调查目标",
       "last": "2026-10-17"
     },
+    "farm_crops|scan": {
+      "works": 0,
+      "fails": 0,
+      "says": "全部防风草 watered:true，无 ready",
+      "note": "第20天早上作物已浇过水且未成熟，不必重复 water_all，白天可做别的事",
+      "last": "2026-10-17"
+    },
     "forsalebuttons_0_purchase|menu_click": {
       "works": 0,
       "fails": 0,
@@ -272,6 +279,13 @@
       "says": "上锁了……（营业时间：9:00~21:00）",
       "note": "店 9:00~21:00 开，去之前先看钟",
       "last": "2026-10-16"
+    },
+    "seedshop_shopmenu|menu_click_forsalebuttons_0": {
+      "works": 0,
+      "fails": 0,
+      "says": "防风草种子 20金",
+      "note": "菜单开着时买种子连点 forSaleButtons.0 即可，一次最多3笔，随后一次 upperRightCloseButton + exit_building 离店",
+      "last": "2026-10-17"
     },
     "seedshop_购买|menu_click": {
       "works": 0,

@@ -36,6 +36,27 @@ def _cursor_name(player: dict) -> str | None:
     return f"{name} x{count}" if count > 1 else name
 
 
+def _bag_room(state: dict) -> str:
+    """Free room in the bag, and which slot to use.
+
+    Measured reason, not a guess: a shop's panel is the twelve hotbar slots, so a purchase has nowhere
+    to go once they are taken - the seeds stay in the shop's hand and the menu then refuses to close.
+    The streamer spent a whole day clicking a shelf for seeds while its bag was full, and the only
+    thing that ever said so was the supervisor's prose, which arrives after the damage.
+    """
+    used = {int(i.get("slot", -1)) for i in (state.get("inventory") or []) if i.get("name")}
+    free = [slot for slot in range(12) if slot not in used]
+
+    if not free:
+        return (f"{len(used)} slots used, HOTBAR FULL - a shop has nowhere to put a purchase, so make "
+                f"room first (a bag slot, or drop something)")
+
+    if len(free) == 1:
+        return f"{len(used)} slots used, hotbar slot {free[0]} free"
+
+    return f"{len(used)} slots used, hotbar slots {free[0]}-{free[-1]} free ({len(free)} free)"
+
+
 def compact_state(state: dict) -> dict:
     game = state.get("game", {}) or {}
     player = state.get("player", {}) or {}
@@ -77,6 +98,11 @@ def compact_state(state: dict) -> dict:
             "auto_moving": player.get("is_auto_moving"),
             "bed_tile": player.get("bed_tile"),
         },
+        # How much room there is. A shop cannot take a purchase it has nowhere to put, and "my bag is
+        # full" was the real reason the seed run failed while the streamer kept clicking a shelf that
+        # could give it nothing. The supervisor's prose was the only thing that ever mentioned it; now
+        # it is a fact in front of the agent, with the number of the slot to use.
+        "bag": _bag_room(state),
         "inventory": [
             {"slot": i.get("slot"), "name": i.get("name"), "count": i.get("stack"), "kind": i.get("kind")}
             for i in (state.get("inventory") or [])[:MAX_LIST]
