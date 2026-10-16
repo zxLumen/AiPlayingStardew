@@ -3210,6 +3210,9 @@ public static class NativeInput
     }
 
     /// <summary>Brings the game window to the front, which keyboard input needs.</summary>
+    private static IntPtr _focusToRestore = IntPtr.Zero;
+    private static long _focusRestoreAt;
+
     public static bool FocusGameWindow()
     {
         IntPtr handle = GameWindowHandle();
@@ -3218,21 +3221,56 @@ public static class NativeInput
 
         // Already focused? Then leave it alone. This is called before every injected input, and an
         // agent that re-asserts focus several times a minute drags the window in front of whatever the
-        // person at the machine is doing. It only needs focus when it does not have it.
+        // person at the machine is doing.
         if (IsGameWindowActive())
             return true;
+
+        // Remember who had it, so it can be handed back.
+        //
+        // The bridge needs the game in front for the INSTANT an input is injected - it does not need
+        // to KEEP it. Taking it and keeping it is what makes the machine unusable while the agent
+        // plays: the window you are actually working in keeps losing focus to a game. So focus is
+        // borrowed here and returned from the tick, a moment later.
+        try
+        {
+            IntPtr previous = GetForegroundWindow();
+            if (previous != IntPtr.Zero && previous != handle)
+            {
+                _focusToRestore = previous;
+                _focusRestoreAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                                  + BorrowedFocusMs;
+            }
+        }
+        catch { }
 
         // Un-minimise ONLY if it is actually minimised.
         //
         // This used to call ShowWindow(SW_RESTORE) unconditionally, and on a MAXIMISED window
         // SW_RESTORE means "restore to the previous size" - so every single action un-maximised the
-        // window. That is why the window kept shrinking by itself, minutes after it had been
-        // maximised, with nothing in the log to explain it: the cause was not the maximise code at
-        // all, it was the focus code, running on every click and every key.
+        // window, minutes after it had been maximised, with nothing in the log to explain it.
         if (IsIconic(handle))
             ShowWindow(handle, SW_RESTORE);
 
         return SetForegroundWindow(handle);
+    }
+
+
+    /// <summary>How long the game may hold focus that it borrowed. One injected input's worth.</summary>
+    private const int BorrowedFocusMs = 250;
+
+
+    /// <summary>Hands focus back to whoever had it, once the injected input has landed.</summary>
+    internal static void ReturnBorrowedFocus()
+    {
+        IntPtr target = _focusToRestore;
+        if (target == IntPtr.Zero)
+            return;
+
+        if (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() < _focusRestoreAt)
+            return;
+
+        _focusToRestore = IntPtr.Zero;
+        try { SetForegroundWindow(target); } catch { }
     }
 
     public static void PressAndRelease(byte vk)

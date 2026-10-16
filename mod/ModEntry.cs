@@ -197,6 +197,7 @@ public class ModEntry : Mod
         }
 
         MovementController.OnUpdateTicked();
+        NativeInput.ReturnBorrowedFocus();
         ActionProcessor.ProcessPendingNewGame(Monitor);
         ActionProcessor.ProcessPendingClicks(Monitor);
         ActionProcessor.ProcessPendingWork(Monitor);
