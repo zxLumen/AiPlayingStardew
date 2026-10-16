@@ -131,3 +131,9 @@
 - ShopMenu 卡成 NOT_FREE 时别反复 exit_building（第 4 次会被守门器拦），立刻改用 scan 或 downArrow 换动作类型，避免循环。
 - 买种子的固定连招：Farm → enter BusStop → enter Town → enter SeedShop → go_to (4,19) → interact_at (4,18) → 菜单里只用 downArrow，最后一把关掉。
 - 今天两处锄地 (64,18)/(67,20) 半径 2 各只锄到 1 格，明天先 scan 刷新再挑新点，别在老坐标空锄。
+
+## 2026-10-16
+- ShopMenu 里 menu_click '0' 会真买第 1 个商品并扣钱（今天 500->420），要买才点它，不买绝不要碰。
+- upperRightCloseButton 今天全部超时无变化，关不掉 ShopMenu；菜单卡住时别再连点同一按钮，立刻换动作类型（如 downArrow / 离开店内）。
+- Farm 新锄地点用 (61,18) 半径 2（5 done, 0 放弃）；(60,21)/(64,21) 有 (62,23) 的树挡路会放弃，别选它们。
+- 已经在 SeedShop 内部时不要反复 enter SeedShop，只会回 'entered via the door at (43,56)' 空转。

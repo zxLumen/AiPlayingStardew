@@ -122,6 +122,25 @@ def _cursor(state: dict) -> str:
     return f"{name} x{held.get('stack')}" if name else "empty"
 
 
+def _hand(state: dict) -> str:
+    """What is being carried, wherever it is being carried.
+
+    There are TWO places a stack can sit in the hand and only one of them was watched: the player's
+    cursor, and the open MENU's own held item. A shop purchase lands on the menu's hand - so four
+    parsnip seeds were bought, money 500 -> 420, while this witness reported success four times and
+    the bag stayed empty. The purchase never reached the bag, the shop would not close while holding,
+    and nothing anywhere said the hand was full. Watching the cursor alone was watching the wrong hand.
+    """
+    cursor = _cursor(state)
+    menu = str((state.get("ui") or {}).get("held_item") or "").strip()
+
+    if not menu:
+        return cursor
+    if cursor == "empty":
+        return f"menu holds {menu}"
+    return f"menu holds {menu} + cursor holds {cursor}"
+
+
 def _bag(state: dict) -> tuple:
     """What is in the bag, made comparable. A purchase that lands changes this."""
     return tuple(
@@ -200,17 +219,17 @@ def judge(action: str, args: dict, before_state: dict, after_state: dict,
         # shop menu exactly where it was, so judging a click by "did the screen move" made every real
         # purchase look like a lie - and made two very different outcomes look identical:
         #
-        #   money down, bag up            a purchase went through
-        #   money down, cursor occupied   a purchase got picked up and never put down
+        #   money down, bag up        a purchase went through
+        #   money down, hand full     a purchase got picked up and never put down
         #
-        # What actually moves is money, the bag and the cursor. Those are the witness.
+        # What actually moves is money, the bag and the hand. Those are the witness.
         before = (_menu(before_state), _dialogue(before_state), _money(before_state),
-                  _bag(before_state), _cursor(before_state))
+                  _bag(before_state), _hand(before_state))
         after = (_menu(after_state), _dialogue(after_state), _money(after_state),
-                 _bag(after_state), _cursor(after_state))
+                 _bag(after_state), _hand(after_state))
 
         if before == after:
-            return False, "nothing moved (screen, money, bag and cursor all identical)"
+            return False, "nothing moved (screen, money, bag and hand all identical)"
 
         notes = []
         if before[2] != after[2]:
@@ -218,14 +237,15 @@ def judge(action: str, args: dict, before_state: dict, after_state: dict,
         if before[3] != after[3]:
             notes.append("the bag changed")
         if before[4] != after[4]:
-            notes.append(f"cursor {before[4]} -> {after[4]}")
+            notes.append(f"hand {before[4]} -> {after[4]}")
         if before[0] != after[0]:
             notes.append(f"menu {before[0] or '(none)'} -> {after[0] or '(none)'}")
 
-        # A cursor left holding something is NOT a success. It is the half-finished purchase that
-        # stops the shop from closing, which is what froze a whole day. Say so, loudly.
-        if after[4] != "empty":
-            notes.append(f"WARNING: '{after[4]}' is stuck on the cursor")
+        # A hand left holding something is NOT a success. It is a purchase that never reached the bag,
+        # and it is what stops the shop closing - the thing that froze a whole day while the agent was
+        # being told every step had worked.
+        if not after[4].startswith("empty"):
+            notes.append(f"WARNING: hand is not empty - '{after[4]}'")
 
         return True, "; ".join(notes) if notes else "the world changed"
 

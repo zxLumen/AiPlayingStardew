@@ -49,6 +49,68 @@ class WatchResult:
     remedies: list[str] = field(default_factory=list)
     defects: list[str] = field(default_factory=list)
     seconds: float = 0.0
+    # What the watcher decided, in a form that can be WRONG. Everything above is an event - "stopped:
+    # timeout", "remedies: [...]" - and an event is a description of what happened, so nothing can
+    # ever contradict it and nobody can adjudicate the watcher. These four fields are the assertion
+    # behind the event: `reason` names what it thought was wrong, `claim` states it as a claim about
+    # the world, `expectation` is the prediction that follows, and `falsifier` is the observation that
+    # would prove it false. `watch_audit.py` reads them back and files the ones the logs contradict.
+    reason: str = ""
+    claim: str = ""
+    expectation: str = ""
+    falsifier: str = ""
+
+
+def _claim(kind: str, *, action: str, reason: str = "", remedy: str | None = None,
+           value=None, where=None, held: float = 0.0, timeout_s: float = 0.0) -> tuple[str, str, str]:
+    """The falsifiable claim behind one intervention: what I assert, what follows, what would break it.
+
+    Kept in one place so every branch of the watch loop says what it believes in the same shape, and
+    so a future reason cannot be added without someone being forced to write down how to disprove it.
+    """
+    if kind == "remedy":
+        return (
+            f"「{reason}」挡住了 {action}，处置「{remedy}」能解开它",
+            f"做完 {remedy} 之后卡住会消失，这一步的世界会变",
+            f"若 {remedy} 之后世界仍没变，或 {action} 后来不用 {remedy} 也成功了，则这个判断是错的",
+        )
+
+    if kind == "gave_up":
+        return (
+            f"{action} 被「{reason}」挡住且没有可用的处置",
+            f"重试 {action} 会以同样的方式卡住",
+            f"若 {action} 后来在没人介入时成功了，则放弃得太早",
+        )
+
+    if kind == "timeout":
+        return (
+            f"{action} 在 {timeout_s:.0f} 秒内没有推动世界",
+            "这一步的世界不会变（见证应显示没变）",
+            "若见证显示这一步世界变了（金钱/背包/光标/菜单等），则超时判断是错的",
+        )
+
+    if kind == "over budget":
+        return (
+            f"{action} 花光了这一轮的预算仍未完成",
+            "继续等下去这一步也做不完",
+            "若它其实在预算内完成了（世界变了），则提前结束是错的",
+        )
+
+    if kind == "no progress":
+        return (
+            f"{action} 的计数停在 {value}，人也不动",
+            "计数不会再变，直到取消",
+            f"若计数在这之后又变了，则 {action} 并没有卡住",
+        )
+
+    if kind == "stalled":
+        return (
+            f"{action} 在 {where} 原地走了 {held:.0f} 秒",
+            "位置不会再变，直到取消",
+            f"若位置在这之后又变了，则 {action} 并没有卡住",
+        )
+
+    return (f"{action}：{reason}", "", "")
 
 
 def _player(state: dict) -> dict:
@@ -158,11 +220,17 @@ class Watcher:
 
             if elapsed > timeout_s:
                 result.stopped = "timeout"
+                result.reason = f"timeout after {timeout_s:.0f}s"
+                result.claim, result.expectation, result.falsifier = _claim(
+                    "timeout", action=action, timeout_s=timeout_s)
                 break
 
             if budget_s and elapsed > budget_s:
                 self._cancel_chore(is_chore)
                 result.stopped = "over budget"
+                result.reason = "over budget"
+                result.claim, result.expectation, result.falsifier = _claim(
+                    "over budget", action=action)
                 break
 
             state = self.client.state()
@@ -193,9 +261,13 @@ class Watcher:
                         self._raise(f"stuck:{_slug(reason)}", f"长时间「{reason}」",
                                     "agent", detail=f"{action} 被 {reason} 挡住 {held:.0f} 秒",
                                     cost_s=elapsed)
-                        self._note(day, step, event="gave_up", action=action, reason=reason,
-                                   held_s=round(held, 1))
                         result.stopped = f"blocked: {reason}"
+                        result.reason = reason
+                        result.claim, result.expectation, result.falsifier = _claim(
+                            "gave_up", action=action, reason=reason)
+                        self._note(day, step, event="gave_up", action=action, reason=reason,
+                                   held_s=round(held, 1), claim=result.claim,
+                                   expectation=result.expectation, falsifier=result.falsifier)
                         break
 
                     result.state = state
@@ -220,20 +292,32 @@ class Watcher:
                         self._raise(f"blocked:{_slug(reason)}", f"卡在「{reason}」且守望者处理不了",
                                     "agent", detail=f"{action} 被 {reason} 挡住，处方{'不存在' if remedy is None else '无效'}",
                                     cost_s=elapsed)
-                        self._note(day, step, event="gave_up", action=action, reason=reason,
-                                   held_s=round(held, 1))
                         result.stopped = f"blocked: {reason}"
+                        result.reason = reason
+                        result.claim, result.expectation, result.falsifier = _claim(
+                            "gave_up", action=action, reason=reason,
+                            remedy=remedy[0] if remedy else None)
+                        self._note(day, step, event="gave_up", action=action, reason=reason,
+                                   held_s=round(held, 1),
+                                   claim=result.claim, expectation=result.expectation,
+                                   falsifier=result.falsifier)
                         break
 
                     remedies_for_reason[reason] = attempt + 1
                     name, remedy_args = remedy
                     applied = self.client.action(name, **remedy_args)
                     result.remedies.append(name)
+                    result.reason = reason
+                    result.claim, result.expectation, result.falsifier = _claim(
+                        "remedy", action=action, reason=reason, remedy=name)
                     self._note(day, step, event="remedy", action=action, reason=reason,
                                remedy=name, ok=bool(applied.get("ok")),
-                               detail=str(applied.get("detail", ""))[:120])
+                               detail=str(applied.get("detail", ""))[:120],
+                               claim=result.claim, expectation=result.expectation,
+                               falsifier=result.falsifier)
                     self.log(f"[守望] 被「{reason}」挡住 {held:.1f}s -> {name} "
-                             f"({'ok' if applied.get('ok') else 'failed'}: {applied.get('detail')})")
+                             f"({'ok' if applied.get('ok') else 'failed'}: {applied.get('detail')}) "
+                             f"| 判断：{result.claim}")
                     blocked_since = time.monotonic()
                 else:
                     result.state = state
@@ -271,25 +355,34 @@ class Watcher:
                 idle_for = time.monotonic() - counter_since
 
                 if moving and still_for > STALL_S:
+                    result.stopped = "stalled"
+                    result.reason = f"stalled at {here}"
+                    result.claim, result.expectation, result.falsifier = _claim(
+                        "stalled", action=action, where=here, held=still_for)
                     self._note(day, step, event="stalled", action=action, at=here,
-                               moving_for_s=round(still_for, 1))
+                               moving_for_s=round(still_for, 1), claim=result.claim,
+                               expectation=result.expectation, falsifier=result.falsifier)
                     self.log(f"[守望] {action} 走了 {still_for:.0f} 秒没挪窝 -> 取消")
                     self._cancel_chore(True)
                     self._raise(f"stalled:{action}", f"{action} 走不到目标",
                                 "agent", detail=f"在 {here} 原地走了 {still_for:.0f} 秒",
                                 cost_s=elapsed)
-                    result.stopped = "stalled"
                     break
 
                 # Give up only when NOTHING is moving: not the count, not the farmer. A macro
                 # walking to its next target sits still on the count for a while and is fine.
                 if idle_for > NO_PROGRESS_S and still_for > NO_PROGRESS_S and not moving:
+                    result.stopped = "no progress"
+                    result.reason = f"counter stuck at {counter}"
+                    result.claim, result.expectation, result.falsifier = _claim(
+                        "no progress", action=action, value=counter)
                     self._note(day, step, event="no progress", action=action,
-                               value=counter, for_s=round(idle_for, 1))
+                               value=counter, for_s=round(idle_for, 1),
+                               claim=result.claim, expectation=result.expectation,
+                               falsifier=result.falsifier)
                     self.log(f"[守望] {action} 的计数停在 {counter}、人也不动 "
                              f"{idle_for:.0f} 秒 -> 取消")
                     self._cancel_chore(True)
-                    result.stopped = "no progress"
                     break
 
                 time.sleep(POLL_S)
@@ -303,10 +396,15 @@ class Watcher:
             time.sleep(POLL_S)
 
         result.state = state
-        if result.remedies:
+        # Record the whole intervention, not just the fact that a remedy was applied. A pure
+        # `timeout` used to write nothing at all: `result.remedies` was empty, so this note never
+        # fired, and the single most common decision the watcher makes left no trace to adjudicate.
+        if result.remedies or result.claim:
             self._note(day, step, event="watch done", action=action,
                        stopped=result.stopped, remedies=result.remedies,
-                       seconds=round(result.seconds, 1))
+                       seconds=round(result.seconds, 1), reason=result.reason,
+                       claim=result.claim, expectation=result.expectation,
+                       falsifier=result.falsifier)
         return result
 
     def _cancel_chore(self, is_chore: bool) -> None:

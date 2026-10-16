@@ -80,10 +80,11 @@ MENUS / UI (when ui.menu_name is not empty)
   IN A SHOP the rows carry no labels on their own - ui.shop is what joins them onto the goods:
   {"slot":"0","item":"防风草种子","price":20,"stock":-1,"affordable":true}. Buy the row whose item
   is the one you actually want. A row with no item name is NOT known - do not buy it and hope.
-  AFTER any purchase, check player.on_cursor. If it is not null, something is stuck to the mouse
-  (a half-finished purchase lives there): click an inventory slot to put it in the bag, or
-  press_key escape to put it back to the shop. A shop refuses to close while it holds an item, and
-  that looks exactly like the game ignoring you - so look at the cursor before blaming the menu.
+  AFTER any purchase, check ui.held_item (the MENU's hand) and player.on_cursor (your own). If either
+  is set, the goods are in your HAND, not in your bag: click the bag slot you want them in - a shop's
+  bag slots are listed in ui.buttons as inventory[0], inventory[1], ... - or press_key escape to put
+  them back to the shop. A shop will NOT close while its hand is full, and that looks exactly like the
+  game ignoring you - so check the hand before blaming the menu.
 - dialogue_advance -> {}
 - dialogue_choose -> {"index": int}          pick from ui.dialogue.responses
 - skip_intro      -> {}

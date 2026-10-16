@@ -26,6 +26,7 @@ import memory as memory_mod  # noqa: E402
 import program as program_mod  # noqa: E402
 import prompts  # noqa: E402
 import runner  # noqa: E402
+import watch_audit  # noqa: E402
 import witness  # noqa: E402
 from brainwatch import BrainWatch  # noqa: E402
 from chatfeed import ChatFeed  # noqa: E402
@@ -420,8 +421,8 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         # A prescribed precondition is enforced here, by the system, not remembered by the model.
         # This is the difference between "the doctor found out that a watering can has to be full"
         # and "the farmer actually fills it before watering".
-        if prescriber is not None and prescriber.unmet(action, state):
-            helper = prescriber.satisfy(action, state)
+        if prescriber is not None and prescriber.unmet(action, state, args):
+            helper = prescriber.satisfy(action, state, args)
             if helper:
                 runlog.agent("prescription", day=label, step=step, action=action,
                              satisfied_with=helper)
@@ -447,7 +448,8 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
 
         if watch.stopped not in ("done",):
             log(f"[守望] {action} 提前结束：{watch.stopped}"
-                + (f"（处置：{', '.join(watch.remedies)}）" if watch.remedies else ""))
+                + (f"（处置：{', '.join(watch.remedies)}）" if watch.remedies else "")
+                + (f" | 判断：{watch.claim}" if getattr(watch, "claim", "") else ""))
             if watch.remedies:
                 result = dict(result)
                 result["detail"] = f"{result.get('detail', '')} | 守望者处置: {', '.join(watch.remedies)}"
@@ -504,7 +506,10 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         if worked is not None:
             runlog.agent("witness", day=label, step=step, action=action, worked=worked,
                          evidence=evidence, ok=bool(result.get("ok")),
-                         detail=str(result.get("detail", ""))[:160])
+                         detail=str(result.get("detail", ""))[:160],
+                         # Carry what the watcher believed onto the witness record, so the claim and
+                         # the world-change verdict that can contradict it sit on the same line.
+                         watch_claim=getattr(watch, "claim", ""))
 
         # Verification half of the loop: did the prescribed fix actually fix it?
         if prescriber is not None:
@@ -519,10 +524,21 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
 
         detail = str(result.get("detail", ""))
         history.append(f"{action} {json.dumps(args, ensure_ascii=False)} -> ok={result.get('ok')} {detail}")
+
+        # The hand, on every step line.
+        #
+        # A shop will not close while it holds an item, and this transcript is what the supervisor, the
+        # referee and the doctor reason over - so "there is a seed in your hand" has to be in the
+        # HISTORY, not only in the live payload. Otherwise the day's own record says the farmer had
+        # empty hands and the menu refused to shut for no reason, and the复盘 learns the wrong lesson.
+        hand = str((after_state.get("ui") or {}).get("held_item") or "")
+        cursor = str(((after_state.get("player") or {}).get("cursor_item") or {}).get("name") or "")
+        hand_note = f" [hand: {hand or cursor}]" if (hand or cursor) else ""
+
         store.log_step(
             label,
             f"- step {step}: `{action}` {json.dumps(args, ensure_ascii=False)} "
-            f"-> ok={result.get('ok')} rc={result.get('reason_code') or '-'} {detail}",
+            f"-> ok={result.get('ok')} rc={result.get('reason_code') or '-'} {detail}{hand_note}",
         )
 
         reason = str(item.get("reason") or batch_reason)[:45]
@@ -849,6 +865,15 @@ def run_forever(args: argparse.Namespace) -> int:
                              attempts=gap.attempts, ok_count=gap.ok_count, noop=gap.noop,
                              reasons=gap.reasons, examples=gap.examples)
                 runlog.line(f"- [缺口] `{gap.action}` **{gap.verdict}** — {reason}")
+
+            # The watcher is the only component that decides with no opponent, and until now nobody
+            # judged it. This reads back its own log and the witness, works out which interventions
+            # the world contradicts, and files them the same way the gap detector does. A verdict
+            # that is not true belongs to whoever made it, so these go to `developer`.
+            try:
+                watch_audit.run(memory_mod.PROJECT_ROOT, ledger=ledger, run_id=runlog.run_id, log=log)
+            except Exception as exc:
+                log(f"[裁决] 守望者审计失败: {type(exc).__name__}: {exc}")
 
             # The witness asks "did the world change". It cannot ask "could a player do this", and
             # a teleport changes the world perfectly. So the action set itself is audited, every

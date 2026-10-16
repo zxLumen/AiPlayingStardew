@@ -95,8 +95,17 @@ class Prescriber:
     def precondition_for(self, action: str) -> dict | None:
         return self.preconditions.get(action)
 
-    def unmet(self, action: str, state: dict) -> bool:
-        """Whether this action's precondition is known to be unmet right now."""
+    def unmet(self, action: str, state: dict, args: dict | None = None) -> bool:
+        """Whether this action must not be dispatched as asked, right now."""
+        # The hand gate, first and unconditional. This is not a prescription anybody had to discover -
+        # it is a fact about the world: while something is held, a shop will not close and its clicks
+        # are swallowed, so every other action is guaranteed to fail. The model HAD the fact
+        # (ui.held_item is in its payload) and asked for something else anyway, which is exactly why
+        # this is enforced by the harness rather than requested in a prompt - the same reason a
+        # watering can gets filled before watering.
+        if self._hand_full(state) and not self._is_put_down(action, args):
+            return True
+
         rule = self.preconditions.get(action)
         if not rule:
             return False
@@ -107,8 +116,11 @@ class Prescriber:
                            requires.get("value"))
         return verdict is False        # unknown means "try anyway", not "block"
 
-    def satisfy(self, action: str, state: dict) -> str | None:
+    def satisfy(self, action: str, state: dict, args: dict | None = None) -> str | None:
         """Run whatever satisfies the precondition first. Returns what it ran."""
+        if self._hand_full(state) and not self._is_put_down(action, args):
+            return self._put_down(state)
+
         rule = self.preconditions.get(action)
         if not rule:
             return None
@@ -129,6 +141,66 @@ class Prescriber:
         result = self.client.action(helper)
         self.log(f"[处方]   {helper} -> ok={result.get('ok')} {str(result.get('detail'))[:80]}")
         return helper
+
+    # ------------------------------------------------------------------- the hand
+    #
+    # There are two places a stack can be carried and only one of them used to be watched: the player's
+    # cursor, and the open menu's own held item. A shop purchase lands on the MENU's hand. While it is
+    # there the shop will not close (Stardew's own readyToClose() says no) and every later click is
+    # swallowed - which the agents spent a whole day reading as "the bridge is lying about the shop".
+
+    def _hand_full(self, state: dict) -> str:
+        """What is being carried, wherever it is being carried, or ""."""
+        menu_hand = str((state.get("ui") or {}).get("held_item") or "").strip()
+        cursor = str(((state.get("player") or {}).get("cursor_item") or {}).get("name") or "").strip()
+        return menu_hand or cursor
+
+    def _is_put_down(self, action: str, args: dict | None) -> bool:
+        """Whether this action is itself a way of putting the carried stack down."""
+        args = args or {}
+
+        if action == "menu_click":
+            # A shop's bag slots are named `inventory...` in ui.buttons; clicking one places the stack.
+            return str(args.get("name") or "").startswith("inventory")
+
+        if action == "press_key":
+            return str(args.get("key") or "").lower() == "escape"
+
+        return action in ("noop", "stop")
+
+    def _put_down(self, state: dict) -> str | None:
+        """Put the carried stack down. Returns what it ran, or None when there is no way to."""
+        ui = state.get("ui") or {}
+
+        occupied = set()
+        for slot in (state.get("inventory") or []):
+            try:
+                occupied.add(int(slot.get("slot")))
+            except (TypeError, ValueError):
+                pass
+
+        bag = [str(b.get("name") or "") for b in (ui.get("buttons") or [])
+               if str(b.get("name") or "").startswith("inventory")]
+
+        if not bag:
+            # Either the hand is the player's cursor (not the menu's), or the panel is not addressable.
+            self.log(f"[处方] 手上有东西（{self._hand_full(state)}），界面里没有可点的背包格 → 用 escape 放回")
+            result = self.client.action("press_key", key="escape")
+            self.log(f"[处方]   press_key escape -> ok={result.get('ok')} {str(result.get('detail'))[:80]}")
+            return "press_key escape"
+
+        def bag_index(name: str) -> int:
+            digits = "".join(c for c in name.split(".")[-1] if c.isdigit())
+            return int(digits) if digits else -1
+
+        free = [n for n in bag if bag_index(n) not in occupied]
+        target = (free or bag)[0]
+
+        self.log(f"[处方] 手上有东西（{self._hand_full(state)}），先放进背包：menu_click {target}"
+                 + ("" if free else "（没有空闲格，冒险用第一个）"))
+        result = self.client.action("menu_click", name=target)
+        self.log(f"[处方]   menu_click {target} -> ok={result.get('ok')} {str(result.get('detail'))[:90]}")
+        return f"menu_click {target}"
 
     def note_outcome(self, action: str, worked: bool | None) -> None:
         """The verification half: did the prescribed fix actually fix it?"""

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-MAX_BUTTONS = 40
+MAX_BUTTONS = 60
 MAX_LIST = 25
 
 

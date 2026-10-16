@@ -2,11 +2,15 @@
   "tally": {
     "area|clear_area": {
       "ok": 6,
-      "fail": 2
+      "fail": 3
+    },
+    "area|refill": {
+      "ok": 0,
+      "fail": 1
     },
     "area|till_area": {
       "ok": 0,
-      "fail": 27
+      "fail": 32
     }
   }
 }

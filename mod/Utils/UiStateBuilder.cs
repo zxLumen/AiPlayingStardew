@@ -206,12 +206,29 @@ public static class UiStateBuilder
     /// <summary>
     /// Walks the menu's fields (including inherited ones) and returns every ClickableComponent found,
     /// directly or inside a collection. Duplicates by reference are dropped.
+    ///
+    /// It also descends ONE level into a nested menu. That is not tidiness: a shop keeps its inventory
+    /// panel in a nested menu object, so the slots you click to put a purchase into your bag are one
+    /// level down and the old walk never saw them. The result was a farmer who bought four parsnip
+    /// seeds, had them stuck on the menu's hand, and had no way to put them down - because the bridge
+    /// could not name the thing that would have done it.
     /// </summary>
     public static List<MenuComponent> CollectMenuComponents(IClickableMenu menu)
     {
         var result = new List<MenuComponent>();
         var seen = new HashSet<ClickableComponent>(ReferenceEqualityComparer.Instance);
+        CollectFrom(menu, 1, seen, result);
+        return result;
+    }
 
+
+    /// <summary>Upper bound on collected components, so a deep menu cannot produce a huge payload.</summary>
+    private const int MaxComponents = 160;
+
+
+    private static void CollectFrom(object menu, int depth, HashSet<ClickableComponent> seen,
+                                    List<MenuComponent> result)
+    {
         Type? type = menu.GetType();
         while (type != null && type != typeof(object))
         {
@@ -221,10 +238,13 @@ public static class UiStateBuilder
 
             foreach (FieldInfo field in fields)
             {
+                if (result.Count >= MaxComponents)
+                    return;
+
                 object? value;
                 try { value = field.GetValue(menu); }
                 catch { continue; }
-                if (value == null)
+                if (value == null || value is string)
                     continue;
 
                 if (value is ClickableComponent single)
@@ -234,29 +254,28 @@ public static class UiStateBuilder
                     continue;
                 }
 
-                if (value is string)
-                    continue;
-
-                if (value is not IEnumerable sequence)
-                    continue;
-
-                int index = 0;
-                try
+                if (value is IEnumerable sequence)
                 {
-                    foreach (object? entry in sequence)
+                    int index = 0;
+                    try
                     {
-                        if (entry is ClickableComponent item && seen.Add(item))
-                            result.Add(new MenuComponent(field.Name, index, item));
-                        index++;
+                        foreach (object? entry in sequence)
+                        {
+                            if (entry is ClickableComponent item && seen.Add(item))
+                                result.Add(new MenuComponent(field.Name, index, item));
+                            index++;
+                        }
                     }
+                    catch { /* some collections throw while enumerating; skip the rest of this field */ }
+                    continue;
                 }
-                catch { /* some collections throw while enumerating; skip the rest of this field */ }
+
+                if (depth > 0 && value is IClickableMenu nested)
+                    CollectFrom(nested, depth - 1, seen, result);
             }
 
             type = type.BaseType;
         }
-
-        return result;
     }
 
 
@@ -493,6 +512,17 @@ public static class UiStateBuilder
         int offset = ChooseOffset(menu, rowsFound, shelf, prices);
         int money = Game1.player?.Money ?? 0;
 
+        // The name to click is whatever DescribeMenu reports, NOT the component's own name.
+        //
+        // They are usually the same and sometimes not: once the nested inventory slots started being
+        // collected, the bag slots also called themselves "0".."3", the collision made DescribeMenu
+        // prefix both sides, and the shop rows became "forSaleButtons.0". Reporting the raw "0" here
+        // would hand the agent an ambiguous name that can resolve to a BAG slot instead of the goods.
+        // A slot name that might mean two things is worse than no name at all.
+        var clickable = new Dictionary<ClickableComponent, string>(ReferenceEqualityComparer.Instance);
+        foreach ((string reported, MenuComponent mc) in DescribeMenu(menu))
+            clickable.TryAdd(mc.Component, reported);
+
         for (int i = 0; i < rowsFound.Count; i++)
         {
             if (rowsFound[i] is not ClickableComponent button)
@@ -500,7 +530,9 @@ public static class UiStateBuilder
 
             var row = new ShopItemInfo
             {
-                Slot = string.IsNullOrWhiteSpace(button.name) ? i.ToString() : button.name,
+                Slot = clickable.TryGetValue(button, out string? reportedName)
+                    ? reportedName
+                    : (string.IsNullOrWhiteSpace(button.name) ? i.ToString() : button.name),
             };
 
             int index = offset + i;

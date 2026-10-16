@@ -180,9 +180,16 @@ class Doctor:
                 for slot in (state.get("inventory") or [])
             ],
             "work": work,
+            # NOTE: `held` above is the TOOLBAR SELECTION (the axe in slot 0), NOT something carried.
+            # These two keys are what is actually in a hand, and a full hand is why a shop will not
+            # close and its clicks do nothing. Without them the doctor's picture of a stuck shop was
+            # "a menu that refuses to shut, and a farmer with empty hands" - which it then had to
+            # explain, and it invented a coordinate bug to do it.
             "uistate": {
                 "menu": (state.get("ui") or {}).get("menu_name"),
                 "dialogue": ((state.get("ui") or {}).get("dialogue") or {}).get("text"),
+                "hand_in_menu": (state.get("ui") or {}).get("held_item") or "",
+                "hand_on_cursor": (player.get("cursor_item") or {}).get("name") or "",
             },
             "chore_last": state.get("chore_last"),
         }
