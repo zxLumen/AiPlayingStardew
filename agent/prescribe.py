@@ -291,7 +291,30 @@ class Prescriber:
                 return f"menu_click {attempt}"
 
         self.log(f"[处方] {len(free[:4])} 个空格都试过了，手上还有 "
-                 f"{self._hand_full(state)} —— 如实报告，不假装成功")
+                 f"{self._hand_full(state)} —— 换游戏自己的办法：菜单键")
+
+        # The game's own way out, and the one a player uses without thinking about it: while a shop is
+        # holding something, the MENU KEY drops it (ShopMenu.receiveKeyPress clears heldItem on
+        # Game1.options.menuButton). This matters because a shop's panel is the twelve hotbar slots -
+        # once those are full there is no drawn slot left that will take a purchase, and without this
+        # fallback the item simply stayed in the shop's hand, where it also blocks the menu from
+        # closing: forty steps of the stream spent trying buttons that could not work.
+        for key in ("e", "escape"):
+            result = self.client.action("press_key", key=key)
+            self.log(f"[处方]   press_key {key} -> ok={result.get('ok')} "
+                     f"{str(result.get('detail'))[:70]}")
+
+            try:
+                settled = self.client.state()
+            except Exception as exc:
+                self.log(f"[处方]   读状态失败（{exc}）—— 无法验证，照实返回")
+                return f"press_key {key}"
+
+            if not self._hand_full(settled):
+                self.log(f"[处方]   放下了（{key}），手上已空")
+                return f"press_key {key}"
+
+        self.log(f"[处方] 连菜单键也没放下 {self._hand_full(state)} —— 如实报告，不假装成功")
         return None
 
     def note_outcome(self, action: str, worked: bool | None) -> None:

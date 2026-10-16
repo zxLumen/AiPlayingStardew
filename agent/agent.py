@@ -311,6 +311,9 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
 
     # Where the seconds of each step actually go. See StepClock.
     clock = StepClock()
+
+    # A supervisor review being worked out in the background. See anticipate.Review.
+    pending_review: object | None = None
     batch_reason = ""
     # How long an event flag may hold the farmer with nothing on screen before it counts as
     # wreckage rather than a scene. Generous on purpose: a cutscene IS content, the audience is
@@ -386,11 +389,21 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         else:
             stuck_since = 0.0
 
-        if supervisor.should_review(step, history):
-            started = time.perf_counter()
-            verdict = supervisor.review(state, history, step, day_start)
-            total_watch += time.perf_counter() - started
+        # The supervisor, thought about while the farmer plays instead of in front of it.
+        #
+        # The scheduled review runs on the fast brain; the one that fires because the farmer is
+        # genuinely stuck is a judgement call and goes to the reasoning brain - and that call was
+        # taking 13.2 seconds, measured, in front of the audience, between two actions. Its answer is
+        # a directive for the next few steps, not something that has to exist this instant, so it is
+        # worked out in the background and applied when it lands. The step never waits for it.
+        verdict = pending_review.take() if pending_review is not None else None
+        if verdict is not None:
+            pending_review = None
 
+        if verdict is None and pending_review is None and supervisor.should_review(step, history):
+            pending_review = anticipate.Review(supervisor, state, history, step, day_start)
+
+        if verdict is not None:
             directive = (verdict.get("directive") or "").strip() or None
             note = str(verdict.get("note") or "")
             runlog.agent("supervisor", day=label, step=step, status=verdict.get("status"),

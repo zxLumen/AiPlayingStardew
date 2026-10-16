@@ -98,6 +98,20 @@ DEFAULTS: dict = {
             "还有多少个名字在排队等着被欢迎，就算「人多」（人）。达到这个数就不再保证欢迎了 ——",
             "这一条比人数更能反映「欢迎不过来」。",
         ],
+        "beat_fresh_s": 10.0,
+        "_beat_fresh_note": [
+            "一件事最多「新鲜」多久（秒）。超过这个时间还没轮到被讲，就丢掉不讲。",
+            "游戏在一句话的生成+合成+播放期间会走好几步，所以事件队列不是稿子、是一堆旧报纸：",
+            "实时模式下管线约 7 秒，所以 10 秒是「看起来仍像现在」的界限。宁可不说，也不说错的。",
+            "调大 = 会讲更久以前的事（更容易和画面对不上）；调小 = 更容易因为来不及而干脆不说。",
+        ],
+        "agent_line_fresh_s": 120.0,
+        "_agent_line_fresh_note": [
+            "提示词里「各个智能体刚才在做什么」每行最多算新旧多久（秒）。超过就不给模型看。",
+            "之所以要管：这些行原本没有时效，一小时前的 doctor 结论会被当成「刚才」，",
+            "于是解说会去讲早就解决了的问题（驴唇不对马嘴的主要来源之一）。",
+            "括号里会写明「刚刚 / 30 秒前 / 5 分钟前」，让模型自己知道该不该说「刚刚」。",
+        ],
     },
     "voice": {
         "enabled": True,
@@ -354,6 +368,8 @@ class Program:
                     look_ahead=int(commentary_cfg.get("look_ahead") or 0),
                     quiet_room_max=float(commentary_cfg.get("quiet_room_max") or 6.0),
                     welcome_backlog_max=int(commentary_cfg.get("welcome_backlog_max") or 3),
+                    beat_fresh_s=float(commentary_cfg.get("beat_fresh_s") or 10.0),
+                    agent_line_fresh_s=float(commentary_cfg.get("agent_line_fresh_s") or 120.0),
                     pause_continue=_pause_pair(commentary_cfg, "pause_continue", 1.0, 2.5),
                     pause_new_topic=_pause_pair(commentary_cfg, "pause_new_topic", 2.5, 4.5),
                     pause_moment=_pause_pair(commentary_cfg, "pause_moment", 0.8, 1.8),
@@ -550,6 +566,8 @@ class Program:
             put("look_ahead", max(0, int(cfg.get("look_ahead") if cfg.get("look_ahead") is not None else 0)))
             put("quiet_room_max", float(cfg.get("quiet_room_max") or 6.0))
             put("welcome_backlog_max", max(1, int(cfg.get("welcome_backlog_max") or 3)))
+            put("beat_fresh_s", float(cfg.get("beat_fresh_s") or 10.0))
+            put("agent_line_fresh_s", float(cfg.get("agent_line_fresh_s") or 120.0))
             for key in ("pause_continue", "pause_new_topic", "pause_moment"):
                 value = cfg.get(key)
                 if isinstance(value, (list, tuple)) and len(value) == 2:

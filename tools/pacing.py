@@ -194,6 +194,45 @@ def reply_gaps(chat: list[dict], said: list[dict], window_s: float = 90.0) -> li
     return out
 
 
+def _bigrams(text: str) -> set:
+    clean = "".join(ch for ch in str(text or "") if ch.strip())
+    return {clean[i:i + 2] for i in range(len(clean) - 1)} or ({clean} if clean else set())
+
+
+def beat_alignment(said: list[dict], worst: int = 5) -> list[str]:
+    """Does the line have anything to do with the event that triggered it?
+
+    A rough instrument, and it has to be described honestly: a good line paraphrases its event
+    rather than quoting it ("收了一轮作物" becomes "终于收完啦"), so a LOW overlap is not proof of a
+    mismatch. What it does catch is the failure this exists for - a line that shares no vocabulary
+    at all with its own trigger, which in practice means the talker wandered off to an older subject
+    or to the machine's own problems. The worst few examples are printed so they can be read.
+    """
+    rows = []
+    for row in said:
+        beat = str(row.get("beat") or "")
+        say = str(row.get("say") or "")
+        # Idle turns have no event to match, and greetings carry a name that is not the subject.
+        if not beat or beat.startswith("（") or "刚进直播间的人" in beat or "刚关注直播间的人" in beat:
+            continue
+        overlap = len(_bigrams(beat) & _bigrams(say)) / max(1, len(_bigrams(beat) | _bigrams(say)))
+        rows.append((overlap, str(row.get("t") or "")[11:], beat, say))
+
+    if not rows:
+        return []
+
+    overlaps = sorted(r[0] for r in rows)
+    zero = sum(1 for o in overlaps if o < 0.06)
+
+    out = ["  台词与触发事件的关键词重叠（粗指标，低不等于错，但完全无关通常就是跑偏了）：",
+           "   中位 %.2f   低于 0.06 的 %d/%d 句（%.0f%%）"
+           % (overlaps[len(overlaps) // 2], zero, len(overlaps), 100 * zero / len(overlaps))]
+    for overlap, when, beat, say in sorted(rows)[:worst]:
+        out.append("   %.2f  %s  事件=%-22s 台词=%s"
+                   % (overlap, when, beat[:22], say[:26]))
+    return out
+
+
 def report(limit: int, show_lines: int) -> str:
     spoken = read_spoken(limit)
     said = read_said(limit * 2)
@@ -281,6 +320,22 @@ def report(limit: int, show_lines: int) -> str:
         out.append("")
         out.append("该回没回（观众的视角）：")
         out.extend(gaps)
+
+    alignment = beat_alignment(read_said(200))
+    if alignment:
+        out.append("")
+        out.append("台词 vs 事件（对不对得上）：")
+        out.extend(alignment)
+
+    ages = [float(row["beat_age_s"]) for row in read_said(300) if row.get("beat_age_s") is not None]
+    if ages:
+        ordered = sorted(ages)
+        out.append("")
+        out.append("我们讲的事有多旧（写这句话时，事件已经过去多久）：")
+        out.append("   中位 %.1fs   90 分位 %.1fs   最长 %.1fs   >10s 的 %d/%d 句"
+                   % (ordered[len(ordered) // 2], _percentile(ages, 0.9), max(ages),
+                      sum(1 for a in ages if a > 10), len(ages)))
+        out.append("   （再加上管线那约 7 秒，才是观众听到时事件真正过去的时长）")
 
     out.append("")
     return "\n".join(out)

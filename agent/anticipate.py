@@ -177,6 +177,40 @@ class Speculation:
         return decision, float(self._box.get("seconds") or 0.0), ""
 
 
+class Review:
+    """A supervisor review, worked out while the farmer plays instead of in front of it.
+
+    The scheduled review now runs on the fast brain, but the one that fires BECAUSE the farmer is
+    genuinely stuck is a judgement call and goes to the reasoning brain - measured at 13.2 seconds on
+    a live stream, between two actions, with the farmer standing still for all of it. Its answer is a
+    directive for the next few steps; it does not have to exist this instant. So it is asked in the
+    background and applied when it lands, and the step never waits for it.
+    """
+
+    def __init__(self, supervisor, state: dict, history: list[str], steps: int,
+                 day_start: dict) -> None:
+        self._box: dict = {}
+        self._started = time.monotonic()
+        self._thread = threading.Thread(
+            target=self._run, daemon=True, name="review",
+            args=(supervisor, state, list(history), steps, day_start),
+        )
+        self._thread.start()
+
+    def _run(self, supervisor, state, history, steps, day_start) -> None:
+        try:
+            self._box["verdict"] = supervisor.review(state, history, steps, day_start)
+        except Exception as exc:                 # a review must never take the run down
+            self._box["error"] = f"{type(exc).__name__}: {exc}"
+        self._box["seconds"] = time.monotonic() - self._started
+
+    def take(self) -> dict | None:
+        """Whatever it has, or None when it is still thinking. Deliberately never blocks."""
+        if self._thread.is_alive():
+            return None
+        return self._box.get("verdict")
+
+
 def take(holder: dict, state: dict) -> tuple[dict | None, float, str]:
     """Claim whatever was being thought about. Returns (decision, seconds, why-not)."""
     spec: Speculation | None = holder.pop("spec", None)

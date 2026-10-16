@@ -96,6 +96,12 @@ AGENT_LABELS = {
 }
 
 
+def _zh(mapping: dict, key) -> str:
+    """A bridge code turned into the words the audience uses. Unknown codes pass through."""
+    text = str(key or "")
+    return mapping.get(text, text)
+
+
 def _clamp(text: str, limit: int) -> str:
     """Keep one line inside its time budget.
 
@@ -145,6 +151,8 @@ class Commentator:
         look_ahead: int = 0,
         quiet_room_max: float = 6.0,
         welcome_backlog_max: int = 3,
+        beat_fresh_s: float = 10.0,
+        agent_line_fresh_s: float = 120.0,
         pause_continue: tuple[float, float] = (1.0, 2.5),
         pause_new_topic: tuple[float, float] = (2.5, 4.5),
         pause_moment: tuple[float, float] = (0.8, 1.8),
@@ -193,6 +201,17 @@ class Commentator:
         self.quiet_room_max = float(quiet_room_max)              # 人/分钟 以下算人少
         self.welcome_backlog_max = max(1, int(welcome_backlog_max))
         self._room_events: deque = deque(maxlen=300)             # when somebody arrived or spoke
+
+        # How old a fact may be and still be worth saying. The game moves several times while one
+        # sentence is written, synthesised and spoken, so a queue of events is not a script to read
+        # out - it is a stack of old news. Anything older than this is dropped rather than narrated:
+        # describing something two steps back is worse than saying nothing, because the audience is
+        # watching the screen and can see that it is wrong.
+        self.beat_fresh_s = float(beat_fresh_s)
+        # Same idea for the agents' own one-liners, which are shown to the talker as "what they are
+        # doing". A defect report from an hour ago, presented as current, is how a streamer ends up
+        # explaining a problem it solved long ago.
+        self.agent_line_fresh_s = float(agent_line_fresh_s)
 
         # callable() -> bool: is the mouth still working (queued, rendering, or speaking)? The gate
         # in the no-look-ahead mode.
@@ -264,7 +283,7 @@ class Commentator:
         if not note:
             return
         with self._cond:
-            self._beats.append((note, "event"))
+            self._beats.append((note, "event", time.monotonic()))
             self._cond.notify_all()
 
     # -- events in ---------------------------------------------------------
@@ -286,7 +305,7 @@ class Commentator:
             return
 
         with self._cond:
-            self._beats.append(beat)
+            self._beats.append((beat[0], beat[1], time.monotonic()))
             self._cond.notify_all()
 
     def _remember_agent(self, name: str, event: dict) -> None:
@@ -301,7 +320,7 @@ class Commentator:
             line = ""
 
         if line:
-            self._agent_lines[name] = line[:120]
+            self._agent_lines[name] = (line[:120], time.monotonic())
 
     def _on_chat(self, event: dict) -> None:
         kind = str(event.get("chat_kind") or "danmaku")
@@ -360,8 +379,18 @@ class Commentator:
 
         if name == "watcher":
             if str(event.get("event")) in ("remedy", "stalled", "gave up"):
-                return (f"卡了一下：{event.get('reason') or event.get('stopped') or ''}"
-                        f"（处置：{event.get('remedy') or '无'}）", "moment")
+                # The bridge speaks in codes ("dialogue is open", "dialogue_advance"). Read out
+                # uncut they are noise the model then paraphrases into something stranger; the maps
+                # already exist for the on-screen panel, so the talker gets the same words.
+                from runlog import ACTIONS, BLOCKED, EVENTS, STOPPED
+
+                held = str(event.get("reason") or event.get("stopped") or "")
+                reason = _zh(STOPPED, held)
+                if reason == held and held:
+                    reason = _zh(BLOCKED, held)
+                remedy = _zh(ACTIONS, event.get("remedy")) if event.get("remedy") else ""
+                what = _zh(EVENTS, event.get("event"))
+                return (f"{what}：{reason}（处置：{remedy or '无'}）", "moment")
             return None
 
         if name == "doctor":
@@ -369,7 +398,9 @@ class Commentator:
             return (f"你搞明白了一件事：{cause[:70]}", "event:doctor") if cause else None
 
         if name == "gaps":
-            return f"有个动作不太灵：{event.get('action')}", "event:gaps"
+            from runlog import ACTIONS
+
+            return f"有个动作不太灵：{_zh(ACTIONS, event.get('action'))}", "event:gaps"
 
         if name == "streamer":
             action = str(event.get("action") or "")
@@ -602,14 +633,29 @@ class Commentator:
                     pass
             queued, self._beats = self._beats, []
 
-        beats = [text for text, _ in queued]
-        topic = queued[-1][1] if queued else "event"
+        # Only what is still happening. A beat that has been waiting longer than beat_fresh_s is
+        # about a moment the audience has already watched pass, and narrating it is what makes the
+        # commentary feel like a recap of the last minute instead of a reaction to this second.
+        now = time.monotonic()
+        fresh = [item for item in queued if now - item[2] <= self.beat_fresh_s]
+        if len(fresh) < len(queued):
+            self.log(f"[解说] 丢掉 {len(queued) - len(fresh)} 条过期事件"
+                     f"（超过 {self.beat_fresh_s:.0f} 秒才轮到讲）")
+
+        # The newest, not the oldest. `_beats` is in arrival order, and taking the first three meant
+        # reading out the backlog from the beginning - always describing the oldest thing still
+        # waiting. If only three can be mentioned, they should be the three that just happened.
+        chosen = fresh[-3:]
+        beats = [text for text, _topic, _when in chosen]
+        topic = chosen[-1][1] if chosen else "event"
+        beat_age = (now - chosen[-1][2]) if chosen else None
 
         if answer is not None:
             # The specific message is the whole context. Given the rest of the room as well, the
             # model thanks a gift it was not asked about, and then thanks it again when its own turn
             # comes round - and the room hears the same sentence twice.
-            self._speak(beat="；".join(beats[:3]), answer=answer, include_chat=False, topic="chat")
+            self._speak(beat="；".join(beats[:3]), answer=answer, include_chat=False, topic="chat",
+                        beat_age_s=beat_age)
             return
 
         with self._cond:
@@ -619,7 +665,11 @@ class Commentator:
             anon_follow, self._anon_follow = self._anon_follow, 0
 
         if not (welcomes or follows or anon_enter or anon_follow):
-            self._speak(beat="；".join(beats[:3]), answer=None, topic=topic)
+            if not beats:
+                # Everything queued was already old news. Saying nothing is the honest answer; the
+                # quiet-moment path will find something to talk about if it stays quiet.
+                return
+            self._speak(beat="；".join(beats[:3]), answer=None, topic=topic, beat_age_s=beat_age)
             return
 
         # Two ways of treating a hello, chosen by how busy the room is. See _must_greet.
@@ -668,24 +718,43 @@ class Commentator:
 
         self._speak(beat=beat, answer=None, include_chat=False, topic="greet",
                     require_names=names if must else None, prefix_if_missing=prefix,
-                    must_greet=must)
+                    must_greet=must, beat_age_s=beat_age)
 
-    def _system_block(self) -> str:
-        """What the machine itself is doing and stuck on - the material for a teaching stream."""
+    def _system_block(self, with_stuck: bool = True) -> str:
+        """What the machine itself is doing and stuck on - the material for a teaching stream.
+
+        Two kinds of material, and they are not equally relevant at any given moment. The agents'
+        own one-liners are facts about *now* and are only worth showing while they are actually
+        recent - each one carries its age, and the ancient ones are dropped, because "the agents
+        are doing X" a hour after X ended is a lie the audience can see through. The open defects
+        are a different animal: they are what the channel is *about*, but they are also the fastest
+        way to end up describing last hour's problem while the farmer walks across the screen, so
+        they are only offered when there is nothing fresh to talk about (`with_stuck`).
+        """
         parts: list[str] = []
 
         if self._agent_lines:
-            parts.append("各个智能体刚才在做什么：")
-            for name, line in self._agent_lines.items():
-                parts.append(f"- {AGENT_LABELS.get(name, name)}：{line}")
+            now = time.monotonic()
+            fresh = [(name, line, now - when) for name, (line, when) in self._agent_lines.items()
+                     if now - when <= self.agent_line_fresh_s]
+            if fresh:
+                parts.append("各个智能体刚才在做什么（括号里是多久以前，只说最新鲜的）：")
+                for name, line, age in fresh:
+                    if age < 20:
+                        age_text = "刚刚"
+                    elif age < 90:
+                        age_text = f"{int(age)} 秒前"
+                    else:
+                        age_text = f"{int(age / 60)} 分钟前"
+                    parts.append(f"- {AGENT_LABELS.get(name, name)}（{age_text}）：{line}")
 
-        if self.context is not None:
+        if with_stuck and self.context is not None:
             try:
                 extra = str(self.context() or "")
             except Exception:
                 extra = ""
             if extra:
-                parts.append("现在还没解决的问题：")
+                parts.append("现在还没解决的问题（这些是长期的问题，不是刚发生的）：")
                 parts.append(extra)
 
         return "\n".join(parts)
@@ -693,7 +762,7 @@ class Commentator:
     def _speak(self, beat: str, answer: dict | None = None, idle: bool = False,
                include_chat: bool = True, topic: str = "event",
                require_names: list[str] | None = None, prefix_if_missing: str = "",
-               must_greet: bool | None = None) -> None:
+               must_greet: bool | None = None, beat_age_s: float | None = None) -> None:
         self._last_spoke = time.monotonic()
         self._spoken_at.append(self._last_spoke)
 
@@ -731,6 +800,20 @@ class Commentator:
         said_lines = list(self._said)[-3:]
         already = "\n".join(f"- {line}" for line in said_lines)
 
+        # The thread, but only while it is still the subject. Passing it every turn is what made the
+        # streamer keep explaining the previous minute: a small model told both "here is what just
+        # happened" and "here is what you were talking about" will usually continue its own subject,
+        # and then the line matches neither the screen nor the event that triggered it. The topic
+        # tag that came with the beat already says whether this is a continuation.
+        continuing = bool(topic) and topic == self._last_topic
+        thread_text = self._topic if continuing and topic not in ("greet", "idle") else ""
+
+        # The machine's own state, offered only when there is no fresh event to talk about. The
+        # channel is about teaching an AI to play, so defects are the material - but they are also
+        # last hour's problem, and reading them out while the farmer walks across the screen is
+        # exactly the sort of mismatch the audience notices immediately.
+        system_text = self._system_block(with_stuck=(topic in ("idle", "greet")))
+
         messages = [
             {"role": "system", "content": prompts.COMMENTARY_SYSTEM},
             {
@@ -742,11 +825,8 @@ class Commentator:
                     chat=chat_text,
                     memory=already,
                     pending=pending_text,
-                    system=self._system_block(),
-                    # No topic thread on a greeting: it is the one signal pulling the talker back to
-                    # what it was already doing, and a hello that continues the previous subject is
-                    # how a viewer who just walked in gets ignored.
-                    thread="" if topic == "greet" else self._topic,
+                    system=system_text,
+                    thread=thread_text,
                 ),
             },
         ]
@@ -819,6 +899,11 @@ class Commentator:
             # the pause is part of the sentence. The two greeting fields are recorded so the welcome
             # rate can be measured instead of guessed: they are what "_reply_gaps" reads back.
             extra = {"must_greet": bool(must_greet), "guard": guard_fired} if topic == "greet" else {}
+            if beat_age_s is not None:
+                # How old the event behind this sentence was when the sentence was written. It is the
+                # honest measure of "does the commentary follow the screen": the pipeline adds a few
+                # more seconds before it is heard, so this number is a floor, not the whole story.
+                extra["beat_age_s"] = round(float(beat_age_s), 1)
             self.runlog.agent("commentary", via_bus=False, say=say, to=to, beat=beat[:120],
                               suggestion=suggestion, latency_s=round(latency, 2), gap_s=gap_s,
                               thread=self._topic[:60], **extra)
