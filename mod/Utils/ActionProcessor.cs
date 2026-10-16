@@ -2894,6 +2894,9 @@ public static class NativeInput
     [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
     private static extern bool IsZoomed(IntPtr hWnd);
 
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool IsIconic(IntPtr hWnd);
+
     private const uint SPI_GETWORKAREA = 0x0030;
     private const uint MONITORINFOF_PRIMARY = 0x0001;
 
@@ -3100,10 +3103,16 @@ public static class NativeInput
             SendMessage(handle, WM_SYSCOMMAND, (IntPtr)SC_MAXIMIZE, IntPtr.Zero);
 
             if (IsZoomed(handle))
-            {
-                RememberMaximizedClientSize(handle);
                 return true;
-            }
+
+            // NOT writing Game1.options.preferredResolution here.
+            //
+            // It was there to survive the re-fit that happens when a save loads: put the maximised
+            // client size into the game's options so a re-apply would reproduce it. But an apply is
+            // still a plain RESIZE, so what it produced was a window flagged as maximised whose rect
+            // was the small restored size - "zoomed" and small at the same time, which is worse than
+            // either. Since the watchdog now re-maximises continuously, the game does not need to be
+            // told anything about size at all. Let Windows own the geometry.
 
             long after = (long)GetWindowLongPtr(handle, GWL_STYLE);
             why = $"SC_MAXIMIZE was sent but IsZoomed is still false "
@@ -3207,7 +3216,22 @@ public static class NativeInput
         if (handle == IntPtr.Zero)
             return false;
 
-        ShowWindow(handle, SW_RESTORE);
+        // Already focused? Then leave it alone. This is called before every injected input, and an
+        // agent that re-asserts focus several times a minute drags the window in front of whatever the
+        // person at the machine is doing. It only needs focus when it does not have it.
+        if (IsGameWindowActive())
+            return true;
+
+        // Un-minimise ONLY if it is actually minimised.
+        //
+        // This used to call ShowWindow(SW_RESTORE) unconditionally, and on a MAXIMISED window
+        // SW_RESTORE means "restore to the previous size" - so every single action un-maximised the
+        // window. That is why the window kept shrinking by itself, minutes after it had been
+        // maximised, with nothing in the log to explain it: the cause was not the maximise code at
+        // all, it was the focus code, running on every click and every key.
+        if (IsIconic(handle))
+            ShowWindow(handle, SW_RESTORE);
+
         return SetForegroundWindow(handle);
     }
 

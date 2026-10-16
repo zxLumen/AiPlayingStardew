@@ -165,13 +165,24 @@ public class ModEntry : Mod
 
             if (NativeInput.MaximizeOnTargetMonitor(out string why))
             {
-                _maximizeTries = 0;
                 if (_maximizeFailStreak > 0)
                 {
                     Monitor.Log($"window: maximised, after {_maximizeFailStreak} failed attempt(s)",
                         LogLevel.Info);
                     _maximizeFailStreak = 0;
                 }
+
+                // Deliberately DO NOT stop here.
+                //
+                // Stardew re-fits its own window when a save loads, and that re-fit is a plain resize -
+                // which cancels the maximise. Stopping at the first success therefore GUARANTEES the
+                // window shrinks and then snaps back: maximise at launch, game shrinks it on load, and
+                // nobody is watching the gap. That gap is the "why does it do it twice" being asked
+                // about, and the answer is that it should not be visible at all.
+                //
+                // Keeping the watchdog running means an un-maximise anywhere in the first minute is
+                // corrected within a quarter of a second, and the shrink stops being something a
+                // person can see.
             }
             else
             {
