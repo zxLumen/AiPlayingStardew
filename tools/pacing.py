@@ -267,6 +267,50 @@ def plan_engagement(said: list[dict], hours: float = 0.0) -> list[str]:
     return out
 
 
+def repetition(said: list[dict]) -> list[str]:
+    """Two ways the streamer repeats itself, both measurable.
+
+      * the same viewer named again and again. The room is small, so without bookkeeping one
+        question sits in the prompt for a dozen turns and gets thanked every time - measured, one
+        viewer was named ten times over thirteen minutes.
+      * the same subject carried for line after line, which the continuity rule invites and only an
+        explicit stop condition prevents. Read off the `thread` field, which is the model's own
+        one-line summary of what it is talking about.
+    """
+    rows = [row for row in said if row.get("say")]
+    if not rows:
+        return []
+
+    named: dict[str, int] = {}
+    for row in rows:
+        who = str(row.get("to") or "").strip()
+        if who:
+            named[who] = named.get(who, 0) + 1
+
+    runs, longest, current = [], 0, 0
+    previous = ""
+    for row in rows:
+        subject = str(row.get("thread") or "").strip()
+        if subject and previous:
+            da = {subject[i:i + 2] for i in range(len(subject) - 1)} or {subject}
+            db = {previous[i:i + 2] for i in range(len(previous) - 1)} or {previous}
+            same = len(da & db) / max(1, len(da | db)) >= 0.5
+        else:
+            same = False
+        current = current + 1 if same else 1
+        longest = max(longest, current)
+        runs.append(current)
+        previous = subject or previous
+
+    out = ["  同一个观众被点名的次数（最近 %d 句）：%s"
+           % (len(rows),
+              "、".join("%s %d 次" % (who, n) for who, n in
+                        sorted(named.items(), key=lambda kv: -kv[1])[:3]) or "（没有人被点名）"),
+           "  同一个话题连讲了 %d 句（最长）；>2 句的时段 %d 处"
+           % (longest, sum(1 for a, b in zip(runs, runs[1:]) if a == 1 and b == 2 or b > 2))]
+    return out
+
+
 def report(limit: int, show_lines: int) -> str:
     spoken = read_spoken(limit)
     said = read_said(limit * 2)
@@ -376,6 +420,12 @@ def report(limit: int, show_lines: int) -> str:
         out.append("")
         out.append("和「今天的目标」的关系：")
         out.extend(engagement)
+
+    repeats = repetition(read_said(300))
+    if repeats:
+        out.append("")
+        out.append("重复（复读的两种）：")
+        out.extend(repeats)
 
     out.append("")
     return "\n".join(out)

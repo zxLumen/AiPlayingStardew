@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 
+import bridgehealth
+
 # ---------------------------------------------------------------------------
 # The one-action-per-turn JSON contract
 # ---------------------------------------------------------------------------
@@ -89,7 +91,14 @@ GAMEPLAY
 - pause_time      -> {"paused": true|false}  freeze or resume the in-game clock
 
 MENUS / UI (when ui.menu_name is not empty)
-- menu_click      -> {"name":"<button name from ui.buttons, or a shop slot from ui.shop>"}
+- menu_click      -> {"id":"<the id of a control from ui.buttons>"}
+  SEND "id", not "name". Every control in ui.buttons carries an id that names exactly one thing on
+  screen. A name may name two: both grids of an ItemGrabMenu answer to "inventory.12", and that is
+  how "put it in my own bag slot" became a click on the container's slot. If you send an ambiguous
+  name, the bridge REFUSES and lists the ids that would have worked - pick one of those. That refusal
+  is the hand's fault, not a rule about the game: do not write it down as game knowledge.
+  ui.buttons[].grid says which side a control is on - bag / container / shop / control - and
+  ui.buttons[].shows says what the game draws on it.
   IN A SHOP ui.shop joins the goods onto the rows: {"slot":"0","item":"防风草种子","price":20,
   "stock":-1,"affordable":true}. Buy the row whose item is the one you want; a row with no item
   name is NOT known, so do not buy it and hope.
@@ -99,6 +108,22 @@ MENUS / UI (when ui.menu_name is not empty)
 - dialogue_advance -> {}
 - dialogue_choose -> {"index": int}          pick from ui.dialogue.responses
 - skip_intro      -> {}
+- menu_probe      -> {}   list EVERY control in the open menu - id, grid, rectangle, and what the game
+                          draws on it. Read-only, and it does not stop at 60. Use it when the menu is
+                          not shaped the way you expected, instead of clicking hopefully.
+
+WHEN THE HAND ITSELF IS THE PROBLEM
+Sometimes the failure is not the game and not your plan - it is the bridge between them: a click that
+says OK and lands on a different control, a handle that names two things, a fact that is simply not in
+the state. Do not spend the day working around that. Say it, or change it:
+- bridge_report -> {"symptom": "one sentence", "evidence": "what the state and the results actually said"}
+  Files it for the operator. Nothing in the game is touched.
+- bridge_patch  -> {"file": "mod/Utils/SomeFile.cs", "find": "<exact text that is already there>",
+                    "replace": "<the text it should become>", "why": "...", "evidence": "..."}
+  For when the bridge itself has to change. The harness compiles it immediately (if it does not
+  compile, nothing changes and you get the compiler's words), and it goes live the next time the game
+  restarts - a hand cannot be repaired while it is being used. One patch at a time.
+  You cannot patch the files that decide what you are allowed to do.
 - noop            -> {}"""
 
 
@@ -159,11 +184,13 @@ Other fields worth reading:
 - player.tile_in_front       the tile you face. Check it before use_tool_at / interact_at.
 - player.path                target / progress / length. If progress stops rising you are STUCK -
                              call stop and choose a different tile instead of resending go_to.
-- ui.buttons                each one has a "name" (what menu_click takes), and when the game draws
-                             something on it, "shows" - what it is. "sells_for": true means the game
-                             will BUY that item from you right here, so in a shop that is how you sell:
-                             click the slot showing the thing you want rid of. A button with no
-                             "shows" is a plain control (a close button, an arrow).
+- ui.buttons                each one has an "id" - THAT is what menu_click takes, and it names exactly
+                             one control. "name" is the friendly word and may name two things.
+                             "grid" says which side of the menu it is on (bag / container / shop /
+                             control), and when the game draws something on it, "shows" is what -
+                             "sells_for": true means the game will BUY that item from you right here,
+                             so in a shop that is how you sell: click the slot showing the thing you
+                             want rid of. A button with no "shows" is a plain control.
 - ui.menu_name "ItemGrabMenu"  a CONTAINER - a chest, a fridge, or the SHIPPING BIN on your farm. Its
                              slots are placeholders: click one while holding an item to put it in, click
                              it again to take it out. The shipping bin is how you sell from home -
@@ -238,7 +265,19 @@ def streamer_system(goal: str) -> str:
     # played every day with an empty GOAL block: told to follow the quest, never told what the quest
     # was. Both spellings are replaced now, so which way the braces come out stops mattering.
     text = goal.strip() or "(no explicit goal)"
-    return STREAMER_SYSTEM.replace("{{\n}}", text).replace("{\n}", text)
+    system = STREAMER_SYSTEM.replace("{{\n}}", text).replace("{\n}", text)
+
+    # The bridge's own scoreboard: what the HAND got wrong, when it has anything to report. Kept out of
+    # the manual because it is not knowledge about the game - it is the state of the instrument, and an
+    # agent that mistakes an instrument's fault for a rule of the game learns a superstition.
+    try:
+        faults = bridgehealth.brief()
+    except Exception:
+        faults = ""
+    if faults:
+        system += "\n\n" + faults
+
+    return system
 
 
 def streamer_user(state: dict, history: list[str], directive: str | None) -> str:
@@ -588,6 +627,10 @@ COMMENTARY_SYSTEM = """你是「主播AI」——正在直播玩星露谷物语�
 - 换话题的时候自然一点：「不管了，先……」「话说回来」。
 - 同一件事只讲一次。如果没什么新东西，就别再把现在的情况描述一遍 —— 换个话题，
   或者讲点新的（心情、打算、昨天的事、想请观众帮的忙）。
+- **同一件事最多讲两句。** 第三句必须换话题，哪怕没什么新事可讲也要换角度。
+  这一条比「接着往下讲」更重要：连着讲同一个问题十句，观众就跑了。
+- **同一条弹幕只回应一次。** 有人问过的问题，回答过一次就不要再说「你说得对」；
+  名字也一样，刚谢过的人不要隔两句又谢一次。
 - 但不要把同一句话再说一遍，也不要每句都用同一个开头。
 
 关于「今天的目标」（很重要）
@@ -621,6 +664,12 @@ COMMENTARY_SYSTEM = """你是「主播AI」——正在直播玩星露谷物语�
 - "to" 只能填「最近的弹幕」里出现过的名字；不是回应弹幕就留空字符串。
 - 只输出 JSON，不要任何别的话。
 
+名词别搞混（观众会较真，讲错很丢脸）
+- **种子**：买来的、要种到地里的（「防风草种子」）。
+- **作物 / 果实**：地里长出来、能收能卖的（「防风草」）。
+- 所以：果实种不下去，种子也收不出来；买种子花金币，收果实赚金币。
+- 地里的苗、长出来的东西，一律叫「作物」或「防风草」，不要说成「种子」。
+
 这个直播间的宗旨（很重要，决定了你该说什么）
 你的直播间叫「AiPlaying：教会AI玩星露谷物语」。所以你不只是在种田 ——
 你是在向观众展示「一个 AI 学着自己玩这个游戏」这件事本身。
@@ -648,7 +697,8 @@ COMMENTARY_SYSTEM = """你是「主播AI」——正在直播玩星露谷物语�
 
 def commentary_user(persona: str, now_line: str, beat: str, chat: str,
                     memory: str, pending: str = "", system: str = "",
-                    thread: str = "", plan: str = "") -> str:
+                    thread: str = "", plan: str = "", avoid: str = "",
+                    streak_hint: str = "") -> str:
     parts = []
 
     if persona:
@@ -659,6 +709,12 @@ def commentary_user(persona: str, now_line: str, beat: str, chat: str,
     if plan:
         parts.append(plan + "\n（这是你今天一整天的目标，讲手上的事时尽量往上挂；"
                            "如果正在做的事跟它不一致，就直说一句。）")
+
+    if streak_hint:
+        parts.append("注意：\n" + streak_hint)
+
+    if avoid:
+        parts.append("注意：\n" + avoid)
 
     if beat:
         parts.append("刚刚发生：\n" + beat)

@@ -2,120 +2,141 @@
   "entries": {
     "dialogue_advance@Farm|dialogue_advance": {
       "works": 48,
-      "fails": 22,
+      "fails": 23,
       "says": "你打算收养这只猫吗？",
       "note": "",
       "last": "2026-10-17"
     },
     "ShopMenu:shelf row|menu_click": {
-      "works": 15,
-      "fails": 45,
+      "works": 18,
+      "fails": 48,
       "says": "forSaleButtons.0",
       "note": "",
       "last": "2026-10-17"
     },
     "go_to@Town|go_to": {
-      "works": 40,
-      "fails": 18,
+      "works": 43,
+      "fails": 21,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "tile:empty|interact_at": {
-      "works": 13,
-      "fails": 43,
-      "says": "嗯……我现在已经要入不敷出了。现在来找我看病的病人不是很多。",
+      "works": 17,
+      "fails": 45,
+      "says": "嘿。",
       "note": "",
       "last": "2026-10-17"
     },
     "door:BusStop|enter": {
-      "works": 34,
-      "fails": 13,
+      "works": 40,
+      "fails": 15,
       "says": "BusStop",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|clear_area": {
       "works": 10,
-      "fails": 34,
-      "says": "你的斧头不够锋利，无法砍破这个树桩。",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "door:SeedShop|enter": {
-      "works": 27,
-      "fails": 12,
-      "says": "SeedShop",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:patch|till_area": {
-      "works": 18,
-      "fails": 18,
+      "fails": 42,
       "says": "你的斧头不够锋利，无法砍破这个树桩。",
       "note": "",
       "last": "2026-10-17"
     },
     "ShopMenu:bag slot|menu_click": {
-      "works": 8,
-      "fails": 28,
-      "says": "inventory.9",
+      "works": 9,
+      "fails": 35,
+      "says": "inventory.10",
       "note": "",
       "last": "2026-10-17"
     },
-    "tile:something|interact_at": {
+    "door:SeedShop|enter": {
       "works": 28,
-      "fails": 8,
-      "says": "上锁了……（营业时间：9:00~21:00）",
+      "fails": 13,
+      "says": "SeedShop",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|till_area": {
+      "works": 19,
+      "fails": 21,
+      "says": "你的斧头不够锋利，无法砍破这个树桩。",
       "note": "",
       "last": "2026-10-17"
     },
     "select_slot@Farm|select_slot": {
-      "works": 34,
+      "works": 38,
       "fails": 0,
       "says": "你看见这只猫了吗？",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|water_all": {
-      "works": 20,
-      "fails": 13,
+      "works": 22,
+      "fails": 15,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
+    "tile:something|interact_at": {
+      "works": 29,
+      "fails": 8,
+      "says": "上锁了……（营业时间：9:00~21:00）",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:Town|enter": {
+      "works": 29,
+      "fails": 5,
+      "says": "Town",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "Town:exit_building|exit_building": {
-      "works": 30,
+      "works": 32,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "door:Town|enter": {
-      "works": 25,
-      "fails": 4,
-      "says": "Town",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "go_to@SeedShop|go_to": {
-      "works": 28,
+      "works": 29,
       "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "menu:upperRightCloseButton|menu_click": {
-      "works": 26,
+      "works": 29,
       "fails": 0,
       "says": "upperRightCloseButton",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|refill": {
-      "works": 13,
-      "fails": 12,
+      "works": 14,
+      "fails": 14,
       "says": "它可能是喜欢这里！唔……你不觉得这个农场需要养只好猫吗？",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:Farm|enter": {
+      "works": 22,
+      "fails": 5,
+      "says": "Farm",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "ItemGrabMenu:bag slot|menu_click": {
+      "works": 1,
+      "fails": 24,
+      "says": "inventory.13",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@Farm|go_to": {
+      "works": 20,
+      "fails": 5,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -133,23 +154,23 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "door:Farm|enter": {
-      "works": 17,
-      "fails": 5,
-      "says": "Farm",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "go_to@Farm|go_to": {
-      "works": 15,
-      "fails": 4,
-      "says": "",
+    "press_key@Beach|press_key": {
+      "works": 1,
+      "fails": 20,
+      "says": "escape",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:exit_building|exit_building": {
-      "works": 17,
+      "works": 19,
       "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@BusStop|go_to": {
+      "works": 14,
+      "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -161,6 +182,20 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "SeedShop:exit_building|exit_building": {
+      "works": 0,
+      "fails": 13,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "ShopMenu:upperRightCloseButton|menu_click": {
+      "works": 0,
+      "fails": 13,
+      "says": "upperRightCloseButton",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "tile:Junimo|interact_at": {
       "works": 0,
       "fails": 13,
@@ -168,24 +203,10 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@BusStop|go_to": {
-      "works": 11,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "SeedShop:exit_building|exit_building": {
-      "works": 0,
-      "fails": 10,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "ShopMenu:upperRightCloseButton|menu_click": {
-      "works": 0,
-      "fails": 10,
-      "says": "upperRightCloseButton",
+    "dialogue_advance@Beach|dialogue_advance": {
+      "works": 6,
+      "fails": 4,
+      "says": "最重要的是让钓鱼的传统流传下去。也许培养起你的兴趣后，你会光顾我的商店也说不定。",
       "note": "",
       "last": "2026-10-17"
     },
@@ -218,8 +239,15 @@
       "last": "2026-10-17"
     },
     "Farm:patch|plant_all": {
-      "works": 5,
+      "works": 6,
       "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "dialogue_advance@Town|dialogue_advance": {
+      "works": 4,
+      "fails": 2,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -231,6 +259,27 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "move@Town|move": {
+      "works": 0,
+      "fails": 6,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "ItemGrabMenu:dropItemInvisibleButton.dropItemInvisibleButton|menu_click": {
+      "works": 1,
+      "fails": 4,
+      "says": "dropItemInvisibleButton.dropItemInvisibleButton",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "ItemGrabMenu:upperRightCloseButton|menu_click": {
+      "works": 0,
+      "fails": 5,
+      "says": "upperRightCloseButton",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "ShopMenu:downArrow|menu_click": {
       "works": 0,
       "fails": 5,
@@ -238,9 +287,9 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "dialogue_advance@Town|dialogue_advance": {
-      "works": 3,
-      "fails": 1,
+    "go_to@Beach|go_to": {
+      "works": 1,
+      "fails": 3,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -329,6 +378,13 @@
       "note": "",
       "last": "2026-10-16"
     },
+    "door:Beach|enter": {
+      "works": 0,
+      "fails": 2,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "move@Farm|move": {
       "works": 0,
       "fails": 2,
@@ -354,6 +410,13 @@
       "works": 2,
       "fails": 0,
       "says": "他们财大气粗，可以先亏本销售，搞倒我这种小本生意……然后再抬高价格割韭菜！",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "LetterViewerMenu:acceptQuestButton|menu_click": {
+      "works": 0,
+      "fails": 1,
+      "says": "acceptQuestButton",
       "note": "",
       "last": "2026-10-17"
     },
@@ -392,13 +455,6 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "move@Town|move": {
-      "works": 0,
-      "fails": 1,
-      "says": "",
-      "note": "",
-      "last": "2026-10-16"
-    },
     "tile:hoe_dirt|interact_at": {
       "works": 0,
       "fails": 1,
@@ -432,6 +488,20 @@
       "fails": 0,
       "says": "HOTBAR FULL - a shop has nowhere to put a purchase",
       "note": "hotbar满时商店买不了东西，今天放弃补种，先干活睡觉，明天腾格子再去",
+      "last": "2026-10-17"
+    },
+    "beach_itemgrabmenu_willy_barrel|menu_click": {
+      "works": 0,
+      "fails": 0,
+      "says": "the click was delivered - the game did not react",
+      "note": "escape/e and clicking bag slots do nothing; the barrel likely only accepts what it asks for (fish), try a different item or leave",
+      "last": "2026-10-17"
+    },
+    "beach_itemgrabmenu|menu_click": {
+      "works": 0,
+      "fails": 0,
+      "says": "hand menu holds 竹鱼竿 -> empty",
+      "note": "在海滩误触威尔的木桶打开了 ItemGrabMenu，点击背包格与 escape 都无反应，先试丢弃按钮清手再关菜单",
       "last": "2026-10-17"
     },
     "busstop_warp|enter": {
@@ -483,81 +553,11 @@
       "note": "enter 排队可以在后台 chore 仍在收尾时照常执行，玩家移动不被 chore 阻塞",
       "last": "2026-10-17"
     },
-    "farm_crops|scan": {
+    "farm_busstop_warp|enter": {
       "works": 0,
       "fails": 0,
-      "says": "全部防风草 watered:true，无 ready",
-      "note": "第20天早上作物已浇过水且未成熟，不必重复 water_all，白天可做别的事",
-      "last": "2026-10-17"
-    },
-    "farm_东侧_78_19_79_19|till_area": {
-      "works": 0,
-      "fails": 0,
-      "says": "tillable at (78,19) would not budge",
-      "note": "这两格虽然列为 tillable 但锄不动，换 work 列表里的其他点如 (74,18)",
-      "last": "2026-10-17"
-    },
-    "farm_东侧_79_19_一带|till_area": {
-      "works": 0,
-      "fails": 0,
-      "says": "0 done, 2 given up ((tillable at (78,19) would not budge))",
-      "note": "(78,19)/(79,19) 附近的格子锄不动，别再在那儿下锄；(74,18) 半径 2 一次锄成 3 格",
-      "last": "2026-10-17"
-    },
-    "forsalebuttons_0_purchase|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "gatekeeper: 今天已经重复 4 次，而且世界一次都没变",
-      "note": "forSaleButtons.0 clicks were all blocked today and no purchase happened - if the next attempt also fails to change money, the seed-buying combo is broken and I ",
-      "last": "2026-10-16"
-    },
-    "harvest_all_blocked_by_dialogue|harvest_all": {
-      "works": 0,
-      "fails": 0,
-      "says": "守望者提前结束（blocked: dialogue is open）且世界没有变化",
-      "note": "a chore macro cannot start while a dialogue box is open - clear the dialogue first, then queue chores",
-      "last": "2026-10-17"
-    },
-    "namingmenu_aftermath|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "doneNamingButton clicked but farmer stayed frozen ('farmer cannot move right now')",
-      "note": "after naming the cat an event may keep playing; press space to clear it before chores",
-      "last": "2026-10-17"
-    },
-    "namingmenu|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "味噌",
-      "note": "the cat adoption NamingMenu confirms with doneNamingButton once the text box holds a name",
-      "last": "2026-10-17"
-    },
-    "namingmenu|menu_click_donenamingbutton": {
-      "works": 0,
-      "fails": 0,
-      "says": "NamingMenu",
-      "note": "naming the adopted cat uses NamingMenu with doneNamingButton to confirm",
-      "last": "2026-10-17"
-    },
-    "seedshop_door|enter": {
-      "works": 0,
-      "fails": 0,
-      "says": "上锁了……（营业时间：9:00~21:00）",
-      "note": "店 9:00~21:00 开，去之前先看钟",
-      "last": "2026-10-16"
-    },
-    "seedshop_forsalebuttons_0|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "the whole click changed nothing - not money, not the bag, not either hand",
-      "note": "今天 forSaleButtons.0 四连点全部零变化（钱 240 未动），买种子失败可能因为 HOTBAR FULL 或假点击；钱够但没买到，先回农场干活",
-      "last": "2026-10-17"
-    },
-    "seedshop_hours_vs_morning|interact_at": {
-      "works": 0,
-      "fails": 0,
-      "says": "上锁了……（营业时间：9:00~21:00）",
-      "note": "9点前别去敲皮埃尔的门，7:40~9:00 这段时间用来在 Forest 找野菜",
+      "says": "the door at (80,15) would not open",
+      "note": "Farm 的 BusStop 出口是 door:false 的地格 warp，不能当门 enter，要走到 (80,15) 踩上去触发",
       "last": "2026-10-17"
     }
   }

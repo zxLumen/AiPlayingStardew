@@ -87,6 +87,12 @@ public static class ActionProcessor
                 if (action == "observe")
                     return Observe(root);
 
+                // What the open menu actually contains, in full: every control, which grid it belongs
+                // to, where it is, and what it holds. The state caps its button list; this does not, so
+                // an agent can look at the whole menu when something is not where it expected.
+                if (action == "menu_probe")
+                    return MenuProbe(root);
+
                 if (action == "scan")
                     return Scan(root);
 
@@ -146,7 +152,7 @@ public static class ActionProcessor
                     _ => (false, $"unknown action '{action}'"),
                 };
 
-                return (ok, detail, null);
+                return (ok, detail, TakeReceipt());
             }
             catch (Exception ex)
             {
@@ -195,6 +201,84 @@ public static class ActionProcessor
     /// Reports what a single tile contains: whether it can be walked on, what object or crop
     /// stands there, and who is on it. This is the agent's sense organ for exploring.
     /// </summary>
+    // --- The receipt -----------------------------------------------------------------------------
+    //
+    // Every menu click leaves a receipt behind: what was asked for, what was ACTUALLY dispatched to,
+    // whether that handle was unique, and what changed. It travels as data, not as prose, because a
+    // sentence can be skimmed and a receipt cannot.
+    //
+    // This exists because a click that lands on the wrong element used to be indistinguishable from a
+    // click that landed on the right one: the action said OK, the world did not change, and the only
+    // account of what happened was the agent's own guess about it. It wrote that guess down as a rule.
+    private static Dictionary<string, object?>? _receipt;
+
+    private static Dictionary<string, object?>? TakeReceipt()
+    {
+        Dictionary<string, object?>? taken = _receipt;
+        _receipt = null;
+        return taken;
+    }
+
+    private static void Receipt(string requested, string resolved, string grid, bool unique,
+                                int matches, IEnumerable<string> candidates, string verdict,
+                                string point, IEnumerable<int> rect, IEnumerable<string> changed)
+    {
+        _receipt = new Dictionary<string, object?>
+        {
+            ["requested"] = requested,
+            ["resolved"] = resolved,
+            ["grid"] = grid,
+            ["unique"] = unique,
+            ["matches"] = matches,
+            ["candidates"] = candidates.ToList(),
+            ["verdict"] = verdict,
+            ["point"] = point,
+            ["rect"] = rect.ToList(),
+            ["changed"] = changed.ToList(),
+        };
+    }
+
+
+    private static (bool ok, string detail, Dictionary<string, object?>? data) MenuProbe(JsonElement root)
+    {
+        IClickableMenu? active = Game1.activeClickableMenu;
+        IClickableMenu? menu = UiStateBuilder.GetEffectiveMenu() ?? active;
+        if (menu == null)
+            return (false, "no menu is open", null);
+
+        try
+        {
+            List<MenuButtonInfo> all = UiStateBuilder.BuildButtons(menu, null, 400);
+            var data = new Dictionary<string, object?>
+            {
+                ["menu"] = menu.GetType().Name,
+                ["parent"] = active != null && !ReferenceEquals(menu, active) ? active.GetType().Name : "",
+                ["controls"] = all.Count,
+                ["buttons"] = all.Select(b => (object?)new Dictionary<string, object?>
+                {
+                    ["id"] = b.Id,
+                    ["name"] = b.Name,
+                    ["grid"] = b.Grid,
+                    ["label"] = b.Label,
+                    ["rect"] = new[] { b.X, b.Y, b.Width, b.Height },
+                    ["item"] = b.Item,
+                    ["count"] = b.Count,
+                    ["kind"] = b.Kind,
+                    ["sellable"] = b.Sellable,
+                    ["visible"] = b.Visible,
+                    ["source"] = b.Source,
+                }).ToList(),
+            };
+
+            return (true, $"{all.Count} controls in {menu.GetType().Name}", data);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"menu_probe failed: {ex.Message}", null);
+        }
+    }
+
+
     private static (bool ok, string detail, Dictionary<string, object?>? data) Observe(JsonElement root)
     {
         if (Game1.player == null || Game1.currentLocation == null)
@@ -2105,24 +2189,56 @@ public static class ActionProcessor
         // Descend into TitleMenu's submenu (e.g. LoadGameMenu) when one is open.
         IClickableMenu menu = UiStateBuilder.GetEffectiveMenu() ?? active;
 
-        string name = root.TryGetProperty("name", out JsonElement nameEl)
-            ? (nameEl.GetString() ?? "")
-            : "";
+        // 'id' is the handle that names exactly one control. 'name' still works while it stays
+        // unambiguous, so older plans and notes do not break - but a name that means two things is
+        // refused rather than guessed at.
+        string handle = root.TryGetProperty("id", out JsonElement idEl) ? (idEl.GetString() ?? "") : "";
+        bool byId = !string.IsNullOrWhiteSpace(handle);
 
-        if (string.IsNullOrWhiteSpace(name))
-            return (false, "missing 'name'");
+        if (!byId)
+            handle = root.TryGetProperty("name", out JsonElement nameEl) ? (nameEl.GetString() ?? "") : "";
 
-        ClickableComponent? target = UiStateBuilder.FindComponent(menu, name);
-        if (target == null)
+        if (string.IsNullOrWhiteSpace(handle))
+            return (false, "missing 'id' (or 'name')");
+
+        List<UiStateBuilder.HandleMatch> matches = UiStateBuilder.MatchHandles(menu, handle);
+
+        if (matches.Count == 0)
         {
             List<string> available = UiStateBuilder.AvailableNames(menu);
-            return (false, $"no button '{name}' in {menu.GetType().Name} " +
+            Receipt(handle, "", "", unique: true, matches: 0, candidates: Array.Empty<string>(),
+                    verdict: "HANDLE_UNKNOWN", point: "", rect: Array.Empty<int>(),
+                    changed: Array.Empty<string>());
+            return (false, $"no control '{handle}' in {menu.GetType().Name} " +
                            $"(available: {string.Join(", ", available.Take(25))})");
         }
 
+        if (matches.Count > 1)
+        {
+            // AMBIGUOUS HANDLE: refuse, and say what it could have meant.
+            //
+            // Taking the first match is what turned "put it in my own bag slot 12" into a click on the
+            // container's slot 12, silently. A handle that means more than one thing is the bridge's
+            // bug, and the bridge has to say so out loud instead of letting the agent guess twice.
+            List<string> candidates = matches.Take(8)
+                .Select(m => $"{m.Id} [{m.Grid}] at ({m.Bounds.Center.X},{m.Bounds.Center.Y})")
+                .ToList();
+
+            Receipt(handle, "", "", unique: false, matches: matches.Count, candidates: candidates,
+                    verdict: "HANDLE_AMBIGUOUS", point: "", rect: Array.Empty<int>(),
+                    changed: Array.Empty<string>());
+
+            return (false, $"'{handle}' matches {matches.Count} controls in {menu.GetType().Name} - it is " +
+                           $"not a handle. Use one of: {string.Join(", ", candidates)}");
+        }
+
+        UiStateBuilder.HandleMatch hit = matches[0];
+        ClickableComponent target = hit.Component;
+        string name = hit.Id;
+
         // Some menus lay buttons out lazily; a zero-sized target means it is not ready yet.
         if (target.bounds.Width <= 0 || target.bounds.Height <= 0)
-            return (false, $"button '{name}' has no bounds yet (menu still animating in)");
+            return (false, $"control '{name}' has no bounds yet (menu still animating in)");
 
         int cx = target.bounds.Center.X;
         int cy = target.bounds.Center.Y;
@@ -2178,6 +2294,10 @@ public static class ActionProcessor
                              || !string.Equals(bagBefore, bagAfter, StringComparison.Ordinal)
                 ? ""
                 : " (the hand changed but no money did - read it before trusting this)";
+
+            Receipt(handle, hit.Id, hit.Grid, true, 1, Array.Empty<string>(), "OK",
+                    $"({cx},{cy})", new[] { target.bounds.X, target.bounds.Y, target.bounds.Width, target.bounds.Height },
+                    evidence);
 
             return (true, $"clicked '{name}' at ({cx},{cy}) with the mouse in {menu.GetType().Name} "
                           + $"[{string.Join(", ", evidence)}]{viaReal}");
@@ -2241,6 +2361,11 @@ public static class ActionProcessor
         string proof = evidence.Count > 0
             ? $" [{string.Join(", ", evidence)}]"
             : " [the whole click changed nothing - not money, not the bag, not either hand]";
+
+        Receipt(handle, hit.Id, hit.Grid, true, 1, Array.Empty<string>(),
+                evidence.Count > 0 ? "OK_OLD_PATH" : (real ? "SILENT_NOOP" : "NO_CURSOR"),
+                $"({cx},{cy})", new[] { target.bounds.X, target.bounds.Y, target.bounds.Width, target.bounds.Height },
+                evidence);
 
         return (true, $"clicked '{name}' at ({cx},{cy}) in {menu.GetType().Name}{via}"
                       + $" - {why}, so it was done the old way{proof}");

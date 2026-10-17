@@ -432,11 +432,23 @@ public class QuestInfo
 /// <summary>A clickable element found in the open menu, addressable by name.</summary>
 public class MenuButtonInfo
 {
-    /// <summary>Name to pass back to the menu_click action.</summary>
+    /// <summary>
+    /// The handle that names exactly one element. Send THIS to menu_click.
+    ///
+    /// The friendly name could point at two things - an ItemGrabMenu has a bag row and a container row
+    /// that both answer to "inventory.12" - and the bridge silently clicked whichever came first. A
+    /// handle is allowed to be ugly; it is not allowed to be a coin flip.
+    /// </summary>
+    [JsonPropertyName("id")] public string Id { get; set; } = "";
+
+    /// <summary>Name to pass back to the menu_click action (kept for backwards compatibility).</summary>
     [JsonPropertyName("name")] public string Name { get; set; } = "";
 
-    /// <summary>Menu field the element was read from (e.g. buttons, slotButtons).</summary>
+    /// <summary>Menu field the element was read from, with its path (e.g. ItemsToGrabMenu.inventory).</summary>
     [JsonPropertyName("source")] public string Source { get; set; } = "";
+
+    /// <summary>Which side of the menu: bag / container / shop / control.</summary>
+    [JsonPropertyName("grid")] public string Grid { get; set; } = "";
 
     [JsonPropertyName("label")] public string Label { get; set; } = "";
     [JsonPropertyName("x")] public int X { get; set; }
@@ -464,6 +476,12 @@ public class MenuButtonInfo
     /// click would do nothing, which is worth knowing before spending a step on it.
     /// </summary>
     [JsonPropertyName("sellable")] public bool Sellable { get; set; }
+
+    /// <summary>How many are stacked on this control, when the game draws an item here.</summary>
+    [JsonPropertyName("count")] public int Count { get; set; }
+
+    /// <summary>tool / item, when the game draws something here - an axe is not a parsnip.</summary>
+    [JsonPropertyName("kind")] public string Kind { get; set; } = "";
 }
 
 

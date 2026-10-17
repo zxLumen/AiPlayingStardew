@@ -190,6 +190,7 @@ class Commentator:
         welcome_backlog_max: int = 3,
         beat_fresh_s: float = 10.0,
         agent_line_fresh_s: float = 120.0,
+        name_cooldown_s: float = 90.0,
         pause_continue: tuple[float, float] = (1.0, 2.5),
         pause_new_topic: tuple[float, float] = (2.5, 4.5),
         pause_moment: tuple[float, float] = (0.8, 1.8),
@@ -282,6 +283,21 @@ class Commentator:
         self._plan_changed = False
         # Every kind of goal today has had, so a re-worded plan is not mistaken for a new direction.
         self._plan_seen: set = set()
+
+        # Chat messages that have already been answered, and names that have just been addressed.
+        # The room is small, so one unanswered question sits in "recent chat" for a dozen turns and
+        # the talker thanks the same person again and again: measured, one question was mentioned ten
+        # times over thirteen minutes. Remembering what has been dealt with is what stops that, and
+        # it is a bookkeeping job - the model cannot be trusted to remember that it already replied.
+        self._spent: deque = deque(maxlen=40)
+        self._named_at: dict[str, float] = {}
+        self.name_cooldown_s = float(name_cooldown_s)
+
+        # How many lines in a row have been about the same subject. The continuity rule ("carry on
+        # with what you were saying") is what makes the streamer sound like a person, and it is also
+        # what lets one topic run for ten sentences if nothing stops it.
+        self._subject = ""
+        self._streak = 0
         # Consecutive quiet-moment lines, and which angle the next one should take. See IDLE_ANGLES.
         self._idle_count = 0
         self._idle_angle = 0
@@ -676,6 +692,19 @@ class Commentator:
             return False
         return self._room_traffic() <= self.quiet_room_max
 
+    @staticmethod
+    def _chat_key(message: dict) -> str:
+        """How one chat message is remembered. Name plus text, because the same person says the same
+        thing more than once and only the pair identifies it."""
+        return f"{message.get('user') or ''}|{message.get('text') or ''}"
+
+    @staticmethod
+    def _similar(a: str, b: str, threshold: float = 0.5) -> bool:
+        """Are these two short descriptions of a subject the same subject?"""
+        da = {a[i:i + 2] for i in range(len(a) - 1)} or {a}
+        db = {b[i:i + 2] for i in range(len(b) - 1)} or {b}
+        return len(da & db) / max(1, len(da | db)) >= threshold
+
     def _pause_for(self, topic: str) -> float:
         """How long to wait before this line, in seconds.
 
@@ -771,6 +800,9 @@ class Commentator:
             # The specific message is the whole context. Given the rest of the room as well, the
             # model thanks a gift it was not asked about, and then thanks it again when its own turn
             # comes round - and the room hears the same sentence twice.
+            self._spent.append(self._chat_key(answer))
+            if answer.get("user"):
+                self._named_at[str(answer["user"])] = time.monotonic()
             self._speak(beat="；".join(beats[:3]), answer=answer, include_chat=False, topic="chat",
                         beat_age_s=beat_age)
             return
@@ -835,7 +867,7 @@ class Commentator:
 
         self._speak(beat=beat, answer=None, include_chat=False, topic="greet",
                     require_names=names if must else None, prefix_if_missing=prefix,
-                    must_greet=must, beat_age_s=beat_age)
+                    must_greet=must, beat_age_s=beat_age, named=names)
 
     def _system_block(self, with_stuck: bool = True) -> str:
         """What the machine itself is doing and stuck on - the material for a teaching stream.
@@ -879,7 +911,8 @@ class Commentator:
     def _speak(self, beat: str, answer: dict | None = None, idle: bool = False,
                include_chat: bool = True, topic: str = "event",
                require_names: list[str] | None = None, prefix_if_missing: str = "",
-               must_greet: bool | None = None, beat_age_s: float | None = None) -> None:
+               must_greet: bool | None = None, beat_age_s: float | None = None,
+               named: list[str] | None = None) -> None:
         self._last_spoke = time.monotonic()
         self._spoken_at.append(self._last_spoke)
 
@@ -899,11 +932,29 @@ class Commentator:
         chat_text = ""
         if include_chat:
             with self._cond:
-                recent = list(self._chat)[-6:]
+                recent = list(self._chat)[-8:]
+            # Already answered: the room is quiet enough that a single question otherwise sits in the
+            # prompt for a dozen turns, and the talker thanks the same person over and over.
+            recent = [m for m in recent if self._chat_key(m) not in self._spent]
             if recent:
                 chat_text = "\n".join(
-                    f"{m['user']}：{m['text']}" if m["user"] else m["text"] for m in recent
+                    f"{m['user']}：{m['text']}" if m["user"] else m["text"] for m in recent[-6:]
                 )
+
+        # Someone who was just addressed should not be addressed again this minute; a streamer who
+        # says a name every sentence sounds like it has a list, not a conversation.
+        hot_names = [name for name, when in self._named_at.items()
+                     if time.monotonic() - when < self.name_cooldown_s]
+        avoid = ("、" .join(hot_names[:3]) + " 刚刚已经被回应/欢迎过了，这一句别再点他们的名字。"
+                 if hot_names else "")
+
+        # Two lines on one subject is a conversation; three is a loop. The continuity rule above is
+        # what makes the talker sound like a person and also what lets one topic run for ten
+        # sentences, so the stop condition has to be explicit rather than hoped for.
+        streak_hint = ""
+        if self._streak >= 1:
+            streak_hint = ("同一件事你已经连着讲了两句了。这一句必须换话题 —— 换个完全不同的角度"
+                           "（心情、打算、问观众），哪怕没什么新事可讲。")
 
         pending_text = ""
         if answer:
@@ -945,6 +996,8 @@ class Commentator:
                     system=system_text,
                     thread=thread_text,
                     plan=self._plan_text(),
+                    avoid=avoid,
+                    streak_hint=streak_hint,
                 ),
             },
         ]
@@ -984,6 +1037,23 @@ class Commentator:
         if thread:
             self._topic = _clamp(thread, 40)
         self._last_topic = topic
+
+        # Who was just spoken to, so the next line does not say the same name again.
+        for name in (named or []):
+            self._named_at[str(name)] = time.monotonic()
+        if to:
+            self._named_at[to] = time.monotonic()
+
+        # How long the current subject has been running. Compared on the model's own one-line summary
+        # of what it is talking about, because that is the only description of the subject that
+        # survives between turns.
+        subject = str(thread or self._topic or "").strip()
+        if subject and self._subject and self._similar(subject, self._subject):
+            self._streak += 1
+        else:
+            self._streak = 0
+        if subject:
+            self._subject = subject
 
         # A real event resets the quiet-moment backoff: the game moved, so the next lull is a fresh
         # lull and may be filled sooner.

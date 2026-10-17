@@ -9,9 +9,9 @@ MAX_LIST = 25
 def _buttons(ui: dict) -> list[dict]:
     out = []
     for button in (ui.get("buttons") or [])[:MAX_BUTTONS]:
-        entry = {"name": button.get("name")}
-        if button.get("source") and button.get("source") != button.get("name"):
-            entry["src"] = button.get("source")
+        entry = {"id": button.get("id") or button.get("name")}
+        if button.get("grid"):
+            entry["grid"] = button["grid"]
         if button.get("label"):
             entry["label"] = button["label"]
         entry["xywh"] = [button.get("x"), button.get("y"), button.get("width"), button.get("height")]

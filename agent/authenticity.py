@@ -31,7 +31,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-KINDS = ("action", "knowledge", "read", "recovery", "illegal")
+KINDS = ("action", "knowledge", "read", "recovery", "illegal", "repair")
 
 # Actions the bridge refuses ON PURPOSE, because a player cannot do them: no teleporting, no stopping
 # the clock, no skipping a day. The bridge says so itself in each refusal (see ActionProcessor).
@@ -132,6 +132,23 @@ DEFAULT_DECLARATIONS: dict[str, dict] = {
     # -- looking, which is free ------------------------------------------
     "scan": {"kind": "read", "needs": "", "how": "look around - only what is on screen"},
     "observe": {"kind": "read", "needs": "", "how": "look at one nearby tile"},
+    "menu_probe": {"kind": "read", "needs": "", "how": "list every control in the open menu"},
+
+    # -- repairing the instrument ----------------------------------------
+    #
+    # These do not touch the game at all. They talk to the harness about the BRIDGE - the thing that
+    # turns the game into an API - because a defect in the hand is repaired differently from a mistake
+    # in play, and the alternative (writing a rule around a broken handle) is how a defect becomes a
+    # superstition. Its own class, because "could a player do this?" is not the right question here.
+    #
+    # What keeps this honest is not the label, it is the tool: a patch must compile before it is
+    # believed, deploys only while the game is stopped, is rolled back if its probe does not pass, and
+    # may not touch the files that decide what is allowed.
+    "bridge_report": {"kind": "repair",
+                      "how": "tell the operator what the bridge got wrong - no game state is touched"},
+    "bridge_patch": {"kind": "repair",
+                     "how": "ask for a change to the bridge source; compiled first, deployed behind a "
+                            "probe, rolled back if the probe fails, referee files off limits"},
 
     # -- knowledge: what a player can look up ----------------------------
     #

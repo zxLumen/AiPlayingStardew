@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -21,6 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import authenticity  # noqa: E402
+import bridgehealth  # noqa: E402
 import game_process  # noqa: E402
 import gaps  # noqa: E402
 import memory as memory_mod  # noqa: E402
@@ -303,6 +305,55 @@ class StepClock:
         ordered = sorted(self.parts.items(), key=lambda kv: -kv[1])
         tail = " ".join(f"{name}={seconds:.1f}" for name, seconds in ordered[:4] if seconds >= 0.3)
         return f"{total:.1f}s ({tail})"
+
+
+def _bridge_request(action: str, args: dict) -> dict:
+    """Talk to the harness about the bridge - never to the game.
+
+    The agent cannot run commands and should not. It names the symptom and, when it has a specific
+    change in mind, the exact text to replace; the tool does the rest and keeps the invariants:
+    it compiles before believing, deploys only while the game is stopped, rolls back if the probe
+    does not pass, and refuses to touch the files that decide what is allowed.
+
+    This exists because the alternative - the agent writing a rule around a broken handle - is how a
+    defect in the hand becomes a superstition in the head.
+    """
+    tool = Path(__file__).resolve().parent.parent / "tools" / "bridge.py"
+    if not tool.exists():
+        return {"ok": False, "detail": "tools/bridge.py is not there", "reason_code": "NO_BRIDGE_TOOL"}
+
+    if action == "bridge_report":
+        symptom = str(args.get("symptom") or args.get("problem") or "").strip()
+        if not symptom:
+            return {"ok": False, "detail": "bridge_report needs a 'symptom'",
+                    "reason_code": "BRIDGE_REPORT_ARGS"}
+        argv = [sys.executable, str(tool), "ticket", "--symptom", symptom,
+                "--evidence", str(args.get("evidence") or ""), "--source", "agent"]
+    else:
+        missing = [k for k in ("file", "find", "replace") if not str(args.get(k) or "").strip()]
+        if missing:
+            return {"ok": False, "detail": f"bridge_patch needs {', '.join(missing)}",
+                    "reason_code": "BRIDGE_PATCH_ARGS"}
+        argv = [sys.executable, str(tool), "patch", "--file", str(args["file"]),
+                "--find", str(args["find"]), "--replace", str(args["replace"]),
+                "--why", str(args.get("why") or ""), "--evidence", str(args.get("evidence") or ""),
+                "--source", "agent"]
+
+    try:
+        run = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8",
+                             errors="replace", timeout=600)
+    except Exception as exc:
+        return {"ok": False, "detail": f"bridge tool failed to run: {exc}",
+                "reason_code": "BRIDGE_TOOL_FAILED"}
+
+    text = ((run.stdout or "") + (run.stderr or "")).strip()
+    detail = text[-400:]
+    if action == "bridge_patch" and run.returncode == 0:
+        detail += (" | compiled. It goes live the next time the game restarts: a change to the hand "
+                   "cannot be made while the hand is being used.")
+
+    return {"ok": run.returncode == 0, "detail": detail,
+            "reason_code": "BRIDGE_TICKET" if action == "bridge_report" else "BRIDGE_PATCH"}
 
 
 def _day_never_ended(client, day_start: dict, sleep_attempts: int, label: str, log, runlog) -> None:
@@ -702,7 +753,14 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         attempt_entry = learning.remember_attempt(action, args)
 
         started = time.perf_counter()
-        result = client.action(action, **args)
+        # Two actions talk to the HARNESS, not to the game: reporting a defect in the bridge, and
+        # asking for a change to it. Neither is sent to the game, because a hand cannot be asked to
+        # repair itself. The agent says what it believes is wrong; tools/bridge.py owns the invariants
+        # (compile, probe, roll back on failure, never touch the referee).
+        if action in ("bridge_report", "bridge_patch"):
+            result = _bridge_request(action, args)
+        else:
+            result = client.action(action, **args)
         clock.mark("dispatch")
 
         # Think while the farmer acts. The next step is decided against the world this action is
@@ -812,14 +870,48 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
             changed_at = time.monotonic()
             changed_note = f"step {step}: {action} -> {evidence[:90]}"
 
+        # THE RECEIPT: what the bridge says it actually clicked.
+        #
+        # A click used to be anonymous. It said OK whether it landed on the control that was asked for
+        # or on a different grid that happened to share its name, and the only account of it was the
+        # agent's own guess - which it then wrote down as a rule about the game. The receipt separates
+        # the two: a handle that names two controls is a defect in the hand, and must never be learned
+        # as knowledge about Stardew Valley.
+        receipt = result.get("data") if isinstance(result.get("data"), dict) else {}
+        verdict = bridgehealth.record(action, args, receipt) if receipt else ""
+        if verdict and verdict not in ("OK", "OK_OLD_PATH"):
+            runlog.agent("receipt", day=label, step=step, action=action, args=args,
+                         verdict=verdict, requested=receipt.get("requested"),
+                         resolved=receipt.get("resolved"), unique=receipt.get("unique"),
+                         matches=receipt.get("matches"), candidates=receipt.get("candidates"),
+                         changed=receipt.get("changed"))
+        if verdict in bridgehealth.BRIDGE_FAULTS:
+            entry = next((r for r in bridgehealth.open_faults()
+                          if r.get("verdict") == verdict
+                          and r.get("requested") == receipt.get("requested")), {})
+            log(f"[桥] {verdict} x{entry.get('count', 1)}: 要的是 {receipt.get('requested')!r} → "
+                f"{receipt.get('resolved') or '（没有派发任何控件）'}"
+                + (f"，这个名字对应 {receipt.get('matches')} 个控件：{receipt.get('candidates')}"
+                   if not receipt.get("unique") else ""))
+            # NOT learned as a game lesson: worked=None means "this says nothing about the game", so
+            # the learning store and the gatekeeper stay out of it. A hand that cannot name its own
+            # handles is not evidence that this action does not work on this kind of thing.
+            worked = None
+            evidence = f"{verdict}: {receipt.get('requested')} → {receipt.get('resolved') or '(none)'}"
+            # Straight past the game diary: this says nothing about the game.
+            skip_world_notes = True
+        else:
+            skip_world_notes = False
+
         # The player's own notes on how this game behaves, written from what just happened.
         #
         # It already had the game's words once: the witness recorded "上锁了……（营业时间：9:00~21:00）"
         # and nothing learned it, so the same door was knocked on seventeen times. This is the line
         # that turns an attempt into knowledge, and it is deliberately the KIND of thing (a shop door)
         # rather than the tile, because a tile is this morning and a rule of the game is forever.
-        world.observe(action, args, after_state, worked,
-                      says=_spoken_by_the_game(after_state, result))
+        if not skip_world_notes:
+            world.observe(action, args, after_state, worked,
+                          says=_spoken_by_the_game(after_state, result))
 
         # Reconcile the two verdicts. "提前结束: timeout" and "OK" used to be printed one line apart,
         # and only the OK was handed to the agent. If the watcher had to step in AND the world did not

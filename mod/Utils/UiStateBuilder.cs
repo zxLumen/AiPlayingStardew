@@ -33,7 +33,38 @@ public static class UiStateBuilder
             !string.IsNullOrWhiteSpace(Component.name) ? Component.name
             : IndexInCollection >= 0 ? $"{Source}[{IndexInCollection}]"
             : Source;
+
+        /// <summary>
+        /// A handle that cannot point at two things.
+        ///
+        /// Two grids in the same menu produced the SAME name - both sides of an ItemGrabMenu have a
+        /// field called "inventory" - so "inventory.12" matched two elements, the resolver took the
+        /// first one, and the agent clicked the container's row while asking for its own bag. It spent
+        /// fifteen steps and a written note on a coin flip. The Source now carries the path it was
+        /// found on, and the ordinal is part of the handle, so this string names exactly one element.
+        /// </summary>
+        public string Id => IndexInCollection >= 0 ? $"{Source}#{IndexInCollection}" : Source;
+
+        /// <summary>Which side of the menu this is: the player's own bag, a container, a shop's shelf, or a control.</summary>
+        public string Grid
+        {
+            get
+            {
+                if (Source.Contains("ItemsToGrabMenu", StringComparison.OrdinalIgnoreCase))
+                    return "container";
+                if (Source.Contains("forSaleButtons", StringComparison.OrdinalIgnoreCase))
+                    return "shop";
+                if (Source.Contains("inventory", StringComparison.OrdinalIgnoreCase))
+                    return "bag";
+                return "control";
+            }
+        }
     }
+
+
+    /// <summary>One element a handle could mean, with where it actually is.</summary>
+    public readonly record struct HandleMatch(string Id, string Name, string Grid, Rectangle Bounds,
+                                              ClickableComponent Component);
 
 
     /// <summary>
@@ -78,6 +109,76 @@ public static class UiStateBuilder
     }
 
 
+    /// <summary>
+    /// Every clickable control of an open menu, with its handle, its grid, its rectangle and what the
+    /// game draws on it. One code path for both /state and the menu_probe action, so the thing the
+    /// agent reads and the thing it can probe are the same list.
+    /// </summary>
+    public static List<MenuButtonInfo> BuildButtons(IClickableMenu menu, IMonitor? monitor, int cap)
+    {
+        var buttons = new List<MenuButtonInfo>();
+
+        // What the PLAYER'S OWN PANEL holds, in every menu that has one - not only in a shop.
+        //
+        // It used to be filled in for ShopMenu alone, so in every other menu the agent's own row
+        // arrived as bare handles ("inventory.12") with nothing in them: a number to guess with. And
+        // because both grids in an ItemGrabMenu are reached through a field called "inventory", the
+        // container's row carried the SAME name - so the guess landed on the wrong row and the bridge
+        // said OK. Fifteen steps of trial and error came out of that.
+        InventoryMenu? bagPanel = null;
+        Delegate? bagAccepts = null;
+        bool bagSells = false;
+
+        if (menu is ShopMenu shop)
+        {
+            bagPanel = ReadMember(shop, "inventory") as InventoryMenu;
+            bagAccepts = bagPanel?.highlightMethod as Delegate;
+
+            // Whether this shop BUYS at all: a read-only menu (a fridge, a dresser) does not.
+            bagSells = !(ReadMember(shop, "readOnly") is bool readOnly && readOnly);
+        }
+        else
+        {
+            bagPanel = ReadMember(menu, "inventory") as InventoryMenu;
+        }
+
+        foreach ((string name, MenuComponent mc) in DescribeMenu(menu))
+        {
+            if (buttons.Count >= cap)
+                break;
+
+            ClickableComponent c = mc.Component;
+            var button = new MenuButtonInfo
+            {
+                Id = mc.Id,
+                Name = name,
+                Source = mc.Source,
+                Grid = mc.Grid,
+                Label = c.label ?? "",
+                X = c.bounds.X,
+                Y = c.bounds.Y,
+                Width = c.bounds.Width,
+                Height = c.bounds.Height,
+                Visible = c.visible,
+            };
+
+            if (bagPanel != null && int.TryParse(c.name, out int slot)
+                && slot >= 0 && slot < bagPanel.actualInventory.Count
+                && bagPanel.actualInventory[slot] is Item held)
+            {
+                button.Item = held.DisplayName ?? "";
+                button.Count = held.Stack;
+                button.Kind = held.Category == -99 ? "tool" : "item";
+                button.Sellable = bagSells && Accepts(bagAccepts, held);
+            }
+
+            buttons.Add(button);
+        }
+
+        return buttons;
+    }
+
+
     public static UiInfo Build(IMonitor monitor)
     {
         var ui = new UiInfo();
@@ -93,57 +194,7 @@ public static class UiStateBuilder
             if (active != null && !ReferenceEquals(menu, active))
                 ui.ParentMenu = active.GetType().Name;
 
-            try
-            {
-                // A shop shows the player's own items in the same panel it sells from, and clicking one
-                // of those slots is how you SELL. Nothing said so: the agent asked to "go and sell the
-                // parsnips" and had a grid of buttons called "4", "12", "inventory.0" to click, so the
-                // one thing it wanted to do was the one thing it could not find. What each slot holds,
-                // and whether the shop will take it, comes from the shop's own inventory and the shop's
-                // own highlight function - the answer the GAME uses to decide what is sellable.
-                IList<Item?>? shopBag = null;
-                Delegate? shopAccepts = null;
-                bool shopBuys = false;
-
-                if (menu is ShopMenu shop)
-                {
-                    shopBag = ReadMember(shop, "inventory") is InventoryMenu panel
-                        ? panel.actualInventory
-                        : null;
-                    shopAccepts = ReadMember(shop, "inventory") is InventoryMenu panel2
-                        ? panel2.highlightMethod as Delegate
-                        : null;
-                    shopBuys = !(ReadMember(shop, "readOnly") is bool readOnly && readOnly);
-                }
-
-                foreach ((string name, MenuComponent mc) in DescribeMenu(menu))
-                {
-                    if (ui.Buttons.Count >= MaxButtons)
-                        break;
-
-                    ClickableComponent c = mc.Component;
-                    var button = new MenuButtonInfo
-                    {
-                        Name = name,
-                        Source = mc.Source,
-                        Label = c.label ?? "",
-                        X = c.bounds.X,
-                        Y = c.bounds.Y,
-                        Width = c.bounds.Width,
-                        Height = c.bounds.Height,
-                        Visible = c.visible,
-                    };
-
-                    if (shopBag != null && int.TryParse(c.name, out int slot)
-                        && slot >= 0 && slot < shopBag.Count && shopBag[slot] is Item held)
-                    {
-                        button.Item = held.DisplayName ?? "";
-                        button.Sellable = shopBuys && Accepts(shopAccepts, held);
-                    }
-
-                    ui.Buttons.Add(button);
-                }
-            }
+            try { ui.Buttons = BuildButtons(menu, monitor, MaxButtons); }
             catch (Exception ex)
             {
                 monitor.Log($"UiStateBuilder buttons failed: {ex.Message}", LogLevel.Warn);
@@ -304,9 +355,20 @@ public static class UiStateBuilder
     {
         var result = new List<MenuComponent>();
         var seen = new HashSet<ClickableComponent>(ReferenceEqualityComparer.Instance);
-        CollectFrom(menu, 1, seen, result);
+        CollectFrom(menu, 1, seen, result, "");
         return result;
     }
+
+
+    /// <summary>
+    /// The path a component was found on: the outer field name, then the inner one.
+    ///
+    /// The doubling is collapsed ("inventory", never "inventory.inventory") because the panel inside
+    /// an ItemGrabMenu lives in a field called "inventory" and so does the panel inside that one - which
+    /// is exactly how two different grids ended up with one identical name.
+    /// </summary>
+    private static string JoinPath(string path, string field) =>
+        path.Length == 0 || path.EndsWith(field, StringComparison.Ordinal) ? field : $"{path}.{field}";
 
 
     /// <summary>Upper bound on collected components, so a deep menu cannot produce a huge payload.</summary>
@@ -314,7 +376,7 @@ public static class UiStateBuilder
 
 
     private static void CollectFrom(object menu, int depth, HashSet<ClickableComponent> seen,
-                                    List<MenuComponent> result)
+                                    List<MenuComponent> result, string path)
     {
         Type? type = menu.GetType();
         while (type != null && type != typeof(object))
@@ -337,7 +399,7 @@ public static class UiStateBuilder
                 if (value is ClickableComponent single)
                 {
                     if (seen.Add(single))
-                        result.Add(new MenuComponent(field.Name, -1, single));
+                        result.Add(new MenuComponent(JoinPath(path, field.Name), -1, single));
                     continue;
                 }
 
@@ -349,7 +411,7 @@ public static class UiStateBuilder
                         foreach (object? entry in sequence)
                         {
                             if (entry is ClickableComponent item && seen.Add(item))
-                                result.Add(new MenuComponent(field.Name, index, item));
+                                result.Add(new MenuComponent(JoinPath(path, field.Name), index, item));
                             index++;
                         }
                     }
@@ -358,7 +420,7 @@ public static class UiStateBuilder
                 }
 
                 if (depth > 0 && value is IClickableMenu nested)
-                    CollectFrom(nested, depth - 1, seen, result);
+                    CollectFrom(nested, depth - 1, seen, result, JoinPath(path, field.Name));
             }
 
             type = type.BaseType;
@@ -395,23 +457,47 @@ public static class UiStateBuilder
     }
 
 
-    /// <summary>Resolves a button by the name reported in /state (or its raw name/label). Null when not found.</summary>
+    /// <summary>
+    /// Every element a handle could mean. Empty when it means nothing; more than one when it is
+    /// ambiguous. The ambiguity itself is the answer - see FindComponent.
+    /// </summary>
+    public static List<HandleMatch> MatchHandles(IClickableMenu menu, string handle)
+    {
+        var found = new List<HandleMatch>();
+        if (string.IsNullOrWhiteSpace(handle))
+            return found;
+
+        foreach (MenuComponent mc in CollectMenuComponents(menu))
+        {
+            bool hit = string.Equals(mc.Id, handle, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(mc.DisplayName, handle, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(mc.Source, handle, StringComparison.OrdinalIgnoreCase)
+                    || (!string.IsNullOrWhiteSpace(mc.Component.name)
+                        && string.Equals(mc.Component.name, handle, StringComparison.OrdinalIgnoreCase))
+                    || (!string.IsNullOrWhiteSpace(mc.Component.label)
+                        && string.Equals(mc.Component.label, handle, StringComparison.OrdinalIgnoreCase));
+
+            if (hit)
+                found.Add(new HandleMatch(mc.Id, mc.DisplayName, mc.Grid, mc.Component.bounds, mc.Component));
+        }
+
+        return found;
+    }
+
+
+    /// <summary>
+    /// Resolves a handle to exactly one element - or to nothing at all.
+    ///
+    /// It used to be that no match, one match and two matches all quietly returned "a" component, the
+    /// first one that matched. That is how a request for the bag row became a click on the container
+    /// row with nothing said: everything the agent could see, it could see wrongly. Ambiguity is now a
+    /// refusal, and the refusal names the candidates - because a handle that means two things is the
+    /// bridge's bug, not the agent's mistake.
+    /// </summary>
     public static ClickableComponent? FindComponent(IClickableMenu menu, string name)
     {
-        foreach ((string reported, MenuComponent mc) in DescribeMenu(menu))
-        {
-            bool match = string.Equals(reported, name, StringComparison.OrdinalIgnoreCase)
-                      || string.Equals(mc.DisplayName, name, StringComparison.OrdinalIgnoreCase)
-                      || string.Equals(mc.Source, name, StringComparison.OrdinalIgnoreCase)
-                      || (!string.IsNullOrWhiteSpace(mc.Component.name)
-                          && string.Equals(mc.Component.name, name, StringComparison.OrdinalIgnoreCase))
-                      || (!string.IsNullOrWhiteSpace(mc.Component.label)
-                          && string.Equals(mc.Component.label, name, StringComparison.OrdinalIgnoreCase));
-
-            if (match)
-                return mc.Component;
-        }
-        return null;
+        List<HandleMatch> matches = MatchHandles(menu, name);
+        return matches.Count == 1 ? matches[0].Component : null;
     }
 
 
@@ -419,10 +505,10 @@ public static class UiStateBuilder
     public static List<string> AvailableNames(IClickableMenu menu)
     {
         var names = new List<string>();
-        foreach ((string reported, _) in DescribeMenu(menu))
+        foreach (MenuComponent mc in CollectMenuComponents(menu))
         {
-            if (!string.IsNullOrWhiteSpace(reported) && !names.Contains(reported))
-                names.Add(reported);
+            if (!string.IsNullOrWhiteSpace(mc.DisplayName) && !names.Contains(mc.DisplayName))
+                names.Add(mc.DisplayName);
         }
         return names;
     }
