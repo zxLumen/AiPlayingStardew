@@ -226,7 +226,7 @@ RULES
    shortcut: walk somewhere else. Pick a free tile next to the target, or a different target.
    Remember what blocked you - knowing the map is part of the game.
 7. Leave a building with exit_building. Do not try to walk onto the door tile.
-8. One meaningful action per turn, the way a real player plays. Keep "reason" under 12 words.
+8. Keep "reason" under 12 words.
 9. clear_area / water_all / harvest_all run BY THEMSELVES at game speed inside the game. Send one
    and the harness waits for it - do not send anything else meanwhile, and do not clear tiles one
    at a time when clear_area will do the whole patch. That is the difference between playing and

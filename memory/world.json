@@ -1,7 +1,7 @@
 {
   "entries": {
     "dialogue_advance@Farm|dialogue_advance": {
-      "works": 47,
+      "works": 48,
       "fails": 22,
       "says": "你打算收养这只猫吗？",
       "note": "",
@@ -99,7 +99,7 @@
       "last": "2026-10-17"
     },
     "select_slot@Farm|select_slot": {
-      "works": 26,
+      "works": 27,
       "fails": 0,
       "says": "你看见这只猫了吗？",
       "note": "",
