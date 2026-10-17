@@ -197,9 +197,21 @@ class Pipeline:
                 # permanently unloadable while the clicks all "succeed".
                 if time.monotonic() - slot_at > 15.0:
                     slot_at = time.monotonic()
-                    result = self.client.action("menu_click", name=str(slot["index"]))
-                    self._note("save", "clicked slot", index=slot["index"],
-                               ok=bool(result.get("ok")), detail=str(result.get("detail", ""))[:120])
+                    handle = self._control_id(ui, str(slot["index"]))
+                    if not handle:
+                        self.log(f"[流水线] 存档列表里找不到第 {slot['index']} 格："
+                                 f"{[b.get('name') for b in (ui.get('buttons') or [])][:8]}")
+                        time.sleep(2.0)
+                        continue
+
+                    result = self.client.action("menu_click", id=handle)
+                    receipt = result.get("data") if isinstance(result.get("data"), dict) else {}
+                    self.log(f"[流水线] 点存档 {slot['index']} -> id={handle} ok={result.get('ok')} "
+                             f"{receipt.get('verdict') or ''}"
+                             f"{'' if receipt.get('active', True) else ' [窗口不是活动的]'}")
+                    self._note("save", "clicked slot", index=slot["index"], id=handle,
+                               ok=bool(result.get("ok")), verdict=str(receipt.get("verdict") or ""),
+                               detail=str(result.get("detail", ""))[:120])
 
                 time.sleep(2.0)
                 continue
