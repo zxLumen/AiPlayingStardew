@@ -61,9 +61,18 @@ def agent_running() -> bool:
 
 def start_agent() -> None:
     try:
+        # OUTPUT GOES TO A FILE. Started without this, the agent writes to a console window nobody can
+        # read - which is how the new lines it prints (the ruler, who it is looking for, the size of the
+        # question it asked the model) became invisible the moment it was launched this way. An agent
+        # whose output cannot be read is an agent that has to be watched by a person.
+        log_path = ROOT / "logs" / "agent-console.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        handle = open(log_path, "a", encoding="utf-8", errors="replace")
+
         subprocess.Popen([str(PYTHON)] + AGENT_ARGS, cwd=str(ROOT),
+                         stdout=handle, stderr=subprocess.STDOUT,
                          creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
-        note("agent 不在跑 —— 已重新拉起（它会自己带起游戏）")
+        note(f"agent 不在跑 —— 已重新拉起（输出写入 logs/agent-console.log）")
     except Exception as exc:
         note(f"拉不起来：{exc}")
 

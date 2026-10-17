@@ -53,14 +53,22 @@ PLAN_LABELS = [
     ("买种子", "去种子店买种子"),
     ("种子店", "去种子店买种子"),
     ("SeedShop", "去种子店买种子"),
+    # The planner says "去皮埃尔商店买 4 个防风草种子" as often as it says "买种子", so matching on
+    # the phrase alone quietly dropped the day's most important goal from the talker's view.
+    ("皮埃尔", "去种子店买种子"),
+    ("forSaleButtons", "去种子店买种子"),
+    ("Seeder", "去种子店买种子"),
     ("浇水", "给作物浇水"),
     ("water_all", "给作物浇水"),
     ("种下去", "把种子种下去"),
     ("plant_all", "把种子种下去"),
     ("收", "收成熟的作物"),
     ("harvest", "收成熟的作物"),
-    ("杂草", "清杂草"),
-    ("锄", "锄地清地"),
+    # One label for the whole clearing family. Matching them separately produced three different
+    # labels for one activity ("清杂草" / "锄地清地" / "清出一片地"), which made the plan look like it
+    # changed every time the planner rephrased itself.
+    ("杂草", "清出一片地"),
+    ("锄", "清出一片地"),
     ("清", "清出一片地"),
     ("睡觉", "天黑前回家睡觉"),
     ("上床", "天黑前回家睡觉"),
@@ -272,6 +280,8 @@ class Commentator:
         # and a talker that forgets it after two minutes can only narrate disconnected movements.
         self._plan: dict | None = None
         self._plan_changed = False
+        # Every kind of goal today has had, so a re-worded plan is not mistaken for a new direction.
+        self._plan_seen: set = set()
         # Consecutive quiet-moment lines, and which angle the next one should take. See IDLE_ANGLES.
         self._idle_count = 0
         self._idle_angle = 0
@@ -331,6 +341,21 @@ class Commentator:
             self._on_chat(event)
             return
 
+        # A new day wipes the plan; the planner will set the next one. Done before the beat is built,
+        # so the day's first plan is treated as new (and therefore announced) rather than compared
+        # against yesterday's goals.
+        if name == "pipeline" and str(event.get("event")) == "成功":
+            self._plan = None
+            self._plan_changed = False
+            self._plan_seen = set()
+
+        if name == "planner":
+            self._remember_plan(event)
+            if not self._plan_changed:
+                # Same day, same things to do, only the sentences were rewritten. Update silently:
+                # telling the audience the plan again every three minutes reads as no memory at all.
+                return
+
         self._remember_agent(name, event)
 
         beat = self._beat(event)
@@ -352,13 +377,13 @@ class Commentator:
         goals = [str(g) for g in (event.get("goals") or [])]
         text = focus + " " + " ".join(goals)
 
-        found: list[tuple[int, str]] = []
+        # Canonical order, so the same day's goals read the same way in the prompt no matter how the
+        # planner ordered its sentences this time.
+        labels: list[str] = []
         for key, label in PLAN_LABELS:
-            position = text.find(key)
-            if position >= 0 and label not in [item[1] for item in found]:
-                found.append((position, label))
-        found.sort()
-        labels = [label for _, label in found][:5]
+            if label not in labels and key in text:
+                labels.append(label)
+        labels = labels[:4]
 
         next_step = ""
         if goals:
@@ -366,12 +391,15 @@ class Commentator:
             next_step = head[:24]
 
         previous = set((self._plan or {}).get("labels") or [])
-        added = [label for label in labels if label not in previous]
+        # "New" means a kind of task the day has not contained at all yet - not merely a goal that
+        # was missing from the last wording. The planner rewrites itself every three minutes and the
+        # set of labels wobbles by one every time; announcing on that basis is the same as announcing
+        # every three minutes. A goal it has never had today (fishing, a gift, the mine) is a real
+        # change of direction and worth telling the audience about.
+        added = [label for label in labels if label not in self._plan_seen]
 
         self._plan = {"labels": labels, "next": next_step}
-        # Announced only when the day genuinely turns: a goal appears that was not there before, or
-        # this is the first plan of the day. The planner rewrites its wording every three minutes and
-        # a streamer who re-announces the day's plan that often sounds like it has no memory at all.
+        self._plan_seen = self._plan_seen | set(labels)
         self._plan_changed = bool(added) or not previous
 
     def _plan_text(self) -> str:
@@ -445,7 +473,18 @@ class Commentator:
 
         if name == "planner":
             focus = str(event.get("focus") or "").strip()
-            return (f"今天的打算定下来了：{focus}", "event:plan") if focus else None
+            if not focus:
+                return None
+            # Not the plan itself - that lives in the durable block (see _plan_text). This only says
+            # what the line is FOR: a sixty-character paragraph squeezed into eighteen characters is
+            # where "answers the plan with 'let me try a different variable'" comes from.
+            goals = [str(g) for g in (event.get("goals") or [])]
+            first = ""
+            if goals:
+                first = re.split(r"[：:（(，,。]", goals[0])[0].strip()[:20]
+            text = ("计划有了变化。这一句用一句话告诉观众：今天接下来先干什么、为什么。"
+                    + (f"\n（先做的这件事是：{first}）" if first else ""))
+            return text, "event:plan"
 
         if name == "referee":
             return (f"今天结束了，给自己打了 {event.get('score')} 分"
@@ -905,6 +944,7 @@ class Commentator:
                     pending=pending_text,
                     system=system_text,
                     thread=thread_text,
+                    plan=self._plan_text(),
                 ),
             },
         ]
