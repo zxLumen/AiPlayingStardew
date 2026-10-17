@@ -1455,10 +1455,18 @@ def run_forever(args: argparse.Namespace) -> int:
             except OSError:
                 pass
 
-            for gap in audited:
-                if gap.verdict not in ("BROKEN", "LYING", "NOOP"):
-                    continue
+            interesting = [g for g in audited if g.verdict in ("BROKEN", "LYING", "NOOP")]
+            log(f"[审计] 读了 {len(audited)} 个动作的履历，要处理的缺陷 {len(interesting)} 个"
+                + (f"：{', '.join(g.verdict + ':' + g.action for g in interesting[:6])}"
+                   if interesting else ""))
 
+            # BOUNDED, AND SAID OUT LOUD. This loop runs before the farmer has taken a single step, and
+            # it was silent and unlimited: every gap raised a defect and the doctor worked out a cause
+            # for each one, which is a model call per defect. From outside it looked exactly like a dead
+            # agent - the console sat on "cycle 1" while the game waited at the title screen. Six per
+            # cycle, each announced, and the rest waits for the next cycle.
+            for gap in interesting[:6]:
+                log(f"[审计] 判读 {gap.verdict} {gap.action} ...")
                 reason = (f"{gap.verdict}: {gap.attempts} 次尝试 / 报 OK {gap.ok_count} 次 / "
                           f"空转 {gap.noop} 次")
 
