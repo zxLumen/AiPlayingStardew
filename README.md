@@ -10,8 +10,9 @@
 
 | 文档 | 内容 |
 |---|---|
-| [`docs/DESIGN.md`](docs/DESIGN.md) | **当前系统实际怎么工作**：分层、契约、回执与判词、输入（躯体）层、运维硬规矩、文件地图 |
-| [`docs/POST-MORTEM.md`](docs/POST-MORTEM.md) | 这一段踩过的坑：每条的现象 → 根因证据 → 现在的形态；负面清单；已验证/未验证；重做建议 |
+| [`docs/DESIGN-V2.md`](docs/DESIGN-V2.md) | **新架构（完全重做，目标形态）**：立宪四条不变量 · 内核阶段机（有界+心跳）· 器/事实/手册/心/帐/工坊 六层 · 迁移顺序 · 反目标 |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | **现状（v1）**：现在实际怎么工作——分层、契约、回执与判词、躯体层、运维硬规矩、文件地图 |
+| [`docs/POST-MORTEM.md`](docs/POST-MORTEM.md) | 这一段踩过的坑：现象 → 根因证据 → 现在的形态；负面清单；已验证/未验证；重做建议 |
 | [`notes/reference-study.md`](notes/reference-study.md) | 立项时的调研（StarDojo / stardew-mcp 等） |
 
 ---
