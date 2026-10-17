@@ -99,15 +99,6 @@ MENUS / UI (when ui.menu_name is not empty)
 - dialogue_advance -> {}
 - dialogue_choose -> {"index": int}          pick from ui.dialogue.responses
 - skip_intro      -> {}
-
-CHARACTER CREATION (only on the CharacterCustomization screen)
-- set_text        -> {"field":"name|farm_name|favorite_thing", "value":"..."}
-- set_appearance  -> {"gender":"male|female", "skin": int, "hair_style": int, "accessory": int,
-                      "hair_color":[r,g,b], "eye_color":[r,g,b], "pants_color":[r,g,b],
-                      "shirt":"<item id>", "pants":"<item id>"}
-- create_character-> {"name":"...", "farm_name":"...", "favorite_thing":"...", "gender":"male|female",
-                      "farm_type":"<one of ui.character_design.available_farm_types>",
-                      "skip_intro": true}
 - noop            -> {}"""
 
 
@@ -132,10 +123,9 @@ work on. Its "objective" says exactly what to do - do that before anything else.
 - Quests with a "days_left" deadline come first.
 
 YOU LEARN AS YOU GO
-Every action you take is judged by whether the world actually changed, not by what the action
-reported. When something fails it is recorded and you will be stopped from repeating it.
-- If an action failed, do NOT send it again with the same arguments.
-- Prefer the action you have already seen work on that kind of target.
+What an action reports is not the same as what actually happened - the world decides that, not the
+sentence.
+- If an action failed, do not send it again unchanged: change something about it, or do something else.
 - When you work out why something failed, that is knowledge worth keeping.
 
 READING THE WORLD

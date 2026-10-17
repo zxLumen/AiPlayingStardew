@@ -50,7 +50,7 @@
       "last": "2026-10-17"
     },
     "Farm:patch|till_area": {
-      "works": 17,
+      "works": 18,
       "fails": 18,
       "says": "你的斧头不够锋利，无法砍破这个树桩。",
       "note": "",
@@ -70,17 +70,17 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "select_slot@Farm|select_slot": {
+      "works": 31,
+      "fails": 0,
+      "says": "你看见这只猫了吗？",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "Town:exit_building|exit_building": {
       "works": 29,
       "fails": 0,
       "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "select_slot@Farm|select_slot": {
-      "works": 29,
-      "fails": 0,
-      "says": "你看见这只猫了吗？",
       "note": "",
       "last": "2026-10-17"
     },
