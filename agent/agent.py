@@ -635,6 +635,34 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
                              satisfied_with=helper)
                 time.sleep(0.4)
 
+        # A PERSON IS NOT A COORDINATE.
+        #
+        # The state reports an NPC's tile as of the moment it was read; a walk there takes ten or twenty
+        # seconds and NPCs walk their own schedules, so the farmer arrives where somebody *was* - which is
+        # why "go and talk to Abigail" kept failing at an empty tile. A player does not work that way: a
+        # player keeps their eyes on the person and walks toward them. So the agent may NAME the person and
+        # the tile is resolved here, at the moment of dispatch, from this step's state.
+        wanted = str(args.get("character") or args.get("npc") or "").strip()
+        if wanted and action in ("go_to", "interact_at", "interact"):
+            people = (state.get("nearby_characters") or []) + (state.get("characters") or [])
+            found = None
+            for person in people:
+                label = f"{person.get('name') or ''} {person.get('display_name') or ''}".lower()
+                if wanted.lower() in label:
+                    found = person
+                    break
+
+            if found is not None and found.get("tile_x") is not None:
+                args = {k: v for k, v in args.items() if k not in ("character", "npc")}
+                args["x"] = int(found["tile_x"])
+                args["y"] = int(found["tile_y"])
+                log(f"[找人] {wanted} 现在在 ({args['x']},{args['y']}) - 按此刻的位置出发")
+            else:
+                history.append(f"{wanted} is not nearby right now - people walk their own schedules, so "
+                               f"the tile you had would have been where they were. Look around first.")
+                log(f"[找人] {wanted} 不在附近（NPC 会走动）-> 改成 scan")
+                action, args = "scan", {"radius": 8}
+
         attempt_entry = learning.remember_attempt(action, args)
 
         started = time.perf_counter()

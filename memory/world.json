@@ -7,6 +7,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "go_to@Town|go_to": {
+      "works": 36,
+      "fails": 18,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "ShopMenu:shelf row|menu_click": {
       "works": 11,
       "fails": 39,
@@ -14,17 +21,17 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@Town|go_to": {
-      "works": 31,
-      "fails": 18,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "door:BusStop|enter": {
       "works": 34,
       "fails": 11,
       "says": "BusStop",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:empty|interact_at": {
+      "works": 13,
+      "fails": 32,
+      "says": "嗯……我现在已经要入不敷出了。现在来找我看病的病人不是很多。",
       "note": "",
       "last": "2026-10-17"
     },
@@ -39,13 +46,6 @@
       "works": 24,
       "fails": 12,
       "says": "SeedShop",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "tile:empty|interact_at": {
-      "works": 12,
-      "fails": 24,
-      "says": "哎，我昨晚路过出货箱，发现你的第一批欧防风已经成熟了，祝贺你！",
       "note": "",
       "last": "2026-10-17"
     },
@@ -196,6 +196,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "tile:刘易斯|interact_at": {
+      "works": 0,
+      "fails": 8,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "door:FarmHouse|enter": {
       "works": 6,
       "fails": 0,
@@ -248,6 +255,13 @@
     "dialogue_advance@Town|dialogue_advance": {
       "works": 2,
       "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "interact@Town|interact": {
+      "works": 1,
+      "fails": 2,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -360,13 +374,6 @@
     "interact@SeedShop|interact": {
       "works": 0,
       "fails": 1,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "interact@Town|interact": {
-      "works": 1,
-      "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -551,13 +558,6 @@
       "fails": 0,
       "says": "防风草种子 20金",
       "note": "菜单开着时买种子连点 forSaleButtons.0 即可，一次最多3笔，随后一次 upperRightCloseButton + exit_building 离店",
-      "last": "2026-10-17"
-    },
-    "seedshop_购买|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "the real click changed nothing - not money, not the bag, not either hand",
-      "note": "forSaleButtons.0 点击不再生效（可能因 hotbar 满或鼠标映射偏移），当天买种子这条路放弃即可",
       "last": "2026-10-17"
     }
   }
