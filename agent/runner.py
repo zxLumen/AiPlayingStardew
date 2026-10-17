@@ -204,7 +204,7 @@ class Pipeline:
                         time.sleep(2.0)
                         continue
 
-                    result = self.client.action("menu_click", id=handle)
+                    result = self._click_heard(handle, menu)
                     receipt = result.get("data") if isinstance(result.get("data"), dict) else {}
                     self.log(f"[流水线] 点存档 {slot['index']} -> id={handle} ok={result.get('ok')} "
                              f"{receipt.get('verdict') or ''}"
@@ -226,13 +226,7 @@ class Pipeline:
                         time.sleep(1.5)
                         continue
 
-                    result = self.client.action("menu_click", id=handle)
-                    receipt = result.get("data") if isinstance(result.get("data"), dict) else {}
-                    # SAY WHAT CAME BACK. This click used to be thrown away, so a refused or unheard
-                    # click on the title screen looked exactly like a game that was still loading - and
-                    # the loop sat here for a minute at a time with nothing on the console. What it was
-                    # actually doing: clicking `{'name': 'Load'}` every ten seconds, being told "that
-                    # name matches two controls - use buttons#1", and clicking it again.
+                    result = self._click_heard(handle, menu)
                     self.log(f"[流水线] 点 Load -> id={handle} ok={result.get('ok')} "
                              f"{receipt.get('verdict') or ''}"
                              f"{'' if receipt.get('active', True) else ' [窗口不是活动的]'}"
