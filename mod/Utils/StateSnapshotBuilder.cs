@@ -108,7 +108,7 @@ public static class StateSnapshotBuilder
         // that are delivered, aimed correctly, and never heard. The bridge enforced this before
         // clicking but never reported it, so the failure read as "the game did not react" and looked
         // like the game's fault. It is a fact about the window, and it belongs in the state.
-        try { info.IsActive = ActionProcessor.NativeInput.IsGameWindowActive(); } catch { }
+        try { info.IsActive = NativeInput.IsGameWindowActive(); } catch { }
         try { info.PauseWhenUnfocused = options.pauseWhenOutOfFocus; } catch { }
 
         return info;

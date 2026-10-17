@@ -1001,6 +1001,37 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         else:
             skip_world_notes = False
 
+        # A CLICK ON A BACKGROUND WINDOW IS EATEN BY WINDOWS, NOT REFUSED BY THE GAME.
+        #
+        # The first click on an inactive window activates it and never reaches the game, so the action
+        # reports OK while nothing moves - which is how a save that loads perfectly well by hand looked
+        # permanently unloadable, and how one close button "failed" three times in a row. If the
+        # receipt says the window was not active when the click went out, the click is sent ONCE MORE:
+        # the second one is the one the game hears. That is what a person does with a window behind
+        # another one, and it costs one and a half seconds.
+        if (action == "menu_click" and verdict == "SILENT_NOOP" and receipt.get("active") is False):
+            resolved = str(receipt.get("resolved") or "")
+            log(f"[输入] 游戏窗口当时不是活动窗口（这一下可能只是把窗口叫醒）-> 再点一次 "
+                f"{resolved or receipt.get('requested')}")
+            time.sleep(1.5)
+
+            retry_args = {"id": resolved} if resolved else dict(args)
+            retry = client.action(action, **retry_args)
+            retry_receipt = retry.get("data") if isinstance(retry.get("data"), dict) else {}
+            retry_verdict = str(retry_receipt.get("verdict") or "")
+            log(f"[输入] 第二下 -> ok={retry.get('ok')} {retry_verdict}"
+                f"{'' if retry_receipt.get('active', True) else ' [窗口仍然不是活动的]'}")
+
+            if retry.get("ok") and retry_verdict in ("OK", "OK_OLD_PATH"):
+                result = retry
+                receipt = retry_receipt
+                verdict = retry_verdict
+                worked = True
+                evidence = (f"{evidence or '(nothing)'} then the same click after waking the window: "
+                            f"{' '.join(str(c) for c in (retry_receipt.get('changed') or []))}")
+                bridgehealth.record(action, retry_args, retry_receipt)
+                skip_world_notes = False
+
         # The player's own notes on how this game behaves, written from what just happened.
         #
         # It already had the game's words once: the witness recorded "上锁了……（营业时间：9:00~21:00）"
