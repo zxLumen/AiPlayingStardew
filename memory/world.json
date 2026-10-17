@@ -23,7 +23,7 @@
     },
     "door:BusStop|enter": {
       "works": 34,
-      "fails": 10,
+      "fails": 11,
       "says": "BusStop",
       "note": "",
       "last": "2026-10-17"
@@ -44,7 +44,7 @@
     },
     "Farm:patch|till_area": {
       "works": 17,
-      "fails": 17,
+      "fails": 18,
       "says": "你的斧头不够锋利，无法砍破这个树桩。",
       "note": "",
       "last": "2026-10-17"
@@ -175,17 +175,17 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "go_to@BusStop|go_to": {
+      "works": 9,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "dialogue_choose@Farm|dialogue_choose": {
       "works": 6,
       "fails": 2,
       "says": "我看到它坐在你的农场门口！它可能是无家可归了……可怜的小东西。",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "go_to@BusStop|go_to": {
-      "works": 8,
-      "fails": 0,
-      "says": "",
       "note": "",
       "last": "2026-10-17"
     },

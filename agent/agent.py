@@ -250,15 +250,23 @@ def settle_timeout(action: str, args: dict) -> float:
         # `enter` walks to a door and then goes through it, so it needs as long as a walk. Judging
         # it after a few seconds reads the still-walking farmer as "the location did not change",
         # which is how `enter` got blacklisted for lying while it was working perfectly.
-        return 30.0
+        return 45.0
     if action == "move":
         try:
             ms = float(args.get("duration_ms", 400))
         except (TypeError, ValueError):
             ms = 400.0
         return min(8.0, ms / 1000.0 + 2.0)
-    if action in {"warp", "exit_building", "sleep", "new_day"}:
+    if action == "sleep":
+        # Walking to the bed, then the fade, then lying down. It was lumped in with the instant actions
+        # at 12 seconds, so the walk was cut off mid-way every time and the model was asked again - which
+        # is what "he went inside and took forever to get to the bed" actually was. The watcher still
+        # stops early the moment the farmer stops moving; this is only the ceiling.
+        return 40.0
+    if action in {"warp", "new_day"}:
         return 12.0
+    if action == "exit_building":
+        return 30.0
     if action in {"use_tool_at", "use_tool", "interact", "interact_at", "menu_click", "dialogue_choose"}:
         return 4.0
     return 0.0
@@ -681,6 +689,17 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
                 result = dict(result)
                 result["queued"] = result.get("detail", "")
                 result["detail"] = outcome
+            else:
+                # Nothing landed in chore_last during this action, so the macro is STILL WORKING and its
+                # outcome does not exist yet. Letting the model read "N tiles queued" as done is how
+                # plant_all spent a day looking successful while the field stayed bare, and it is half of
+                # "he is busy on the farm but nothing is actually happening".
+                result = dict(result)
+                result["detail"] = (
+                    f"{result.get('detail', '')} | still running - the outcome is not known yet "
+                    f"(chore: {after_state.get('chore') or 'idle'}). Do not conclude anything from this "
+                    f"line; the next state will show what really happened."
+                )
 
         action_s = time.perf_counter() - started
 
