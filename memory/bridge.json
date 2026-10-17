@@ -1,0 +1,21 @@
+{
+ "verdicts": {
+  "menu_click|SILENT_NOOP": {
+   "verdict": "SILENT_NOOP",
+   "action": "menu_click",
+   "count": 2,
+   "last_at": "2026-10-17 15:57:22",
+   "requested": "upperRightCloseButton",
+   "resolved": "upperRightCloseButton",
+   "unique": true,
+   "matches": 1,
+   "candidates": [],
+   "args": {
+    "id": "upperRightCloseButton"
+   },
+   "changed": [],
+   "fault": false
+  }
+ },
+ "routes": {}
+}

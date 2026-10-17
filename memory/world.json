@@ -2,8 +2,15 @@
   "entries": {
     "dialogue_advance@Farm|dialogue_advance": {
       "works": 48,
-      "fails": 23,
+      "fails": 24,
       "says": "你打算收养这只猫吗？",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@Town|go_to": {
+      "works": 44,
+      "fails": 23,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -14,30 +21,30 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@Town|go_to": {
-      "works": 43,
-      "fails": 21,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "tile:empty|interact_at": {
       "works": 17,
-      "fails": 45,
+      "fails": 46,
       "says": "嘿。",
       "note": "",
       "last": "2026-10-17"
     },
     "door:BusStop|enter": {
-      "works": 40,
-      "fails": 15,
+      "works": 41,
+      "fails": 17,
       "says": "BusStop",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|clear_area": {
-      "works": 10,
-      "fails": 42,
+      "works": 11,
+      "fails": 46,
+      "says": "你的斧头不够锋利，无法砍破这个树桩。",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|till_area": {
+      "works": 21,
+      "fails": 24,
       "says": "你的斧头不够锋利，无法砍破这个树桩。",
       "note": "",
       "last": "2026-10-17"
@@ -56,52 +63,59 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|till_area": {
-      "works": 19,
-      "fails": 21,
-      "says": "你的斧头不够锋利，无法砍破这个树桩。",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "select_slot@Farm|select_slot": {
-      "works": 38,
+      "works": 40,
       "fails": 0,
       "says": "你看见这只猫了吗？",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|water_all": {
-      "works": 22,
+      "works": 23,
       "fails": 15,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "tile:something|interact_at": {
-      "works": 29,
+      "works": 30,
       "fails": 8,
       "says": "上锁了……（营业时间：9:00~21:00）",
       "note": "",
       "last": "2026-10-17"
     },
     "door:Town|enter": {
-      "works": 29,
+      "works": 30,
       "fails": 5,
       "says": "Town",
       "note": "",
       "last": "2026-10-17"
     },
     "Town:exit_building|exit_building": {
-      "works": 32,
+      "works": 33,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "go_to@SeedShop|go_to": {
-      "works": 29,
+      "works": 30,
       "fails": 1,
       "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|refill": {
+      "works": 14,
+      "fails": 15,
+      "says": "它可能是喜欢这里！唔……你不觉得这个农场需要养只好猫吗？",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:Farm|enter": {
+      "works": 23,
+      "fails": 6,
+      "says": "Farm",
       "note": "",
       "last": "2026-10-17"
     },
@@ -112,17 +126,10 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|refill": {
-      "works": 14,
-      "fails": 14,
-      "says": "它可能是喜欢这里！唔……你不觉得这个农场需要养只好猫吗？",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "door:Farm|enter": {
+    "go_to@Farm|go_to": {
       "works": 22,
       "fails": 5,
-      "says": "Farm",
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -130,13 +137,6 @@
       "works": 1,
       "fails": 24,
       "says": "inventory.13",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "go_to@Farm|go_to": {
-      "works": 20,
-      "fails": 5,
-      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -154,6 +154,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "Farm:exit_building|exit_building": {
+      "works": 20,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "press_key@Beach|press_key": {
       "works": 1,
       "fails": 20,
@@ -161,15 +168,8 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:exit_building|exit_building": {
-      "works": 19,
-      "fails": 1,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "go_to@BusStop|go_to": {
-      "works": 14,
+      "works": 17,
       "fails": 0,
       "says": "",
       "note": "",
@@ -224,6 +224,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "Farm:patch|plant_all": {
+      "works": 7,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "dialogue_choose@Farm|dialogue_choose": {
       "works": 6,
       "fails": 2,
@@ -238,10 +245,10 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|plant_all": {
-      "works": 6,
+    "ShopMenu:?|menu_click": {
+      "works": 5,
       "fails": 1,
-      "says": "",
+      "says": "inventory#10",
       "note": "",
       "last": "2026-10-17"
     },
@@ -455,6 +462,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "menu:?|menu_click": {
+      "works": 1,
+      "fails": 0,
+      "says": "upperRightCloseButton",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "tile:hoe_dirt|interact_at": {
       "works": 0,
       "fails": 1,
@@ -544,20 +558,6 @@
       "fails": 0,
       "says": "no dialogue box open while blocked_reason=cutscene/event playing",
       "note": "a cutscene without a visible dialogue box blocks the player; a choice cutscene needs dialogue_choose instead",
-      "last": "2026-10-17"
-    },
-    "enter_during_chore|enter": {
-      "works": 0,
-      "fails": 0,
-      "says": "walking to the door of 'BusStop' - it opens on arrival",
-      "note": "enter 排队可以在后台 chore 仍在收尾时照常执行，玩家移动不被 chore 阻塞",
-      "last": "2026-10-17"
-    },
-    "farm_busstop_warp|enter": {
-      "works": 0,
-      "fails": 0,
-      "says": "the door at (80,15) would not open",
-      "note": "Farm 的 BusStop 出口是 door:false 的地格 warp，不能当门 enter，要走到 (80,15) 踩上去触发",
       "last": "2026-10-17"
     }
   }

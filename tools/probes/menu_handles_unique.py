@@ -77,7 +77,16 @@ def main() -> int:
         print("no save loaded within the time budget - nothing could be tested")
         return 1
 
-    opened = post("open_screen", screen="bag")
+    # The farmer has to be free: at the start of a day the agent may still be in a dialogue or a menu.
+    # Waiting is honest - the point is to test the bridge, not to time the harness.
+    opened: dict = {}
+    deadline = time.time() + 90
+    while time.time() < deadline:
+        opened = post("open_screen", screen="bag")
+        if opened.get("ok"):
+            break
+        time.sleep(4)
+
     check(bool(opened.get("ok")), f"open the bag: {str(opened.get('detail'))[:90]}")
     if not opened.get("ok"):
         return 1
@@ -124,7 +133,28 @@ def main() -> int:
             check(bool(receipt.get("candidates")),
                   f"and names the candidates: {receipt.get('candidates')}")
         else:
-            print("  note  this menu has no duplicated names, so the ambiguity refusal was not exercised")
+            print("  note  this menu has no duplicated names")
+
+        # A HANDLE THAT COVERS A WHOLE GRID is ambiguous too: "inventory" is not a control, it is a
+        # row of them, and it used to be resolved to the first one. The two grids of an ItemGrabMenu
+        # both answered to the same slot names for exactly this reason.
+        sources: dict[str, int] = {}
+        for control in controls:
+            source = str(control.get("source") or "")
+            if source:
+                sources[source] = sources.get(source, 0) + 1
+        grid_handle = next((s for s, count in sources.items() if count > 1), None)
+
+        if grid_handle:
+            ambiguous = post("menu_click", name=grid_handle)
+            receipt = ambiguous.get("data") or {}
+            check(not ambiguous.get("ok"), f"a whole grid ({grid_handle!r}) is refused, not guessed")
+            check(receipt.get("verdict") == "HANDLE_AMBIGUOUS",
+                  f"and the receipt says why: verdict={receipt.get('verdict')!r}")
+            check(bool(receipt.get("candidates")),
+                  f"and names the candidates: {receipt.get('candidates')}")
+        else:
+            print("  note  no handle here covers more than one control")
     finally:
         post("press_key", key="escape")
 
