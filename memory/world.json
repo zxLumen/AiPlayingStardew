@@ -9,7 +9,7 @@
     },
     "go_to@Town|go_to": {
       "works": 44,
-      "fails": 23,
+      "fails": 24,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -23,13 +23,13 @@
     },
     "tile:empty|interact_at": {
       "works": 17,
-      "fails": 46,
+      "fails": 47,
       "says": "嘿。",
       "note": "",
       "last": "2026-10-17"
     },
     "door:BusStop|enter": {
-      "works": 41,
+      "works": 42,
       "fails": 17,
       "says": "BusStop",
       "note": "",
@@ -58,7 +58,7 @@
     },
     "door:SeedShop|enter": {
       "works": 28,
-      "fails": 13,
+      "fails": 15,
       "says": "SeedShop",
       "note": "",
       "last": "2026-10-17"
@@ -71,7 +71,7 @@
       "last": "2026-10-17"
     },
     "Farm:patch|water_all": {
-      "works": 23,
+      "works": 24,
       "fails": 15,
       "says": "",
       "note": "",
@@ -85,7 +85,7 @@
       "last": "2026-10-17"
     },
     "door:Town|enter": {
-      "works": 30,
+      "works": 31,
       "fails": 5,
       "says": "Town",
       "note": "",
@@ -231,6 +231,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "dialogue_advance@Town|dialogue_advance": {
+      "works": 5,
+      "fails": 3,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "dialogue_choose@Farm|dialogue_choose": {
       "works": 6,
       "fails": 2,
@@ -249,13 +256,6 @@
       "works": 5,
       "fails": 1,
       "says": "inventory#10",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "dialogue_advance@Town|dialogue_advance": {
-      "works": 4,
-      "fails": 2,
-      "says": "",
       "note": "",
       "last": "2026-10-17"
     },

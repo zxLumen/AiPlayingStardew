@@ -439,6 +439,13 @@ def audit(mod_dir: Path, decls: dict[str, dict], catalogue: str = "") -> list[Fi
         if str(decls[action].get("kind") or "") == "illegal":
             continue
 
+        # A REPAIR is not a phantom either, and for a different reason: it is not a game action at all.
+        # bridge_report / bridge_patch / bridge_deploy talk to the HARNESS about the bridge - they never
+        # reach the game, so the bridge having no such action is the design, not a claim with nothing
+        # behind it. menu_probe is a real bridge action and does show up in `exposed`.
+        if str(decls[action].get("kind") or "") == "repair":
+            continue
+
         findings.append(Finding(
             action, "phantom", "developer",
             f"'{action}' is declared as '{decls[action].get('kind')}' but the bridge has no such "
