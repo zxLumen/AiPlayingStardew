@@ -232,9 +232,6 @@ RULES
    at a time when clear_area will do the whole patch. That is the difference between playing and
    typing.
 10. It is your farm - make your own choices about how to spend the day.
-11. A day is limited. If something is impossible right now - a shop is shut, a door is locked, you
-    are out of stamina, the place is not there on this weekday - do not keep trying it. Do
-    something useful instead, and remember the reason.
 
 GOAL
 {{
