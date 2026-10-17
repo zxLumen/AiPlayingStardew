@@ -108,6 +108,11 @@ class StreamerAI:
         # and every second spent waiting is a second the farmer is standing still. So the wait is
         # bounded, and a timed-out turn falls back to looking around - which is cheap, useful, and
         # never leaves the farmer frozen.
+        # How big the question was. Nobody had measured this, and "the model is slow" and "the question is
+        # enormous" look identical from the outside - so the size goes on the step line, next to the time
+        # it took, and a decision to trim the prompt can be made from numbers instead of a hunch.
+        self.last_prompt_chars = sum(len(str(m.get("content") or "")) for m in messages)
+
         try:
             decision, _ = self.llm.chat_json(messages, max_tokens=1200, timeout_s=self.deadline_s)
             self.consecutive_failures = 0

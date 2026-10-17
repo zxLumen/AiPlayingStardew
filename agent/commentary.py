@@ -18,6 +18,7 @@ Three jobs, one voice:
 from __future__ import annotations
 
 import random
+import re
 import threading
 import time
 from collections import deque
@@ -37,6 +38,34 @@ IDLE_ANGLES = [
     "说说今天学到的一件事，或者你以前弄错过、今天才想明白的地方。",
     "讲讲你现在的心情：累不累、饿不饿、有没有一点着急。",
     "说说昨天过得怎么样，今天想比昨天好在哪里。",
+]
+
+# The day's plan, reduced to the few words the audience actually cares about. The planner rewrites
+# its focus every few minutes in different sentences - measured, the wording changes almost
+# completely each time (0.09 similarity) while the *substance* stays put (greet people, buy seeds,
+# water, clear a patch, sleep). Comparing whole sentences therefore finds no pattern to use; mapping
+# both onto this small vocabulary does, and it is what lets the talker hang every action onto a goal
+# ("为了买种子，我先去镇上") instead of narrating disconnected movements.
+PLAN_LABELS = [
+    ("打招呼", "和镇上的人打招呼"),
+    ("介绍", "和镇上的人打招呼"),
+    ("送礼", "给村民送礼"),
+    ("买种子", "去种子店买种子"),
+    ("种子店", "去种子店买种子"),
+    ("SeedShop", "去种子店买种子"),
+    ("浇水", "给作物浇水"),
+    ("water_all", "给作物浇水"),
+    ("种下去", "把种子种下去"),
+    ("plant_all", "把种子种下去"),
+    ("收", "收成熟的作物"),
+    ("harvest", "收成熟的作物"),
+    ("杂草", "清杂草"),
+    ("锄", "锄地清地"),
+    ("清", "清出一片地"),
+    ("睡觉", "天黑前回家睡觉"),
+    ("上床", "天黑前回家睡觉"),
+    ("钓鱼", "去钓鱼"),
+    ("矿", "去矿洞"),
 ]
 
 # Actions that a viewer can see happen, and would want the streamer to talk about. Talking about
@@ -239,6 +268,10 @@ class Commentator:
         # thread, not the individual event, that makes it sound like somebody is actually there.
         self._topic = ""
         self._last_topic = ""
+        # The day's plan, kept apart from the agents' perishable one-liners: a plan is valid all day,
+        # and a talker that forgets it after two minutes can only narrate disconnected movements.
+        self._plan: dict | None = None
+        self._plan_changed = False
         # Consecutive quiet-moment lines, and which angle the next one should take. See IDLE_ANGLES.
         self._idle_count = 0
         self._idle_angle = 0
@@ -307,6 +340,51 @@ class Commentator:
         with self._cond:
             self._beats.append((beat[0], beat[1], time.monotonic()))
             self._cond.notify_all()
+
+    def _remember_plan(self, event: dict) -> None:
+        """Keep today's goal, and say whether it has actually changed.
+
+        Returns nothing; the caller reads `self._plan_changed`. The plan is stored as the small set
+        of things to do plus the very next step, because that is all a one-sentence line can use -
+        the planner's own paragraph is sixty characters of good advice the talker cannot fit.
+        """
+        focus = str(event.get("focus") or "")
+        goals = [str(g) for g in (event.get("goals") or [])]
+        text = focus + " " + " ".join(goals)
+
+        found: list[tuple[int, str]] = []
+        for key, label in PLAN_LABELS:
+            position = text.find(key)
+            if position >= 0 and label not in [item[1] for item in found]:
+                found.append((position, label))
+        found.sort()
+        labels = [label for _, label in found][:5]
+
+        next_step = ""
+        if goals:
+            head = re.split(r"[：:（(，,。]", goals[0])[0].strip()
+            next_step = head[:24]
+
+        previous = set((self._plan or {}).get("labels") or [])
+        added = [label for label in labels if label not in previous]
+
+        self._plan = {"labels": labels, "next": next_step}
+        # Announced only when the day genuinely turns: a goal appears that was not there before, or
+        # this is the first plan of the day. The planner rewrites its wording every three minutes and
+        # a streamer who re-announces the day's plan that often sounds like it has no memory at all.
+        self._plan_changed = bool(added) or not previous
+
+    def _plan_text(self) -> str:
+        """The durable block for the prompt: what today is for, and what comes next."""
+        if not self._plan:
+            return ""
+        labels = self._plan.get("labels") or []
+        if not labels:
+            return ""
+        lines = ["今天的目标（整天有效）：" + "、".join(labels)]
+        if self._plan.get("next"):
+            lines.append("眼下这一步：" + str(self._plan["next"]))
+        return "\n".join(lines)
 
     def _remember_agent(self, name: str, event: dict) -> None:
         """Keep the newest line from each agent, so the streamer can explain the machine itself."""

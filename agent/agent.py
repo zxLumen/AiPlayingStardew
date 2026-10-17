@@ -900,11 +900,11 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         log(f"[主播 {step:>3}] {action:<15} {json.dumps(args, ensure_ascii=False)[:44]:<44} {flag} "
             f"llm {llm_s:4.1f}s act {action_s:4.1f}s  {tail}")
 
-        # The number the audience feels. Printed whenever a step was slow enough to notice, with the
-        # worst parts named - a cost nobody can see is a cost nobody fixes.
+        # The number the audience feels, and the size of the question behind it. A cost nobody can see is
+        # a cost nobody fixes; a prompt nobody measures is a prompt nobody can justify trimming.
         timing = clock.report()
         if timing:
-            log(f"[步时] step {step}: {timing}")
+            log(f"[步时] step {step}: {timing} | 问模型 {getattr(streamer, 'last_prompt_chars', 0)} 字符")
         clock = StepClock()
 
     elapsed = total_llm + total_action + total_watch
