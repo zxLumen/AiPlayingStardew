@@ -543,13 +543,27 @@ public static class StateSnapshotBuilder
 
         // The first unfinished quest is the one the player should be working on. Without this
         // marker an agent has no thread to follow and just wanders the farm.
-        foreach (QuestInfo info in result)
+        //
+        // `accepted` was part of this test and it silently killed the marker: Stardew adds some
+        // quests - "Introductions" on day one, for one - WITHOUT ever setting accepted, so the only
+        // quest on the log was skipped and no quest at all was marked primary. The agent was told in
+        // its instructions to follow the primary quest and handed a list with no primary in it. An
+        // accepted quest is still preferred, because that is one the player chose; with none
+        // accepted, the first unfinished one is the thread. Daily quests come last: they expire.
+        for (int pass = 0; pass < 2; pass++)
         {
-            if (info.IsCompleted || !info.Accepted)
-                continue;
+            foreach (QuestInfo info in result)
+            {
+                if (info.IsCompleted)
+                    continue;
+                if (pass == 0 && (info.IsDaily || !info.Accepted))
+                    continue;
+                if (pass == 1 && info.IsDaily)
+                    continue;
 
-            info.IsPrimary = true;
-            break;
+                info.IsPrimary = true;
+                return result;
+            }
         }
 
         return result;

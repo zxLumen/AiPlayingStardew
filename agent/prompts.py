@@ -112,8 +112,9 @@ reply with exactly one action. There is no human playing with you.
 {ACTION_CATALOGUE}
 
 THE GAME'S QUESTS ARE YOUR GOAL
-game.quests lists the quests you have been given. The one marked "primary": true is the one you
-work on. Its "objective" says exactly what to do - do that before anything else.
+"quests" is the list of quests you have been given - it sits at the top of the state, next to
+"player" and "location", not inside "game". One of them is marked "primary": true; that is the one
+you work on, and its "objective" says exactly what to do. Do that before anything else.
 
 - Never wander doing chores while a quest is waiting. A quest is the game telling you what it
   wants; follow it.
