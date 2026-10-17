@@ -7,6 +7,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "go_to@Town|go_to": {
+      "works": 26,
+      "fails": 18,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "ShopMenu:shelf row|menu_click": {
       "works": 7,
       "fails": 36,
@@ -14,15 +21,8 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@Town|go_to": {
-      "works": 26,
-      "fails": 17,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "door:BusStop|enter": {
-      "works": 27,
+      "works": 28,
       "fails": 7,
       "says": "BusStop",
       "note": "",
@@ -49,6 +49,20 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "Farm:patch|clear_area": {
+      "works": 6,
+      "fails": 20,
+      "says": "你的斧头不够锋利，无法砍破这个树桩。",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|till_area": {
+      "works": 12,
+      "fails": 13,
+      "says": "你的斧头不够锋利，无法砍破这个树桩。",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "Town:exit_building|exit_building": {
       "works": 25,
       "fails": 0,
@@ -56,17 +70,10 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|clear_area": {
-      "works": 4,
-      "fails": 20,
-      "says": "你的斧头不够锋利，无法砍破这个树桩。",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:patch|till_area": {
-      "works": 11,
-      "fails": 13,
-      "says": "你的斧头不够锋利，无法砍破这个树桩。",
+    "door:Town|enter": {
+      "works": 20,
+      "fails": 3,
+      "says": "Town",
       "note": "",
       "last": "2026-10-17"
     },
@@ -74,13 +81,6 @@
       "works": 4,
       "fails": 18,
       "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "door:Town|enter": {
-      "works": 19,
-      "fails": 3,
-      "says": "Town",
       "note": "",
       "last": "2026-10-17"
     },
@@ -154,16 +154,16 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "SeedShop:exit_building|exit_building": {
-      "works": 0,
-      "fails": 9,
+    "go_to@Farm|go_to": {
+      "works": 8,
+      "fails": 2,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@Farm|go_to": {
-      "works": 7,
-      "fails": 2,
+    "SeedShop:exit_building|exit_building": {
+      "works": 0,
+      "fails": 9,
       "says": "",
       "note": "",
       "last": "2026-10-17"

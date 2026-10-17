@@ -484,6 +484,9 @@ public class UiInfo
     [JsonPropertyName("save_slots")] public List<SaveSlotInfo> SaveSlots { get; set; } = new();
     [JsonPropertyName("character_design")] public CharacterDesignInfo? CharacterDesign { get; set; }
 
+    /// <summary>What is actually in the open CONTAINER (a chest, a fridge, the shipping bin).</summary>
+    [JsonPropertyName("container")] public List<InventorySlot> Container { get; set; } = new();
+
     /// <summary>What is actually on the shelves, joined onto the slot names menu_click takes.</summary>
     [JsonPropertyName("shop")] public List<ShopItemInfo> Shop { get; set; } = new();
 

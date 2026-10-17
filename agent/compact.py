@@ -272,12 +272,21 @@ def compact_state(state: dict) -> dict:
                  "stock": s.get("stock"), "affordable": s.get("affordable")}
                 for s in ui["shop"]
             ]
-        if ui.get("save_slots"):
-            compact["ui"]["save_slots"] = [
-                {"index": s.get("index"), "farmer": s.get("farmer_name"),
-                 "farm": s.get("slot_name"), "sub": s.get("slot_sub_name")}
-                for s in ui["save_slots"]
+        container = ui.get("container") or []
+        if container:
+            # What is IN the open container (a chest, a fridge, the shipping bin). The shipping bin is
+            # how you sell from home, so when the bag is full this is the list that matters.
+            compact["ui"]["container"] = [
+                {"slot": item.get("slot"), "item": item.get("name"), "count": item.get("stack")}
+                for item in container[:MAX_LIST]
             ]
+
+    if ui.get("save_slots"):
+        compact["ui"]["save_slots"] = [
+            {"index": s.get("index"), "farmer": s.get("farmer_name"),
+             "farm": s.get("slot_name"), "sub": s.get("slot_sub_name")}
+            for s in ui["save_slots"]
+        ]
         if ui.get("text_fields"):
             compact["ui"]["text_fields"] = [
                 {"field": t.get("field"), "value": t.get("value")} for t in ui["text_fields"]

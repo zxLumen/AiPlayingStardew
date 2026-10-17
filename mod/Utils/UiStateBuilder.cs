@@ -153,6 +153,35 @@ public static class UiStateBuilder
         try { ui.Dialogue = BuildDialogue(menu); }
         catch (Exception ex) { monitor.Log($"UiStateBuilder dialogue failed: {ex.Message}", LogLevel.Warn); }
 
+        // What is IN an open container - a chest, a fridge, or the shipping bin, which is the farm's own
+        // way to sell. Read from the field the game itself uses for a container's contents, and not from
+        // the generic slot walk: a container panel and the player's own panel use the same slot names
+        // ("0", "1", ...), so going through those would hand the agent a confident guess about which side
+        // an item is on - the exact kind of lie this project keeps having to unpick.
+        try
+        {
+            if (menu is ItemGrabMenu && ReadMember(menu, "ItemsToGrabMenu") is InventoryMenu inside)
+            {
+                IList<Item?> contents = inside.actualInventory;
+                for (int slot = 0; slot < contents.Count; slot++)
+                {
+                    if (contents[slot] is not Item item)
+                        continue;
+
+                    ui.Container.Add(new InventorySlot
+                    {
+                        Slot = slot,
+                        Name = item.DisplayName ?? "",
+                        Stack = item.Stack,
+                        Quality = item.Quality,
+                        Category = item.Category,
+                        Kind = "item",
+                    });
+                }
+            }
+        }
+        catch (Exception ex) { monitor.Log($"UiStateBuilder container failed: {ex.Message}", LogLevel.Warn); }
+
         try { ui.TextFields = CollectTextBoxes(menu); }
         catch (Exception ex) { monitor.Log($"UiStateBuilder text fields failed: {ex.Message}", LogLevel.Warn); }
 
