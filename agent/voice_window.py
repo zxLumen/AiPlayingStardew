@@ -812,6 +812,10 @@ def main() -> int:
         fade_ms=int(voice_cfg.get("fade_ms") or 28),
         normalize=bool(voice_cfg.get("normalize", True)),
         on_air=announce,
+        temperature=voice_cfg.get("temperature"),
+        top_p=voice_cfg.get("top_p"),
+        seed_mode=str(voice_cfg.get("seed_mode") or "fixed"),
+        seed_base=int(voice_cfg.get("seed_base") or 1234),
     )
     voice.start()
 

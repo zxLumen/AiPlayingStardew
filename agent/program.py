@@ -40,10 +40,11 @@ DEFAULTS: dict = {
             "硬下限：两句话至少隔这么久（秒）。只用来防止抢话，不决定节奏 —— 真正的节奏由",
             "下面的 pause_* 和声音本身的长度决定。设大了就只是白放着不说话（设 14 时每句要 36 秒）。",
         ],
-        "max_chars": 24,
+        "max_chars": 18,
         "_max_chars_note": [
-            "单句台词的最大字数，超了按标点收口截断（提示词里要求的是 25 字）。",
-            "短句是节奏的根本：24 字约 5 秒语音，观众听得完，也才插得进下一句。",
+            "单句台词的最大字数，超了按标点收口截断（提示词里要求的是 18 字）。",
+            "短句是节奏的根本，也是「贴着画面」的前提：18 字约 4 秒语音。",
+            "注意：短句天然更平，所以必须配合 voice.temperature 1.05 才不显得像念稿。",
         ],
         "idle_gap_s": 15.0,
         "_idle_gap_note": [
@@ -139,6 +140,22 @@ DEFAULTS: dict = {
         ],
         "tts_url": "http://127.0.0.1:8790/tts",
         "tts_ref": "tts/voices/demo/voice_09.wav",
+        "temperature": 1.05,
+        "_temperature_note": [
+            "语音模型的采样温度：决定「这一句怎么发挥」，比默认的 0.8 更有起伏。",
+            "实测同一句短句：0.8 → 音高起伏 13.6 半音（平，像念稿）；1.05 → 20.3 半音（像说话）。",
+            "调高 = 更活但也更容易偶尔念怪；调低 = 稳但平。1.05 是听下来最像人的那一档。",
+            "改完要重启「解说窗口」才会生效（窗口启动时读一次）。",
+        ],
+        "top_p": 0.9,
+        "_top_p_note": "配合温度一起用。0.9 比默认 0.8 放开一点，让长音和拖腔有机会出现。",
+        "seed_mode": "per_line",
+        "_seed_mode_note": [
+            "fixed = 每句都用同一个随机种子（整场像同一次表演）。",
+            "per_line = 按句子内容派生种子：每句各有各的发挥，同一句仍然可复现、仍然能命中缓存。",
+            "AB 试听里 per_line 更像「同一个人在两个时刻说话」。",
+        ],
+        "seed_base": 1234,
         "emo": [],
         "duration": 1.0,
         "_duration_note": "时长倍率：越大越慢。1.0 = 参考音频原速（当前选定），0.9 更快、1.1 更慢",
@@ -337,6 +354,10 @@ class Program:
                 fade_ms=int(voice_cfg.get("fade_ms") or 28),
                 normalize=bool(voice_cfg.get("normalize", True)),
                 on_air=self._announce,
+                temperature=voice_cfg.get("temperature"),
+                top_p=voice_cfg.get("top_p"),
+                seed_mode=str(voice_cfg.get("seed_mode") or "fixed"),
+                seed_base=int(voice_cfg.get("seed_base") or 1234),
             )
             self.voice.start(self.bus)
         else:
@@ -362,7 +383,7 @@ class Program:
                     active=True,
                     min_gap_s=float(commentary_cfg.get("min_gap_s") or 2.5),
                     idle_gap_s=float(commentary_cfg.get("idle_gap_s") or 15.0),
-                    max_chars=int(commentary_cfg.get("max_chars") or 24),
+                    max_chars=int(commentary_cfg.get("max_chars") or 18),
                     density_target_s=float(commentary_cfg.get("density_target_s") or 7.0),
                     beat_cooldown_s=float(commentary_cfg.get("beat_cooldown_s") or 25.0),
                     look_ahead=int(commentary_cfg.get("look_ahead") or 0),
@@ -560,7 +581,7 @@ class Program:
         try:
             put("min_gap_s", float(cfg.get("min_gap_s") or 2.5))
             put("idle_gap_s", float(cfg.get("idle_gap_s") or 15.0))
-            put("max_chars", max(12, int(cfg.get("max_chars") or 24)))
+            put("max_chars", max(12, int(cfg.get("max_chars") or 18)))
             put("density_target_s", float(cfg.get("density_target_s") or 7.0))
             put("beat_cooldown_s", float(cfg.get("beat_cooldown_s") or 25.0))
             put("look_ahead", max(0, int(cfg.get("look_ahead") if cfg.get("look_ahead") is not None else 0)))

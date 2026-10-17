@@ -159,3 +159,10 @@
 - plant_all 排队后不要再发 refill/water_all，会 FAILED『already busy』；等它走完再 select_slot 2 + refill + water_all。
 - (61,18) 已锄完，换 (70,17)-(71,20) 这一带：先 clear_area 半径 3，再 till_area 半径 0 逐格锄，最后 plant_all。
 - Town 里被 dialogue/cutscene 卡住时，用 press_key 'space'（必要时 'enter'）推进；只剩一次 escape 推进机会，别连点同一动作被守门器拦。
+
+## 2026-10-17
+- 每天早上的固定开场：dialogue_advance → dialogue_choose 0 → doneNamingButton → dialogue_advance 到 no dialogue box open，然后才 harvest_all/water_all，别在对话开着时派活。
+- 9 点前别去 SeedShop（LOCKED），先浇水/锄地/清杂，9 点后再去买种；游戏会报剩余分钟，按它排计划。
+- ShopMenu 手上有物品时：先点空数字格（'10' 等）把物品放进背包，再一次 upperRightCloseButton + exit_building；别反复 exit_building（第 4 次被守门器拦）。
+- plant_all 排队期间 refill/water_all/till_area 全部 already busy，用 noop 等它跑完再浇水；plant_all 大量 given up 说明目标土没锄好，先 till 再 plant。
+- CommunityCenter 内 exit_building 走 (32,24) 会 WATCHER_TIMEOUT，两次都卡住，明天换 go_to 门口格再出去或先 scan 看门的位置。

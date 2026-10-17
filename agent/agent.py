@@ -348,6 +348,12 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
     # Where the seconds of each step actually go. See StepClock.
     clock = StepClock()
 
+    # THE RULER's state, not the ruler: when the world last moved, and what moved it. See the note where
+    # it is put in front of the agent.
+    changed_step = 0
+    changed_at = time.monotonic()
+    changed_note = "nothing has moved yet this session"
+
     # The player's own notes on how this game behaves. See world.py.
     world = world_mod.current(log=log)
 
@@ -392,6 +398,22 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
 
         state = client.state()
         clock.mark("state")
+
+        # THE RULER. A fact, not a rule: how long it has been since anything in the world moved, and what
+        # the last thing that moved was.
+        #
+        # The witness has measured this every step all along; it went into a log nobody read in the
+        # moment. Here it is where the agent can see it - which is the whole difference between an agent
+        # NOTICING "I have done six things and nothing has changed" and a person having to notice it.
+        # No threshold here and no action attached: a rule ("if N steps, then do Y") is what produced
+        # every dead end in this project. This hands over a number and lets the player decide, the same
+        # way "bag: 12/12 full" and "shows: 防风草" did today with no rule behind them.
+        state["world"] = {
+            "steps_since_change": step - changed_step,
+            "seconds_since_change": round(time.monotonic() - changed_at),
+            "last_change": changed_note,
+        }
+
         game = state.get("game") or {}
 
         # Whatever the game says out loud is a fact the world just handed us. Record it now -
@@ -676,6 +698,13 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         # (see LearningStore.is_loop), and until now it could only ask how many there were.
         learning.note_attempt_outcome(attempt_entry, worked)
         clock.mark("judge")
+
+        # The ruler reading: the world moved, so reset it - with what moved, so "last_change" is a fact
+        # and not a feeling.
+        if worked is True:
+            changed_step = step
+            changed_at = time.monotonic()
+            changed_note = f"step {step}: {action} -> {evidence[:90]}"
 
         # The player's own notes on how this game behaves, written from what just happened.
         #

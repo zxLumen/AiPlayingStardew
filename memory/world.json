@@ -1,37 +1,72 @@
 {
   "entries": {
     "dialogue_advance@Farm|dialogue_advance": {
-      "works": 45,
+      "works": 46,
       "fails": 21,
       "says": "你打算收养这只猫吗？",
       "note": "",
       "last": "2026-10-17"
     },
+    "ShopMenu:shelf row|menu_click": {
+      "works": 11,
+      "fails": 39,
+      "says": "forSaleButtons.0",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "go_to@Town|go_to": {
-      "works": 26,
+      "works": 28,
       "fails": 18,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "ShopMenu:shelf row|menu_click": {
-      "works": 7,
-      "fails": 36,
-      "says": "forSaleButtons.0",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "door:BusStop|enter": {
-      "works": 28,
-      "fails": 7,
+      "works": 34,
+      "fails": 10,
       "says": "BusStop",
       "note": "",
       "last": "2026-10-17"
     },
+    "Farm:patch|clear_area": {
+      "works": 8,
+      "fails": 33,
+      "says": "你的斧头不够锋利，无法砍破这个树桩。",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "door:SeedShop|enter": {
-      "works": 21,
+      "works": 24,
       "fails": 12,
       "says": "SeedShop",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|till_area": {
+      "works": 17,
+      "fails": 17,
+      "says": "你的斧头不够锋利，无法砍破这个树桩。",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:something|interact_at": {
+      "works": 25,
+      "fails": 6,
+      "says": "等到皮埃尔经营店铺的时候再回来。",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|water_all": {
+      "works": 16,
+      "fails": 12,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Town:exit_building|exit_building": {
+      "works": 28,
+      "fails": 0,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -42,150 +77,129 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "tile:something|interact_at": {
-      "works": 22,
-      "fails": 5,
-      "says": "上锁了……（营业时间：9:00~21:00）",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:patch|clear_area": {
-      "works": 6,
-      "fails": 20,
-      "says": "你的斧头不够锋利，无法砍破这个树桩。",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:patch|till_area": {
-      "works": 12,
-      "fails": 13,
-      "says": "你的斧头不够锋利，无法砍破这个树桩。",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Town:exit_building|exit_building": {
-      "works": 25,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "door:Town|enter": {
-      "works": 20,
-      "fails": 3,
+      "works": 23,
+      "fails": 4,
       "says": "Town",
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|harvest_all": {
-      "works": 4,
-      "fails": 18,
-      "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "go_to@SeedShop|go_to": {
-      "works": 21,
+      "works": 25,
       "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "press_key@Farm|press_key": {
-      "works": 12,
-      "fails": 10,
-      "says": "space",
+    "ShopMenu:bag slot|menu_click": {
+      "works": 7,
+      "fails": 17,
+      "says": "inventory.11",
       "note": "",
       "last": "2026-10-17"
     },
-    "ShopMenu:bag slot|menu_click": {
-      "works": 5,
-      "fails": 16,
-      "says": "at (1472,688) in ShopMenu - the real click changed nothing (aimed at (1472,688), the game",
+    "Farm:patch|harvest_all": {
+      "works": 4,
+      "fails": 19,
+      "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
       "note": "",
       "last": "2026-10-17"
     },
     "menu:upperRightCloseButton|menu_click": {
-      "works": 21,
+      "works": 23,
       "fails": 0,
       "says": "upperRightCloseButton",
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|water_all": {
+    "press_key@Farm|press_key": {
       "works": 13,
-      "fails": 4,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "door:Farm|enter": {
-      "works": 12,
-      "fails": 4,
-      "says": "Farm",
+      "fails": 10,
+      "says": "嗨，Juniper！",
       "note": "",
       "last": "2026-10-17"
     },
     "select_slot@Farm|select_slot": {
+      "works": 23,
+      "fails": 0,
+      "says": "你看见这只猫了吗？",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:Farm|enter": {
       "works": 16,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:exit_building|exit_building": {
-      "works": 13,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "DialogueBox:doneNamingButton|menu_click": {
-      "works": 12,
-      "fails": 0,
-      "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
+      "fails": 5,
+      "says": "Farm",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|refill": {
-      "works": 8,
-      "fails": 4,
+      "works": 11,
+      "fails": 9,
+      "says": "它可能是喜欢这里！唔……你不觉得这个农场需要养只好猫吗？",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:exit_building|exit_building": {
+      "works": 16,
+      "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "go_to@Farm|go_to": {
-      "works": 8,
-      "fails": 2,
+      "works": 13,
+      "fails": 4,
       "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "DialogueBox:doneNamingButton|menu_click": {
+      "works": 13,
+      "fails": 0,
+      "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
       "note": "",
       "last": "2026-10-17"
     },
     "SeedShop:exit_building|exit_building": {
       "works": 0,
-      "fails": 9,
+      "fails": 10,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "ShopMenu:upperRightCloseButton|menu_click": {
       "works": 0,
-      "fails": 8,
+      "fails": 9,
       "says": "upperRightCloseButton",
       "note": "",
       "last": "2026-10-17"
     },
     "dialogue_choose@Farm|dialogue_choose": {
-      "works": 5,
+      "works": 6,
       "fails": 2,
       "says": "我看到它坐在你的农场门口！它可能是无家可归了……可怜的小东西。",
       "note": "",
       "last": "2026-10-17"
     },
     "go_to@BusStop|go_to": {
-      "works": 7,
+      "works": 8,
       "fails": 0,
       "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:hoe_dirt|use_tool_at": {
+      "works": 0,
+      "fails": 8,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:FarmHouse|enter": {
+      "works": 6,
+      "fails": 0,
+      "says": "FarmHouse",
       "note": "",
       "last": "2026-10-17"
     },
@@ -203,10 +217,10 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "door:FarmHouse|enter": {
+    "Farm:patch|plant_all": {
       "works": 4,
       "fails": 0,
-      "says": "FarmHouse",
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -259,13 +273,6 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|plant_all": {
-      "works": 2,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "ShopMenu:dropItemInvisibleButton|menu_click": {
       "works": 0,
       "fails": 2,
@@ -301,10 +308,24 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "move@Farm|move": {
+      "works": 0,
+      "fails": 2,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "tile:亚历克斯|interact_at": {
       "works": 2,
       "fails": 0,
       "says": "我昨天肯定做了一千个俯卧撑。",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:皮埃尔|interact_at": {
+      "works": 2,
+      "fails": 0,
+      "says": "他们财大气粗，可以先亏本销售，搞倒我这种小本生意……然后再抬高价格割韭菜！",
       "note": "",
       "last": "2026-10-17"
     },
@@ -319,6 +340,13 @@
       "works": 1,
       "fails": 0,
       "says": "Forest",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@FarmHouse|go_to": {
+      "works": 1,
+      "fails": 0,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -339,13 +367,6 @@
     "interact@Town|interact": {
       "works": 1,
       "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "move@Farm|move": {
-      "works": 0,
-      "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -390,6 +411,13 @@
       "fails": 0,
       "says": "chose 是, NamingMenu appeared, named pet, then 'farmer cannot move right now' briefly",
       "note": "after cutscene the farmer is briefly unfree - do a real info action like scan instead of noop to let it settle",
+      "last": "2026-10-17"
+    },
+    "bag_full|enter": {
+      "works": 0,
+      "fails": 0,
+      "says": "HOTBAR FULL - a shop has nowhere to put a purchase",
+      "note": "hotbar满时商店买不了东西，今天放弃补种，先干活睡觉，明天腾格子再去",
       "last": "2026-10-17"
     },
     "busstop_warp|enter": {
@@ -530,34 +558,6 @@
       "fails": 0,
       "says": "the real click changed nothing - not money, not the bag, not either hand",
       "note": "forSaleButtons.0 点击不再生效（可能因 hotbar 满或鼠标映射偏移），当天买种子这条路放弃即可",
-      "last": "2026-10-17"
-    },
-    "seedshop购买|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "clicked 'forSaleButtons.0' but the whole click changed nothing - not money, not the bag, not either hand",
-      "note": "forSaleButtons.0 这次点击后金钱和背包都没变，可能没真正买到；下次购买后要立刻核对 money 和 inventory",
-      "last": "2026-10-16"
-    },
-    "shopmenu_bag_drops|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "the whole click changed nothing - not money, not the bag, not either hand",
-      "note": "when the hotbar is full you cannot make room by clicking an inventory slot then dropItemInvisibleButton in ShopMenu - clicks land but change nothing; better to ",
-      "last": "2026-10-17"
-    },
-    "shopmenu_closing|menu_click_10_bag_slot": {
-      "works": 0,
-      "fails": 0,
-      "says": "press: menu hand 防风草种子 x2->empty, press: bag 12/12 slots ... 67 items",
-      "note": "clicking a numbered bag slot with pure digit name DOES work - it placed the seeds from the menu hand into the bag; the menu hand must be emptied before the shop",
-      "last": "2026-10-17"
-    },
-    "shopmenu_empty_bag_slot|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "the whole click changed nothing - not money, not the bag, not either hand",
-      "note": "clicking an empty inventory slot ('12') twice while holding 防风草种子 x2 did not stow the seeds; try a different empty slot or dropItemInvisibleButton",
       "last": "2026-10-17"
     }
   }

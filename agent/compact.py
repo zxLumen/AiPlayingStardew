@@ -304,4 +304,13 @@ def compact_state(state: dict) -> dict:
         if ui.get("character_design"):
             compact["ui"]["character_design"] = ui["character_design"]
 
+    # ---- the ruler, passed through verbatim ----
+    #
+    # How long since anything in the world moved. Written by the loop from the witness, read by the agent
+    # (and by the supervisor, which is given this same compacted state). It is deliberately NOT filtered,
+    # summarised or thresholded: the whole point is that the number is available and the judgement is the
+    # agent's.
+    if state.get("world"):
+        compact["world"] = state["world"]
+
     return compact

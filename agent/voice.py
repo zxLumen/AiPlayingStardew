@@ -73,6 +73,10 @@ class Voice:
         duration: float | None = None,
         speed: float | None = None,
         tts_timeout: float = 120.0,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        seed_mode: str = "fixed",
+        seed_base: int = 1234,
     ) -> None:
         self.cache_dir = Path(cache_dir)
         self.log = log
@@ -107,6 +111,18 @@ class Voice:
         # rename that breaks a caller is worse than a name that is wrong.
         self.duration = duration if duration is not None else speed
         self.tts_timeout = tts_timeout
+
+        # How the voice service samples this line. "temperature" is the big one: the engine's default
+        # (0.8) keeps every reading safe and, over a hundred lines, the same shape - which on short
+        # sentences reads as a newsreader. Measured on our own short line, 1.05 with top_p 0.9 nearly
+        # doubles the pitch movement (13.6 -> 20.3 semitones) and it was picked by ear.
+        self.temperature = temperature
+        self.top_p = top_p
+        # One seed for every line makes the whole stream one performance. A seed derived from the
+        # text gives each line its own draw while keeping a given line reproducible - which is also
+        # what keeps the cache honest.
+        self.seed_mode = (seed_mode or "fixed").strip().lower()
+        self.seed_base = int(seed_base or 1234)
         self._http_ok = self.backend == "edge"
         # How long to wait before asking a service that failed whether it is back. Short enough that
         # a restart is barely noticed, long enough not to hammer a service that is genuinely down.
@@ -419,8 +435,16 @@ class Voice:
         """
         import soundfile as sf
 
+        seed = None
+        if self.seed_mode == "per_line":
+            seed = self.seed_base + int(
+                hashlib.sha1(text.encode("utf-8")).hexdigest()[:6], 16) % 10000
+
+        # Everything that changes the audio belongs in the key. The sampling parameters do change it,
+        # so a cache hit from before they were tuned would quietly play the old, flatter reading.
         digest = hashlib.sha1(
-            f"{self.tts_ref}|{self.emo}|{self.duration}|{text}".encode("utf-8")
+            f"{self.tts_ref}|{self.emo}|{self.duration}|{self.temperature}|"
+            f"{self.top_p}|{seed}|{text}".encode("utf-8")
         ).hexdigest()[:16]
 
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -441,6 +465,12 @@ class Voice:
             payload["emo"] = self.emo
         if self.duration:
             payload["duration"] = self.duration
+        if self.temperature is not None:
+            payload["temperature"] = self.temperature
+        if self.top_p is not None:
+            payload["top_p"] = self.top_p
+        if seed is not None:
+            payload["seed"] = seed
 
         try:
             with httpx.Client(timeout=self.tts_timeout, trust_env=False) as client:

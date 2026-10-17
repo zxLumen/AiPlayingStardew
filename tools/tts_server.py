@@ -67,6 +67,7 @@ STATE: dict = {
     "load_s": 0.0,
     "calls": 0,
     "last_s": 0.0,
+    "last_gen": {},
 }
 
 
@@ -146,7 +147,10 @@ def resolve_ref(path: str) -> str:
     return str(REPO / candidate)
 
 
-def synth(text: str, ref: str | None, emo, duration: float | None, beams: int | None) -> bytes:
+def synth(text: str, ref: str | None, emo, duration: float | None, beams: int | None,
+          temperature: float | None = None, top_p: float | None = None,
+          seed: int | None = None, emo_ref: str | None = None,
+          emo_alpha: float | None = None) -> bytes:
     model = STATE["model"]
     if model is None:
         raise RuntimeError("model not loaded")
@@ -159,6 +163,17 @@ def synth(text: str, ref: str | None, emo, duration: float | None, beams: int | 
     factor = float(duration) if duration else STATE["duration"]
     beam_count = int(beams) if beams else STATE["beams"]
 
+    # How the autoregressive stage is sampled, which is what decides how a line is *performed*
+    # rather than what it says. The engine's defaults (temperature 0.8, top_p 0.8) are conservative:
+    # they keep every reading safe and, over a hundred lines, identical in shape. Raising them is
+    # the cheapest way to get some life into short sentences. The seed is per-request so that each
+    # line can draw its own realisation while the same line stays reproducible (and cacheable).
+    gen: dict = {"num_beams": beam_count}
+    if temperature is not None:
+        gen["temperature"] = float(temperature)
+    if top_p is not None:
+        gen["top_p"] = float(top_p)
+
     out = REPO / "checkpoints" / "_tts_out.wav"
 
     with INFER_LOCK:
@@ -166,7 +181,7 @@ def synth(text: str, ref: str | None, emo, duration: float | None, beams: int | 
         # 2-10% either way, which is the same size as the effect of the speed knob itself. Tuning
         # inside that noise is guesswork. Pinning the seed makes a given line reproducible, which
         # is what makes a setting adjustable at all.
-        torch.manual_seed(STATE["seed"])
+        torch.manual_seed(int(seed) if seed is not None else STATE["seed"])
 
         started = time.perf_counter()
         result = model.infer(
@@ -174,16 +189,23 @@ def synth(text: str, ref: str | None, emo, duration: float | None, beams: int | 
             text=text,
             output_path=str(out),
             lang="ZH",
+            # Timbre comes from spk_audio_prompt. Emotion can come from a separate clip, blended by
+            # emo_alpha: that is how a line gets a smile in it without changing who is speaking. We
+            # never use the 8-number emotion vector (it was tried and sounded wrong) - the vector
+            # path stays available but empty.
+            emo_audio_prompt=resolve_ref(emo_ref) if emo_ref else None,
+            emo_alpha=float(emo_alpha) if emo_alpha is not None else 1.0,
             emo_vector=vector,
             use_random=False,
             verbose=False,
             duration_factor=factor,
             interval_silence=120,
             # The shipped default is 3 beams, which runs the autoregressive stage three times over.
-            num_beams=beam_count,
+            **gen,
         )
         STATE["calls"] += 1
         STATE["last_s"] = time.perf_counter() - started
+        STATE["last_gen"] = dict(gen)
 
     # infer() normally returns the path it wrote; be tolerant about the other shapes it can return.
     if isinstance(result, tuple) and len(result) == 2:
@@ -228,6 +250,7 @@ class Handler(BaseHTTPRequestHandler):
                 "seed": STATE["seed"],
                 "calls": STATE["calls"],
                 "last_s": round(STATE["last_s"], 2),
+                "gen": STATE["last_gen"],
                 "load_s": round(STATE["load_s"], 1),
             })
             return
@@ -259,6 +282,11 @@ class Handler(BaseHTTPRequestHandler):
                 # SLOWER. "speed" is accepted because the first client sent it that way.
                 payload.get("duration", payload.get("speed")),
                 payload.get("beams"),
+                payload.get("temperature"),
+                payload.get("top_p"),
+                payload.get("seed"),
+                payload.get("emo_ref"),
+                payload.get("emo_alpha"),
             )
         except Exception as exc:
             print(f"!! synthesis failed: {type(exc).__name__}: {exc}", flush=True)
