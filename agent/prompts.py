@@ -169,8 +169,8 @@ Other fields worth reading:
 - PEOPLE MOVE. An NPC's tile in this state is where they were when it was read, and walking there
                              takes ten or twenty seconds - so by the time you arrive they have often
                              gone somewhere else. To go to somebody or talk to somebody, do NOT copy
-                             their tile: NAME them, e.g. {"action": "interact_at", "character": "Abigail"}
-                             or {"action": "go_to", "character": "Abigail"}, and the harness resolves the
+                             their tile: NAME them instead - pass a "character" argument holding their
+                             name, with the action go_to or interact_at - and the harness resolves the
                              tile at the moment the action is dispatched. If the answer comes back that
                              they are not nearby, they have walked off - scan, or pick somebody else.
 - player.tile_in_front       the tile you face. Check it before use_tool_at / interact_at.
