@@ -9,11 +9,11 @@
       "fail": 19
     },
     "area|plant_all": {
-      "ok": 12,
+      "ok": 13,
       "fail": 1
     },
     "area|refill": {
-      "ok": 17,
+      "ok": 18,
       "fail": 16
     },
     "area|till_area": {
@@ -22,7 +22,7 @@
     },
     "area|water_all": {
       "ok": 31,
-      "fail": 26
+      "fail": 27
     },
     "big_debris|go_to": {
       "ok": 0,

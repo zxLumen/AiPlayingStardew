@@ -105,11 +105,28 @@ public static class ChoreController
 
     public static (bool, string) Start(string kind, List<Vector2> targets)
     {
+        // A NEW INSTRUCTION TAKES OVER. This used to answer "already busy" and refuse - which is a hand
+        // that cannot be interrupted, and the log is full of the cost: a full model decision spent to be
+        // told nothing can be done yet, over and over, while the farmer finished a job the brain no longer
+        // wanted. A person's hands are interruptible: you put the can down and go and open the door.
+        //
+        // The abandoned work is NOT lost information: it is recorded through the same Finish path, so
+        // `chore_last` says exactly how far it got, and the farmer can come back to it. The one
+        // exception is being asked to start the SAME job that is already running, which is not a change
+        // of mind at all - that stays refused, so a repeated request cannot restart the work from scratch.
+        string abandoned = "";
         if (_chore != null)
-            return (false, $"already busy - {Describe()}");
+        {
+            if (string.Equals(_chore.Kind, kind, StringComparison.OrdinalIgnoreCase))
+                return (false, $"already doing that - {Describe()}");
+
+            abandoned = $" (put down {_chore.Kind} first: {_chore.Done} done, " +
+                        $"{_chore.Failed} given up)";
+            Finish("interrupted by a new instruction");
+        }
 
         if (targets.Count == 0)
-            return (false, $"nothing to do for {kind} - nothing nearby needs that work");
+            return (false, $"nothing to do for {kind} - nothing nearby needs that work{abandoned}");
 
         // Nearest first, so movement looks natural instead of zig-zagging the map.
         if (Game1.player != null)

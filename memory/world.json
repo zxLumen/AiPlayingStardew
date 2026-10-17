@@ -63,16 +63,16 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Town:exit_building|exit_building": {
-      "works": 29,
-      "fails": 0,
+    "Farm:patch|water_all": {
+      "works": 16,
+      "fails": 13,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:patch|water_all": {
-      "works": 16,
-      "fails": 12,
+    "Town:exit_building|exit_building": {
+      "works": 29,
+      "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -98,6 +98,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "select_slot@Farm|select_slot": {
+      "works": 25,
+      "fails": 0,
+      "says": "你看见这只猫了吗？",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "menu:upperRightCloseButton|menu_click": {
       "works": 24,
       "fails": 0,
@@ -119,37 +126,30 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "select_slot@Farm|select_slot": {
-      "works": 23,
-      "fails": 0,
-      "says": "你看见这只猫了吗？",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "door:Farm|enter": {
-      "works": 16,
+      "works": 17,
       "fails": 5,
       "says": "Farm",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|refill": {
-      "works": 11,
+      "works": 12,
       "fails": 9,
       "says": "它可能是喜欢这里！唔……你不觉得这个农场需要养只好猫吗？",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@Farm|go_to": {
+      "works": 14,
+      "fails": 4,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:exit_building|exit_building": {
       "works": 16,
       "fails": 1,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "go_to@Farm|go_to": {
-      "works": 13,
-      "fails": 4,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -210,6 +210,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "Farm:patch|plant_all": {
+      "works": 5,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "go_to@CommunityCenter|go_to": {
       "works": 5,
       "fails": 0,
@@ -220,13 +227,6 @@
     "tile:Junimo|interact_at": {
       "works": 0,
       "fails": 5,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:patch|plant_all": {
-      "works": 4,
-      "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
