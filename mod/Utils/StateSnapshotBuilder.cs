@@ -96,12 +96,20 @@ public static class StateSnapshotBuilder
         try { info.Fullscreen = options.fullscreen; } catch { }
         try { info.Borderless = options.windowedBorderlessFullscreen; } catch { }
 
-        try
-        {
-            info.RenderWidth = Game1.graphics.GraphicsDevice.Viewport.Width;
-            info.RenderHeight = Game1.graphics.GraphicsDevice.Viewport.Height;
-        }
+        try { info.RenderWidth = Game1.graphics.GraphicsDevice.Viewport.Width; }
         catch { }
+        try { info.RenderHeight = Game1.graphics.GraphicsDevice.Viewport.Height; }
+        catch { }
+
+        // THE PRECONDITION OF EVERY CLICK, said out loud.
+        //
+        // SDV ignores menu input while its window is not the active window, and Windows swallows the
+        // click that activates a background window - so a farmer sitting behind a browser gets clicks
+        // that are delivered, aimed correctly, and never heard. The bridge enforced this before
+        // clicking but never reported it, so the failure read as "the game did not react" and looked
+        // like the game's fault. It is a fact about the window, and it belongs in the state.
+        try { info.IsActive = ActionProcessor.NativeInput.IsGameWindowActive(); } catch { }
+        try { info.PauseWhenUnfocused = options.pauseWhenOutOfFocus; } catch { }
 
         return info;
     }

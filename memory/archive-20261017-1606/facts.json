@@ -1,0 +1,604 @@
+{
+  "facts": [
+    {
+      "id": "busstop_enter_town_ok",
+      "key": "在_busstop_里用_enter_town_能成功进镇_door_opens",
+      "claim": "在 BusStop 里用 enter Town 能成功进镇，door opens on arrival。",
+      "scope": "BusStop",
+      "confidence": 0.99,
+      "evidence": 3,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_enter_busstop_ok",
+      "key": "在_farm_里用_enter_busstop_可以直接走门进站成功_ok_tr",
+      "claim": "在 Farm 里用 enter BusStop 可以直接走门进站成功（ok=True，不用先 warp 到 BusStop）。",
+      "scope": "Farm",
+      "confidence": 0.99,
+      "evidence": 3,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farmhouse_exit_lands_64_15",
+      "key": "在_farmhouse_用_exit_building_会走到门格_再落到_fa",
+      "claim": "在 FarmHouse 用 exit_building 会走到门格 (3,12) 再落到 Farm (64,15)，随后 scan 半径 8 的圆心就是 (64,15)。",
+      "scope": "FarmHouse",
+      "confidence": 0.95,
+      "evidence": 2,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-17"
+    },
+    {
+      "id": "farmhouse_exit_to_64_15",
+      "key": "在_farmhouse_用_exit_building_出门_会落在_farm_",
+      "claim": "在 FarmHouse 用 exit_building 出门，会落在 Farm 的 (64,15)。",
+      "scope": "FarmHouse",
+      "confidence": 0.95,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_exits_no_town",
+      "key": "在_farm_里_enter_town_一定失败_返回_failed_并列出已知",
+      "claim": "在 Farm 里 enter Town 一定失败：返回 FAILED 并列出已知出口只有 BusStop、Forest、Backwoods、FarmCave，没有 Town。",
+      "scope": "Farm",
+      "confidence": 0.95,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "noop_action_zero_change",
+      "key": "noop_返回_ok_true_但世界零变化_y_spring_连发_次_noo",
+      "claim": "noop 返回 ok=True 但世界零变化：y1-spring-09 连发 17 次 noop，把当天剩下的回合全部烧光，什么都没长、没锄、没走。",
+      "scope": "global",
+      "confidence": 0.95,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "action_guard_blocks_repeats",
+      "key": "同一天内同一动作_menu_click_menu_click_upperrigh",
+      "claim": "同一天内同一动作（menu_click '0'、menu_click 'upperRightCloseButton'、exit_building）重复到 4 次后，守门器会直接拦下不执行并返回『本日已重复 N 次 - 这是个循环，别再做了』。",
+      "scope": "global",
+      "confidence": 0.95,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "seeds_shop_buy_button_forSaleButtons0",
+      "key": "seedshop_的_shopmenu_里买种子要点_menu_click_fo",
+      "claim": "SeedShop 的 ShopMenu 里买种子要点 menu_click 'forSaleButtons.0'（坐标约 (1060,235)），每点一次真扣 20 金并把一个 防风草种子 拿到手上（当天钱从 500 一路买到 300），同一天连点 4 次后会被守门器拦下。",
+      "scope": "SeedShop",
+      "confidence": 0.95,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "shopmenu_inventory_named_buttons_only_0_to_3",
+      "key": "shopmenu_里带_inventory_前缀的按钮只有_inventory_",
+      "claim": "ShopMenu 里带 inventory. 前缀的按钮只有 inventory.0 / inventory.1 / inventory.2 / inventory.3 存在，inventory.4 及以上一律返回 NO_SUCH_BUTTON，对应格子要用纯数字名 '4'-'24' 点。",
+      "scope": "SeedShop",
+      "confidence": 0.95,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "seedshop_hours",
+      "key": "seedshop_营业时间_游戏原话_上锁了_营业时间_点前_enter_int",
+      "claim": "SeedShop 营业时间 9:00~21:00（游戏原话『上锁了……（营业时间：9:00~21:00）』），9 点前 enter/interact_at (43,56) 都返回 LOCKED 并报剩余分钟，别在开门前跑空趟。",
+      "scope": "SeedShop",
+      "confidence": 0.95,
+      "evidence": 1,
+      "first_seen": "2026-10-17",
+      "last_seen": "2026-10-17"
+    },
+    {
+      "id": "morning_dialogue_chain",
+      "key": "每天_exit_building_出_farmhouse_会触发玛妮收养猫对话_",
+      "claim": "每天 exit_building 出 FarmHouse 会触发玛妮收养猫对话：固定链是 dialogue_advance →（waiting for a choice 时）dialogue_choose 0 → menu_click doneNamingButton (1092,528)（真点击无效但会以 old way 完成）→ dialogue_advance 直到 no dialogue box open，之后 harvest_all 才能动；对话/NamingMenu 开着时 chores 全部 WATCHER_BLOCKED 或 already busy。",
+      "scope": "FarmHouse",
+      "confidence": 0.95,
+      "evidence": 1,
+      "first_seen": "2026-10-17",
+      "last_seen": "2026-10-17"
+    },
+    {
+      "id": "clear_area_64_18_blocked_62_21",
+      "key": "clear_area_以_为心半径_时_有_格因无法寻路到_而放弃_成功_放弃",
+      "claim": "clear_area 以 (64,18) 为心半径 3 时，有 4 格因无法寻路到 (62,21) 而放弃（10 成功 / 4 放弃）。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "till_area_67_21_r2_ok",
+      "key": "till_area_在_半径_可以一次锄完_格_done_given_up_约_",
+      "claim": "till_area 在 (67,21) 半径 2 可以一次锄完 20 格（20 done / 0 given up，约 20.6s）。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_clear_67_23_5done",
+      "key": "farm_的_clear_area_半径_一次清完_格_放弃_耗时_s_是当天可",
+      "claim": "Farm 的 clear_area (67,23) 半径 3 一次清完 5 格、0 放弃，耗时 8.8s，是当天可靠的清地目标。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_till_67_21_y1spring05",
+      "key": "y_spring_在_farm_的_till_area_半径_得到_done_g",
+      "claim": "y1-spring-05 在 Farm 的 till_area (67,21) 半径 2 得到 4 done / 0 given up，耗时 5.2s。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_till_67_25_y1spring05",
+      "key": "y_spring_在_farm_的_till_area_半径_得到_done_g",
+      "claim": "y1-spring-05 在 Farm 的 till_area (67,25) 半径 2 得到 3 done / 0 given up，耗时 2.8s，仍是一次全成无放弃。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_till_67_21_67_25_shrunk_again",
+      "key": "y_spring_在_farm_的_till_area_半径_只锄到_格_半径_",
+      "claim": "y1-spring-06 在 Farm 的 till_area (67,21) 半径 2 只锄到 1 格、(67,25) 半径 2 只锄到 2 格，两处都是一次全成 0 放弃，但格数比前一天（3 格 / 2 格）和更早（20 格 / 10 格）继续缩水。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "repeat-scan-at-same-center-wastes-day",
+      "key": "同一圆心_半径_的_scan_连续下发_次全部_ok_true_但世界状态没有任",
+      "claim": "同一圆心 (9,9) 半径 8 的 scan 连续下发 25 次全部 ok=True，但世界状态没有任何变化，等于把当天剩下的回合全烧光。",
+      "scope": "global",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "scan_center_9_9_not_farm_exit",
+      "key": "y_spring_的_次_scan_半径_圆心全是_而不是_farm_出门点_说",
+      "claim": "y1-spring-09 的 7 次 scan 半径 8 圆心全是 (9,9)，而不是 Farm 出门点 (64,15)，说明当时角色并不在 Farm 出门点。",
+      "scope": "global",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "day_spring09_zero_progress",
+      "key": "y_spring_全天只有_scan_和_noop_两类动作_没有出现任何_go",
+      "claim": "y1-spring-09 全天只有 scan 和 noop 两类动作，没有出现任何 go_to/work/interact，Farm 与 Town 的进度为零。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_till_64_18_r2",
+      "key": "farm_的_till_area_半径_一次锄完_格_done_given_up",
+      "claim": "Farm 的 till_area (64,18) 半径 2 一次锄完 10 格（10 done / 0 given up of 10，约 10s），是当天最可靠的锄地目标。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_till_67_20_r2",
+      "key": "farm_的_till_area_半径_一次锄完_格_done_given_up",
+      "claim": "Farm 的 till_area (67,20) 半径 2 一次锄完 6 格（6 done / 0 given up of 6，约 7.4s），同样 0 放弃。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "y1_spring_10_noop_pattern",
+      "key": "y_spring_开头在_scan_圆心仍是_后又连发_次_noop_直到_ex",
+      "claim": "y1-spring-10 开头在 scan 圆心仍是 (9,9) 后又连发 6 次 noop，直到 exit_building 才真正开始干活，noop 仍在浪费回合。",
+      "scope": "global",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "enter_seedshop_notfree_retry",
+      "key": "enter_seedshop_可能返回_ok_false_rc_not_free",
+      "claim": "enter SeedShop 可能返回 ok=False rc=NOT_FREE『player not free: cutscene/event playing』，这是暂时性的，隔一个回合重发同一个 enter 就成功进门。",
+      "scope": "Town",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_till_drop_to_1",
+      "key": "y_spring_在_farm_的_till_area_半径_只锄到_格_此前是",
+      "claim": "y1-spring-11 在 Farm 的 till_area (64,18) 半径 2 只锄到 1 格（此前是 10 格）、(67,20) 半径 2 也只锄到 1 格（此前是 6 格），两处均 0 放弃，说明这两片已基本锄完，必须换新点。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "seedshop_shopmenu_click0_loop",
+      "key": "在_seedshop_的_shopmenu_里反复_menu_click_每天会",
+      "claim": "在 SeedShop 的 ShopMenu 里反复 menu_click '0'（(1060,247)）每天会累计 8 次以上且每次都 ok=True，但菜单并不因此关闭或变化，是典型的空转循环；关闭菜单要用 menu_click 'upperRightCloseButton'（(1588,192)）。",
+      "scope": "SeedShop",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "seedshop_6_29_short_move",
+      "key": "seedshop_落点在_时_go_to_只要_步就走通_可作为店内短程落脚点_",
+      "claim": "SeedShop 落点在 (6,29) 时，go_to (6,26) 只要 4 步就走通，可作为店内短程落脚点；而从 (6,29) 直接 go_to (4,18)/(5,18)/(4,16) 全部 NO_PATH。",
+      "scope": "SeedShop",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "shopmenu_blocks_exit",
+      "key": "shopmenu_打开时_exit_building_也返回_not_free_",
+      "claim": "ShopMenu 打开时 exit_building 也返回 NOT_FREE『player not free: menu open: ShopMenu』，和 go_to/interact_at 一样必须先关菜单才能离店。",
+      "scope": "SeedShop",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "seedshop_enter_inside_is_noop",
+      "key": "已经在_seedshop_内部时再次_enter_seedshop_返回_ok_",
+      "claim": "已经在 SeedShop 内部时再次 enter SeedShop 返回 ok=True rc='entered via the door at (43,56)'，角色零位移，是纯空转，今天连发多次。",
+      "scope": "SeedShop",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_64_18_67_20_almost_done_y11",
+      "key": "y_spring_在_farm_的_till_area_半径_与_半径_各只锄到",
+      "claim": "y1-spring-11 在 Farm 的 till_area (64,18) 半径 2 与 (67,20) 半径 2 各只锄到 1 格、均 0 放弃，这两片已基本锄完。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "shopmenu_downarrow_works",
+      "key": "在_seedshop_的_shopmenu_里_menu_click_downa",
+      "claim": "在 SeedShop 的 ShopMenu 里 menu_click 'downArrow'（(1638,816)）返回 ok=True，是翻商品列表的可用手段。",
+      "scope": "SeedShop",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "dialogue_advance_in_menu_fails",
+      "key": "shopmenu_打开时_dialogue_advance_返回_ok_fals",
+      "claim": "ShopMenu 打开时 dialogue_advance 返回 ok=False rc=FAILED『no dialogue box open』，它不是关菜单的办法。",
+      "scope": "SeedShop",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "SeedShop_click0_reopens_menu",
+      "key": "在_seedshop_的_shopmenu_里点过_menu_click_之后_",
+      "claim": "在 SeedShop 的 ShopMenu 里点过 menu_click '0' 之后，即使再点 upperRightCloseButton，菜单也关不掉：随后 go_to (6,29)、interact_at (4,17)、exit_building 全部返回 NOT_FREE『player not free: menu open: ShopMenu』，原因是 '0' 会把菜单立刻重开。",
+      "scope": "SeedShop",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "SeedShop_goto_4_19_reliable",
+      "key": "seedshop_落点在_时_go_to_稳定可达_今天两次分别_步_步_ok_",
+      "claim": "SeedShop 落点在 (6,29) 时 go_to (4,19) 稳定可达（今天两次分别 10 步、13 步 ok=True），而同日 (4,18)/(5,18)/(4,16) 仍全是 NO_PATH。",
+      "scope": "SeedShop",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "shopmenu_0_buys",
+      "key": "在_seedshop_的_shopmenu_里_menu_click_实际会买下",
+      "claim": "在 SeedShop 的 ShopMenu 里 menu_click '0' 实际会买下第 1 个商品并扣钱：今天多次连点使 money 500->480->460->440->420，它不是空转。",
+      "scope": "SeedShop",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_till_61_18_r2",
+      "key": "farm_的_till_area_半径_一次锄完_格_放弃_耗时约_s_是今天新",
+      "claim": "Farm 的 till_area (61,18) 半径 2 一次锄完 5 格、0 放弃，耗时约 7.7s，是今天新的可靠锄地点。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "seeds_shop_exit_lands_town_6_30",
+      "key": "在_seedshop_里用_exit_building_成功时是走到出口_落回_",
+      "claim": "在 SeedShop 里用 exit_building 成功时是走到出口 (6,30)，落回 Town。",
+      "scope": "SeedShop",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "escape_key_cannot_close_shopmenu",
+      "key": "press_key_escape_关不掉_shopmenu_当天_次全部返回_w",
+      "claim": "press_key 'escape' 关不掉 ShopMenu：当天 3 次全部返回 WATCHER_TIMEOUT，screen 始终停在 ShopMenu 不变。",
+      "scope": "SeedShop",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_6118_clear_then_till",
+      "key": "farm_的_是新可用地块_clear_area_半径_一次清_格_放弃_s_紧",
+      "claim": "Farm 的 (61,18) 是新可用地块：clear_area 半径 3 一次清 11 格 0 放弃（10.9s），紧接着 till_area 半径 2 一次锄 11 格 0 放弃（8.1s）。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "town_door_tile_43_56_reenters_seedshop",
+      "key": "在_town_走到_再_interact_at_返回_true_可直接重新开门进",
+      "claim": "在 Town 走到 (43,57) 再 interact_at (43,56) 返回 True，可直接重新开门进 SeedShop，不必再发 enter SeedShop。",
+      "scope": "Town",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_61_18_reclears_and_regrows",
+      "key": "farm_半径_的_clear_area_与半径_的_till_area_可以每",
+      "claim": "Farm (61,18) 半径 3 的 clear_area 与半径 2 的 till_area 可以每天重复做：y1-spring-12 同一块地清了 2 次（各 11 done）、锄了 3 次（11/11/5 done），全部 0 放弃。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farmhouse_door_via_64_14",
+      "key": "在_farm_站到_后_enter_farmhouse_会走门_成功进屋_在别处",
+      "claim": "在 Farm 站到 (64,15) 后 enter FarmHouse 会走门 (64,14) 成功进屋；在别处发 enter FarmHouse 直接 FAILED，且 Known exits 只列 BusStop/Forest/Backwoods/FarmCave，不含 FarmHouse。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "plant_all_busy_blocks_refill",
+      "key": "plant_all_会排队约_格并自行走完_期间发_refill_返回_fail",
+      "claim": "plant_all 会排队约 53-55 格并自行走完，期间发 refill 返回 FAILED『already busy - plant_all: N/55 visited』，必须等 plant_all 结束后再 select_slot 2 + refill 才成功。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "shopmenu_hand_blocks_exit",
+      "key": "shopmenu_里手上拿着物品_如防风草种子_时_exit_building_",
+      "claim": "ShopMenu 里手上拿着物品（如防风草种子）时 exit_building 返回 NOT_FREE『menu open: ShopMenu』且 upperRightCloseButton 关不掉；先点一个空背包数字格（如 '10'，按下后 hand 变 empty、物品入包）再关菜单才能离店。数字格点击会真交易：'10' 卖出得钱（240->390），'11' 买防风草种子扣 20 金。",
+      "scope": "SeedShop",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-17",
+      "last_seen": "2026-10-17"
+    },
+    {
+      "id": "farm_busstop_door_tile",
+      "key": "从_farm_进_busstop_要站在门格_上再_enter_站在_时_ent",
+      "claim": "从 Farm 进 BusStop 要站在门格 (80,15) 上再 enter；站在 (79,15) 时 enter BusStop 会 FAILED『the door at (80,15) would not open』，先 go_to (80,15) 即可。",
+      "scope": "Farm",
+      "confidence": 0.9,
+      "evidence": 1,
+      "first_seen": "2026-10-17",
+      "last_seen": "2026-10-17"
+    },
+    {
+      "id": "busstop_65_22_no_path",
+      "key": "busstop_的_不可行走_go_to_会返回_no_path_从_farm_",
+      "claim": "BusStop 的 (65,22) 不可行走，go_to 会返回 NO_PATH；从 Farm 可以 warp 到 BusStop (59,16)，也能 warp 到 Town (30,60)。",
+      "scope": "global",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_tillarea_67_25",
+      "key": "farm_的_半径_可以一次锄完_格_done_given_up_约_s",
+      "claim": "Farm 的 (67,25) 半径 2 可以一次锄完 10 格（10 done / 0 given up，约 11.5s）。",
+      "scope": "Farm",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_route_to_town",
+      "key": "从_farm_用_go_to_会返回_no_path_改用_go_to_约_步_",
+      "claim": "从 Farm 用 go_to (30,60) 会返回 NO_PATH；改用 go_to (43,23)（约 33 步）走到 Town 门口后 enter Town 成功进镇。",
+      "scope": "Farm",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_till_65_25_givenup",
+      "key": "farm_的_till_area_半径_只有_格可锄_另_格因无法寻路到_而放弃",
+      "claim": "Farm 的 till_area (65,25) 半径 2 只有 1 格可锄，另 2 格因无法寻路到 (63,27) 而放弃，说明 (65,25) 西南一带被障碍隔断。",
+      "scope": "Farm",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_till_area_daily_shrink",
+      "key": "farm_的_till_area_每天可锄格数大幅缩水_今天_半径_只_格_半径",
+      "claim": "Farm 的 till_area 每天可锄格数大幅缩水：今天 (67,21) 半径 2 只 3 格、(67,25) 半径 2 只 1 格，而此前分别是 20 格和 10 格。",
+      "scope": "Farm",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_till_69_28_partial_blocked",
+      "key": "farm_的_till_area_半径_只锄到_格_格因无法寻路到_而放弃_do",
+      "claim": "Farm 的 till_area (69,28) 半径 2 只锄到 2 格、5 格因无法寻路到 (67,30) 而放弃（2 done / 5 given up of 7，1.2s），该点南侧被障碍隔断，不是好锄地目标。",
+      "scope": "Farm",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_till_69_27_all_given_up",
+      "key": "farm_的_till_area_半径_全部放弃_done_given_up_o",
+      "claim": "Farm 的 till_area (69,27) 半径 2 全部放弃（0 done / 2 given up of 2，0.1s，no path to (68,29)），该点应直接从锄地候选里排除。",
+      "scope": "Farm",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "town_enter_seedshop_ok",
+      "key": "在_town_里用_enter_seedshop_能成功进种子店_enter_b",
+      "claim": "在 Town 里用 enter SeedShop 能成功进种子店，enter BusStop→Town→SeedShop 三步可连续执行全部 ok=True。",
+      "scope": "Town",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "seedshop_interact_11_20_once",
+      "key": "在_seedshop_里_go_to_可走通_步_对_用_interact_at",
+      "claim": "在 SeedShop 里 go_to (10,20) 可走通（14 步），对 (11,20) 用 interact_at 第一次 ok=True 返回 True，紧接着第二次同坐标 ok=False rc=FAILED 返回 False，说明该交互点是一次性的。",
+      "scope": "SeedShop",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_clear_67_23_now_empty",
+      "key": "y_spring_在_farm_用_clear_area_半径_返回_ok_fa",
+      "claim": "y1-spring-08 在 Farm 用 clear_area (67,23) 半径 3 返回 ok=False rc=FAILED『nothing to do for clear_area - nothing nearby needs that work』，同一片清地目标已被清空。",
+      "scope": "Farm",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "seedshop-second-interact-point-4-18",
+      "key": "在_seedshop_里_go_to_可走通_步_随后_interact_at_",
+      "claim": "在 SeedShop 里 go_to (4,19) 可走通（13 步），随后 interact_at (4,18) 第一次 ok=True 返回 True，是种子店内除 (11,20) 之外的第二个可用交互点。",
+      "scope": "SeedShop",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_clear_63_25_r3",
+      "key": "farm_的_clear_area_半径_清掉_格_格因无法寻路到_而放弃_do",
+      "claim": "Farm 的 clear_area (63,25) 半径 3 清掉 13 格、7 格因无法寻路到 (66,28) 而放弃（13 done / 7 given up of 20，约 27.2s）。",
+      "scope": "Farm",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_forest_door_blocked",
+      "key": "在_farm_用_enter_forest_失败_go_to_全部返回_no_p",
+      "claim": "在 Farm 用 enter Forest 失败：go_to (41,64)/(40,64)/(42,64) 全部返回 NO_PATH，返回 FAILED『cannot reach the door at (40,65)』，说明从 Farm 站不住 Forest 门口。",
+      "scope": "Farm",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_enter_farmhouse_fails",
+      "key": "在_farm_里_enter_farmhouse_返回_failed_nothi",
+      "claim": "在 Farm 里 enter FarmHouse 返回 FAILED『nothing here leads to FarmHouse』，Farm 的已知出口只有 BusStop、Forest、Backwoods、FarmCave；但随后 interact_at (64,14) 成功返回 True，说明回农舍要用 interact 而非 enter。",
+      "scope": "Farm",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    },
+    {
+      "id": "farm_clear_65_29",
+      "key": "farm_的_clear_area_半径_清掉_格_格因无法寻路到_而放弃_do",
+      "claim": "Farm 的 clear_area (65,29) 半径 2 清掉 7 格、4 格因无法寻路到 (66,30) 而放弃（7 done / 4 given up of 11，5.4s），是可用的清地目标。",
+      "scope": "Farm",
+      "confidence": 0.85,
+      "evidence": 1,
+      "first_seen": "2026-10-16",
+      "last_seen": "2026-10-16"
+    }
+  ]
+}

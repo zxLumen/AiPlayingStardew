@@ -607,6 +607,16 @@ public class DisplayInfo
     [JsonPropertyName("zoom_level")] public float ZoomLevel { get; set; }
     [JsonPropertyName("desired_zoom_level")] public float DesiredZoomLevel { get; set; }
     [JsonPropertyName("ui_scale")] public float UiScale { get; set; }
+
+    /// <summary>
+    /// Whether the game window is the ACTIVE window right now. SDV ignores menu input while it is not,
+    /// and Windows eats the click that activates a background window - so this is the difference
+    /// between "the game refused" and "the game never heard you".
+    /// </summary>
+    [JsonPropertyName("is_active")] public bool IsActive { get; set; }
+
+    /// <summary>The game's own setting: does it stop updating while the window is not focused.</summary>
+    [JsonPropertyName("pause_when_unfocused")] public bool PauseWhenUnfocused { get; set; }
     [JsonPropertyName("desired_ui_scale")] public float DesiredUiScale { get; set; }
     [JsonPropertyName("render_width")] public int RenderWidth { get; set; }
     [JsonPropertyName("render_height")] public int RenderHeight { get; set; }

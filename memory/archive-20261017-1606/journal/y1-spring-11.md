@@ -1,0 +1,489 @@
+# 游戏内 y1-spring-11
+
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `till_area` {"x": 64, "y": 18, "radius": 2} -> ok=True rc=- till_area: 1 done, 0 given up of 1 in 2.2s - finished
+- step 3: `till_area` {"x": 67, "y": 20, "radius": 2} -> ok=True rc=- till_area: 1 done, 0 given up of 1 in 2.2s - finished
+- step 4: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 5: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 6: `enter` {"target": "SeedShop"} -> ok=False rc=NOT_FREE player not free: cutscene/event playing
+- step 8: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 9: `go_to` {"x": 4, "y": 18} -> ok=False rc=NO_PATH no walkable path to (4,18) - it is probably blocked. The farmer is at (6,29); aim at an adjacent free tile instead.
+- step 10: `go_to` {"x": 5, "y": 18} -> ok=False rc=NO_PATH no walkable path to (5,18) - it is probably blocked. The farmer is at (6,29); aim at an adjacent free tile instead.
+- step 11: `go_to` {"x": 4, "y": 18} -> ok=False rc=NO_PATH no walkable path to (4,18) - it is probably blocked. The farmer is at (6,29); aim at an adjacent free tile instead.
+- step 12: `go_to` {"x": 4, "y": 16} -> ok=False rc=NO_PATH no walkable path to (4,16) - it is probably blocked. The farmer is at (6,29); aim at an adjacent free tile instead.
+- step 13: `go_to` {"x": 6, "y": 26} -> ok=True rc=- walking to (6,26) - 4 steps
+- step 1: `go_to` {"x": 4, "y": 19} -> ok=True rc=- walking to (4,19) - 10 steps
+- step 2: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 3: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 4: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 5: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 1: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 2: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 3: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 4: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 5: `go_to` {"x": 6, "y": 29} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 6: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 7: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 8: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 1: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 2: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 3: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 4: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 5: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 6: 守门器拦下，未执行 - 'menu_click' {"name": "0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 7: 守门器拦下，未执行 - 'menu_click' {"name": "0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 8: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 9: `interact_at` {"x": 4, "y": 17} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 10: 守门器拦下，未执行 - 'menu_click' {"name": "0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 11: 守门器拦下，未执行 - 'menu_click' {"name": "0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 1: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 2: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 3: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 4: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 5: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 6: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 7: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 8: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 9: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 10: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 11: 守门器拦下，未执行 - 'menu_click' {"name": "upperRightCloseButton"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 12: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 13: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 14: 守门器拦下，未执行 - 'menu_click' {"name": "upperRightCloseButton"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 15: 守门器拦下，未执行 - 'exit_building' {} 本日已重复 4 次 - 这是个循环，别再做了
+- step 16: `menu_click` {"name": "downArrow"} -> ok=True rc=- clicked 'downArrow' at (1638,816) in ShopMenu
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 4: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 5: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 6: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 7: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 8: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 9: `go_to` {"x": 19, "y": 12} -> ok=True rc=- walking to (19,12) - 78 steps
+- step 1: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 2: `go_to` {"x": 4, "y": 19} -> ok=True rc=- walking to (4,19) - 13 steps
+- step 3: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 4: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 5: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 6: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 7: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 8: `scan` {"radius": 8} -> ok=True rc=- scan around (4,19) r=8
+- step 1: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 2: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 1: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 2: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 1: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 2: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 1: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 1: `scan` {"radius": 8} -> ok=True rc=- scan around (4,19) r=8
+- step 2: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 1: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 2: `noop` {} -> ok=True rc=- noop
+- step 3: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 4: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 5: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 6: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 7: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 8: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 1: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 2: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 3: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 4: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 5: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 6: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 7: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 8: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 9: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 10: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 11: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 1: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 2: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 3: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 4: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 5: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 6: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 7: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 8: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 9: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 10: 守门器拦下，未执行 - 'menu_click' {"name": "upperRightCloseButton"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 11: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 12: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 13: 守门器拦下，未执行 - 'menu_click' {"name": "upperRightCloseButton"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 14: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 1: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 2: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 3: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu
+- step 4: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,192) in ShopMenu
+- step 5: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `clear_area` {"x": 67, "y": 23, "radius": 3} -> ok=False rc=FAILED nothing to do for clear_area - nothing nearby needs that work
+- step 4: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 5: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 6: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 7: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 8: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 9: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 10: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 11: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 12: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 13: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 14: `interact_at` {"x": 5, "y": 90} -> ok=False rc=FAILED interacted with (5,90) -> False
+- step 15: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 16: `go_to` {"x": 29, "y": 82} -> ok=True rc=- walking to (29,82) - 40 steps
+- step 17: `interact_at` {"x": 29, "y": 82} -> ok=False rc=FAILED interacted with (29,82) -> False
+- step 18: `go_to` {"x": 43, "y": 55} -> ok=False rc=NO_PATH no walkable path to (43,55) - it is probably blocked. The farmer is at (29,82); aim at an adjacent free tile instead.
+- step 19: `go_to` {"x": 43, "y": 57} -> ok=True rc=- walking to (43,57) - 40 steps
+- step 20: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 21: `go_to` {"x": 4, "y": 19} -> ok=True rc=- walking to (4,19) - 13 steps
+- step 22: `interact_at` {"x": 4, "y": 18} -> ok=False rc=WATCHER_TIMEOUT interacted with (4,18) -> True | 守望者提前结束（timeout）且世界没有变化：tile kind nothing -> nothing
+- step 23: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,247) in ShopMenu [money 500->480]
+- step 24: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,192) in ShopMenu [no visible change] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 25: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,192) in ShopMenu [no visible change] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 26: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,192) in ShopMenu [no visible change] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 27: `menu_click` {"name": "1"} -> ok=False rc=WATCHER_TIMEOUT clicked '1' at (1060,353) in ShopMenu [no visible change] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 28: `press_key` {"key": "escape"} -> ok=True rc=- pressed key 'escape' (needs the game window focused)
+- step 29: `go_to` {"x": 6, "y": 26} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 30: `press_key` {"key": "escape"} -> ok=True rc=- pressed key 'escape' (needs the game window focused)
+- step 31: `press_key` {"key": "escape"} -> ok=True rc=- pressed key 'escape' (needs the game window focused)
+- step 32: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,192) in ShopMenu [no visible change] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 33: `menu_click` {"name": "downArrow"} -> ok=False rc=WATCHER_TIMEOUT clicked 'downArrow' at (1638,816) in ShopMenu [no visible change] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 34: `press_key` {"key": "escape"} -> ok=True rc=- pressed key 'escape' (needs the game window focused)
+- step 35: 守门器拦下，未执行 - 'menu_click' {"name": "upperRightCloseButton"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 36: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 37: `menu_click` {"name": "upArrow"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upArrow' at (1638,216) in ShopMenu [no visible change] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `till_area` {"x": 61, "y": 18, "radius": 2} -> ok=True rc=- till_area: 5 done, 0 given up of 5 in 7.7s - finished
+- step 4: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 5: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 6: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 7: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 8: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 9: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 10: `go_to` {"x": 44, "y": 57} -> ok=True rc=- walking to (44,57) - 2 steps
+- step 11: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 12: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 13: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 14: `go_to` {"x": 43, "y": 57} -> ok=True rc=- walking to (43,57) - 2 steps
+- step 15: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 16: `go_to` {"x": 72, "y": 69} -> ok=True rc=- walking to (72,69) - 42 steps
+- step 17: `interact_at` {"x": 72, "y": 69} -> ok=False rc=FAILED interacted with (72,69) -> False
+- step 18: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 19: `go_to` {"x": 43, "y": 57} -> ok=True rc=- walking to (43,57) - 42 steps
+- step 20: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 21: `go_to` {"x": 6, "y": 26} -> ok=True rc=- walking to (6,26) - 4 steps
+- step 22: `go_to` {"x": 4, "y": 19} -> ok=True rc=- walking to (4,19) - 10 steps
+- step 23: `interact_at` {"x": 4, "y": 18} -> ok=False rc=WATCHER_TIMEOUT interacted with (4,18) -> True | 守望者提前结束（timeout）且世界没有变化：tile kind nothing -> nothing
+- step 24: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 500->480]
+- step 25: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 480->460]
+- step 26: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 460->440]
+- step 27: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 440->420]
+- step 28: 守门器拦下，未执行 - 'menu_click' {"name": "0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 29: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 30: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 31: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 32: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `till_area` {"x": 61, "y": 18, "radius": 2} -> ok=True rc=- till_area: 5 done, 0 given up of 5 in 7.7s - finished
+- step 4: `till_area` {"x": 60, "y": 21, "radius": 2} -> ok=True rc=- till_area: 8 done, 4 given up of 12 in 18.8s - finished ((tree at (62,23) would not budge))
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `select_slot` {"index": 1} -> ok=True rc=- selected slot 1: 锄头
+- step 4: `till_area` {"x": 61, "y": 18, "radius": 2} -> ok=True rc=- till_area: 5 done, 0 given up of 5 in 7.7s - finished
+- step 5: `till_area` {"x": 64, "y": 21, "radius": 2} -> ok=True rc=- till_area: 6 done, 2 given up of 8 in 10.5s - finished ((tree at (62,23) would not budge))
+- step 6: `go_to` {"x": 78, "y": 16} -> ok=True rc=- walking to (78,16) - 22 steps
+- step 7: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 8: `go_to` {"x": 43, "y": 22} -> ok=True rc=- walking to (43,22) - 34 steps
+- step 9: `move` {"direction": "right", "duration_ms": 500} -> ok=True rc=- moving right for 500ms
+- step 10: `enter` {"target": "Town"} -> ok=False rc=NOT_FREE player not free: farmer cannot move right now
+- step 11: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 12: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 13: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 14: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 15: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 16: `go_to` {"x": 59, "y": 75} -> ok=False rc=NO_PATH no walkable path to (59,75) - it is probably blocked. The farmer is at (43,57); aim at an adjacent free tile instead.
+- step 17: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 18: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 19: `go_to` {"x": 4, "y": 19} -> ok=False rc=NO_PATH no walkable path to (4,19) - it is probably blocked. The farmer is at (43,57); aim at an adjacent free tile instead.
+- step 20: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 21: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 22: `go_to` {"x": 6, "y": 26} -> ok=True rc=- walking to (6,26) - 4 steps
+- step 23: `go_to` {"x": 4, "y": 19} -> ok=True rc=- walking to (4,19) - 10 steps
+- step 24: `interact_at` {"x": 4, "y": 17} -> ok=True rc=- interacted with (4,17) -> True
+- step 25: `dialogue_advance` {} -> ok=True rc=- dialogue advanced
+- step 26: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 27: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 500->480]
+- step 28: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 480->460]
+- step 29: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 460->440]
+- step 30: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 440->420]
+- step 31: 守门器拦下，未执行 - 'menu_click' {"name": "0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 32: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 33: `menu_click` {"name": "10"} -> ok=False rc=NO_SUCH_BUTTON no button '10' in ShopMenu (available: 0, 1, 2, 3, upArrow, downArrow, scrollBar, upperRightCloseButton)
+- step 34: 守门器拦下，未执行 - 'menu_click' {"name": "0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 35: 守门器拦下，未执行 - 'menu_click' {"name": "0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 36: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 37: `menu_click` {"name": "inventory"} -> ok=False rc=NO_SUCH_BUTTON no button 'inventory' in ShopMenu (available: 0, 1, 2, 3, upArrow, downArrow, scrollBar, upperRightCloseButton)
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 10} -> ok=True rc=- scan around (64,15) r=10
+- step 3: `select_slot` {"index": 1} -> ok=True rc=- selected slot 1: 锄头
+- step 4: `till_area` {"x": 61, "y": 18, "radius": 3} -> ok=True rc=- till_area: 9 done, 1 given up of 10 in 14.6s - finished ((no path to (60,21)))
+- step 5: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 6: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 7: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 8: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 9: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 10: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 11: `go_to` {"x": 43, "y": 59} -> ok=True rc=- walking to (43,59) - 3 steps
+- step 12: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 13: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 14: `go_to` {"x": 43, "y": 57} -> ok=True rc=- walking to (43,57) - 3 steps
+- step 15: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 16: `go_to` {"x": 43, "y": 55} -> ok=False rc=NO_PATH no walkable path to (43,55) - it is probably blocked. The farmer is at (43,57); aim at an adjacent free tile instead.
+- step 17: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 18: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 19: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 20: `go_to` {"x": 4, "y": 19} -> ok=True rc=- walking to (4,19) - 13 steps
+- step 21: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 22: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (640,91) in ShopMenu [press: money 500->480]
+- step 23: `noop` {"_note": "removed"} -> ok=True rc=- noop
+- step 24: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (640,91) in ShopMenu [press: money 480->460]
+- step 25: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (640,91) in ShopMenu [press: money 460->440]
+- step 26: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (640,91) in ShopMenu [press: money 440->420]
+- step 27: 守门器拦下，未执行 - 'menu_click' {"name": "0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 28: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1168,36) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 29: 守门器拦下，未执行 - 'menu_click' {"name": "0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 30: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1168,36) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 31: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1168,36) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 32: `menu_click` {"name": "downArrow"} -> ok=False rc=WATCHER_TIMEOUT clicked 'downArrow' at (1218,660) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 33: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1168,36) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"x": 64, "y": 15, "radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `till_area` {"x": 61, "y": 18, "radius": 2} -> ok=True rc=- till_area: 5 done, 0 given up of 5 in 7.7s - finished
+- step 4: `till_area` {"x": 64, "y": 21, "radius": 2} -> ok=True rc=- till_area: 6 done, 2 given up of 8 in 10.5s - finished ((tree at (62,23) would not budge))
+- step 5: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 4: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 5: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 6: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 7: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 8: `go_to` {"x": 3, "y": 89} -> ok=False rc=NO_PATH no walkable path to (3,89) - it is probably blocked. The farmer is at (43,57); aim at an adjacent free tile instead.
+- step 9: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 10: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 11: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 12: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 4: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 5: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 6: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 7: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 8: `go_to` {"x": 43, "y": 60} -> ok=True rc=- walking to (43,60) - 4 steps
+- step 9: `go_to` {"x": 51, "y": 60} -> ok=True rc=- walking to (51,60) - 9 steps
+- step 10: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 11: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 12: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 13: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 14: `move` {"direction": "up", "duration_ms": 800} -> ok=True rc=- moving up for 800ms
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 4: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 5: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 6: `go_to` {"x": 6, "y": 26} -> ok=False rc=NO_PATH no walkable path to (6,26) - it is probably blocked. The farmer is at (43,57); aim at an adjacent free tile instead.
+- step 7: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 8: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 9: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 10: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 11: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 12: `go_to` {"x": 44, "y": 56} -> ok=False rc=NO_PATH no walkable path to (44,56) - it is probably blocked. The farmer is at (43,57); aim at an adjacent free tile instead.
+- step 13: `move` {"direction": "up", "duration_ms": 1200} -> ok=True rc=- moving up for 1200ms
+- step 14: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 15: `move` {"direction": "up", "duration_ms": 2500} -> ok=True rc=- moving up for 2500ms
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 4: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 5: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 6: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 7: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 8: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 9: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 10: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 11: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 12: `go_to` {"x": 6, "y": 26} -> ok=False rc=NO_PATH no walkable path to (6,26) - it is probably blocked. The farmer is at (43,57); aim at an adjacent free tile instead.
+- step 13: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 14: `go_to` {"x": 43, "y": 56} -> ok=False rc=NO_PATH no walkable path to (43,56) - it is probably blocked. The farmer is at (43,57); aim at an adjacent free tile instead.
+- step 15: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 16: `go_to` {"x": 17, "y": 91} -> ok=True rc=- walking to (17,91) - 61 steps
+- step 17: `interact_at` {"x": 17, "y": 90} -> ok=False rc=FAILED interacted with (17,90) -> False
+- step 18: `go_to` {"x": 42, "y": 56} -> ok=False rc=NO_PATH no walkable path to (42,56) - it is probably blocked. The farmer is at (17,91); aim at an adjacent free tile instead.
+- step 19: `go_to` {"x": 41, "y": 57} -> ok=True rc=- walking to (41,57) - 59 steps
+- step 20: `go_to` {"x": 43, "y": 57} -> ok=True rc=- walking to (43,57) - 3 steps
+- step 21: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 22: `go_to` {"x": 4, "y": 19} -> ok=True rc=- walking to (4,19) - 13 steps
+- step 23: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 24: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 500->480]
+- step 25: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 480->460]
+- step 26: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 460->440]
+- step 27: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 440->420]
+- step 28: 守门器拦下，未执行 - 'menu_click' {"name": "0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 29: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 30: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 31: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 32: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 33: `go_to` {"x": 6, "y": 30} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 34: `press_key` {"key": "escape"} -> ok=False rc=WATCHER_TIMEOUT pressed key 'escape' (needs the game window focused) | 守望者提前结束（timeout）且世界没有变化：screen ShopMenu| -> ShopMenu|
+- step 35: `menu_click` {"name": "downArrow"} -> ok=False rc=WATCHER_TIMEOUT clicked 'downArrow' at (1638,804) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 36: `menu_click` {"name": "1"} -> ok=False rc=WATCHER_TIMEOUT clicked '1' at (1060,341) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 37: `press_key` {"key": "escape"} -> ok=False rc=WATCHER_TIMEOUT pressed key 'escape' (needs the game window focused) | 守望者提前结束（timeout）且世界没有变化：screen ShopMenu| -> ShopMenu|
+- step 38: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 39: `menu_click` {"name": "scrollBar"} -> ok=False rc=WATCHER_TIMEOUT clicked 'scrollBar' at (1640,277) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 40: `press_key` {"key": "escape"} -> ok=False rc=WATCHER_TIMEOUT pressed key 'escape' (needs the game window focused) | 守望者提前结束（timeout）且世界没有变化：screen ShopMenu| -> ShopMenu|
+- step 41: 守门器拦下，未执行 - 'menu_click' {"name": "0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 42: `menu_click` {"name": "2"} -> ok=False rc=WATCHER_TIMEOUT clicked '2' at (1060,447) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 43: `menu_click` {"name": "inv_0"} -> ok=False rc=NO_SUCH_BUTTON no button 'inv_0' in ShopMenu (available: 0, 1, 2, 3, upArrow, downArrow, scrollBar, upperRightCloseButton)
+- step 44: 守门器拦下，未执行 - 'menu_click' {"name": "upperRightCloseButton"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 45: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 46: `press_key` {"key": "escape"} -> ok=False rc=WATCHER_TIMEOUT pressed key 'escape' (needs the game window focused) | 守望者提前结束（timeout）且世界没有变化：screen ShopMenu| -> ShopMenu|
+- step 47: 守门器拦下，未执行 - 'press_key' {"key": "escape"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 48: `menu_click` {"name": "1"} -> ok=False rc=WATCHER_TIMEOUT clicked '1' at (1060,341) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 49: 守门器拦下，未执行 - 'menu_click' {"name": "0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 50: `menu_click` {"name": "downArrow"} -> ok=False rc=WATCHER_TIMEOUT clicked 'downArrow' at (1638,804) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 51: `menu_click` {"name": "upArrow"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upArrow' at (1638,204) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 52: 守门器拦下，未执行 - 'menu_click' {"name": "upperRightCloseButton"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 53: `menu_click` {"name": "3"} -> ok=False rc=WATCHER_TIMEOUT clicked '3' at (1060,553) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 54: 守门器拦下，未执行 - 'menu_click' {"name": "upperRightCloseButton"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 1: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 2: `press_key` {"key": "escape"} -> ok=False rc=WATCHER_TIMEOUT pressed key 'escape' (needs the game window focused) | 守望者提前结束（timeout）且世界没有变化：screen ShopMenu| -> ShopMenu|
+- step 3: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 4: `menu_click` {"name": "0"} -> ok=False rc=WATCHER_TIMEOUT clicked '0' at (1060,235) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 3: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 4: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 5: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 6: `go_to` {"x": 6, "y": 26} -> ok=False rc=NO_PATH no walkable path to (6,26) - it is probably blocked. The farmer is at (43,57); aim at an adjacent free tile instead.
+- step 7: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 8: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 9: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 10: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 11: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 12: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 13: `go_to` {"x": 44, "y": 58} -> ok=True rc=- walking to (44,58) - 3 steps
+- step 14: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 15: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 16: `go_to` {"x": 40, "y": 82} -> ok=True rc=- walking to (40,82) - 37 steps
+- step 17: `interact_at` {"x": 40, "y": 81} -> ok=False rc=FAILED interacted with (40,81) -> False
+- step 18: `go_to` {"x": 44, "y": 57} -> ok=True rc=- walking to (44,57) - 36 steps
+- step 19: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 20: `go_to` {"x": 4, "y": 19} -> ok=True rc=- walking to (4,19) - 13 steps
+- step 21: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 22: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 500->480]
+- step 23: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 480->460]
+- step 24: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 460->440]
+- step 25: `menu_click` {"name": "0"} -> ok=True rc=- clicked '0' at (1060,235) in ShopMenu [press: money 440->420]
+- step 26: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 27: `menu_click` {"name": "5"} -> ok=False rc=NO_SUCH_BUTTON no button '5' in ShopMenu (available: 0, 1, 2, 3, upArrow, downArrow, scrollBar, upperRightCloseButton)
+- step 28: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 29: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 30: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and cursor all identical)
+- step 31: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 32: `menu_click` {"name": "10"} -> ok=False rc=NO_SUCH_BUTTON no button '10' in ShopMenu (available: 0, 1, 2, 3, upArrow, downArrow, scrollBar, upperRightCloseButton)
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `till_area` {"x": 61, "y": 18, "radius": 2} -> ok=True rc=- till_area: 5 done, 0 given up of 5 in 7.7s - finished
+- step 3: `refill` {} -> ok=False rc=FAILED till_area: 5 done, 0 given up of 5 in 7.7s - finished
+- step 4: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 5: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 6: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 7: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 8: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 9: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 10: `go_to` {"x": 43, "y": 56} -> ok=False rc=NO_PATH no walkable path to (43,56) - it is probably blocked. The farmer is at (43,57); aim at an adjacent free tile instead.
+- step 11: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 12: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 13: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 14: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 15: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 16: `go_to` {"x": 43, "y": 81} -> ok=True rc=- walking to (43,81) - 37 steps
+- step 17: `interact_at` {"x": 43, "y": 82} -> ok=False rc=FAILED interacted with (43,82) -> False
+- step 18: `go_to` {"x": 43, "y": 57} -> ok=True rc=- walking to (43,57) - 37 steps
+- step 19: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 20: `go_to` {"x": 4, "y": 19} -> ok=True rc=- walking to (4,19) - 13 steps
+- step 21: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 22: `menu_click` {"name": "0"} -> ok=False rc=WATCHER_TIMEOUT clicked '0' at (832,688) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and hand all identical)
+- step 23: `menu_click` {"name": "forSaleButtons.0"} -> ok=True rc=- clicked 'forSaleButtons.0' at (1060,235) in ShopMenu [press: money 500->480]
+- step 24: `menu_click` {"name": "forSaleButtons.0"} -> ok=True rc=- clicked 'forSaleButtons.0' at (1060,235) in ShopMenu [press: money 480->460]
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `clear_area` {"x": 67, "y": 23, "radius": 3} -> ok=False rc=FAILED nothing to do for clear_area - nothing nearby needs that work
+- step 4: `till_area` {"x": 61, "y": 18, "radius": 2} -> ok=True rc=- till_area: 5 done, 0 given up of 5 in 7.7s - finished
+- step 5: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 6: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 7: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 8: `enter` {"target": "Forest"} -> ok=True rc=- walking to the door of 'Forest' - it opens on arrival
+- step 9: `scan` {"radius": 8} -> ok=True rc=- scan around (118,25) r=8
+- step 10: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 11: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 12: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 13: `enter` {"target": "SeedShop"} -> ok=True rc=- entered via the door at (43,56)
+- step 14: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 15: `go_to` {"x": 4, "y": 19} -> ok=False rc=NO_PATH no walkable path to (4,19) - it is probably blocked. The farmer is at (43,57); aim at an adjacent free tile instead.
+- step 16: `go_to` {"x": 57, "y": 63} -> ok=False rc=NO_PATH no walkable path to (57,63) - it is probably blocked. The farmer is at (43,57); aim at an adjacent free tile instead.
+- step 17: `interact_at` {"x": 43, "y": 56} -> ok=True rc=- interacted with (43,56) -> True
+- step 18: `go_to` {"x": 4, "y": 19} -> ok=True rc=- walking to (4,19) - 13 steps
+- step 19: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 20: `menu_click` {"name": "forSaleButtons.0"} -> ok=True rc=- clicked 'forSaleButtons.0' at (1060,235) in ShopMenu [press: money 500->480]
+- step 21: `menu_click` {"name": "inventory.5"} -> ok=False rc=NO_SUCH_BUTTON no button 'inventory.5' in ShopMenu (available: inventory.0, inventory.1, inventory.2, inventory.3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24)
+- step 22: `menu_click` {"name": "10"} -> ok=True rc=- clicked '10' at (1472,688) in ShopMenu [the whole click changed nothing - not money, not the cursor]
+- step 23: `menu_click` {"name": "forSaleButtons.0"} -> ok=True rc=- clicked 'forSaleButtons.0' at (1060,235) in ShopMenu [press: money 480->460]
+- step 24: `menu_click` {"name": "12"} -> ok=False rc=WATCHER_TIMEOUT clicked '12' at (832,756) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and hand all identical)
+- step 25: `menu_click` {"name": "inventory.0"} -> ok=False rc=WATCHER_TIMEOUT clicked 'inventory.0' at (832,688) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and hand all identical)
+- step 26: `menu_click` {"name": "inventory.0"} -> ok=False rc=WATCHER_TIMEOUT clicked 'inventory.0' at (832,688) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and hand all identical)
+- step 27: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and hand all identical)
+- step 28: `exit_building` {} -> ok=False rc=NOT_FREE player not free: menu open: ShopMenu
+- step 29: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and hand all identical)
+- step 30: `select_slot` {"index": 0} -> ok=True rc=- selected slot 0: 斧头
+- step 31: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 32: `menu_click` {"name": "inventory.1"} -> ok=False rc=WATCHER_TIMEOUT clicked 'inventory.1' at (896,688) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and hand all identical)
+- step 33: `menu_click` {"name": "12"} -> ok=False rc=WATCHER_TIMEOUT clicked '12' at (832,756) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and hand all identical)
+- step 34: `menu_click` {"name": "35"} -> ok=False rc=WATCHER_TIMEOUT clicked '35' at (1536,824) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and hand all identical)
+- step 35: `menu_click` {"name": "13"} -> ok=False rc=WATCHER_TIMEOUT clicked '13' at (896,756) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and hand all identical)
+- step 36: `menu_click` {"name": "forSaleButtons.0"} -> ok=True rc=- clicked 'forSaleButtons.0' at (1060,235) in ShopMenu [press: money 460->440]
+- step 37: `menu_click` {"name": "upperRightCloseButton"} -> ok=False rc=WATCHER_TIMEOUT clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor] | 守望者提前结束（timeout）且世界没有变化：nothing moved (screen, money, bag and hand all identical)
+- step 38: `menu_click` {"name": "inventory.10"} -> ok=False rc=NO_SUCH_BUTTON no button 'inventory.10' in ShopMenu (available: inventory.0, inventory.1, inventory.2, inventory.3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24)
+- step 39: `menu_click` {"name": "inventory.4"} -> ok=False rc=NO_SUCH_BUTTON no button 'inventory.4' in ShopMenu (available: inventory.0, inventory.1, inventory.2, inventory.3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24)
+- step 40: `menu_click` {"name": "10"} -> ok=True rc=- clicked '10' at (1472,688) in ShopMenu [the whole click changed nothing - not money, not the cursor]
+- step 41: `menu_click` {"name": "forSaleButtons.0"} -> ok=True rc=- clicked 'forSaleButtons.0' at (1060,235) in ShopMenu [press: money 440->420]
+- step 42: 守门器拦下，未执行 - 'menu_click' {"name": "forSaleButtons.0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 43: 守门器拦下，未执行 - 'menu_click' {"name": "forSaleButtons.0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 44: 守门器拦下，未执行 - 'menu_click' {"name": "forSaleButtons.0"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 45: `menu_click` {"name": "11"} -> ok=True rc=- clicked '11' at (1536,688) in ShopMenu [the whole click changed nothing - not money, not the cursor]
+- step 46: `menu_click` {"name": "upperRightCloseButton"} -> ok=True rc=- clicked 'upperRightCloseButton' at (1588,180) in ShopMenu [the whole click changed nothing - not money, not the cursor]
+- step 47: `exit_building` {} -> ok=True rc=- walking to the exit at (6,30) -> Town
+- step 48: `go_to` {"x": 64, "y": 64} -> ok=True rc=- walking to (64,64) - 29 steps
+- step 49: `interact_at` {"x": 64, "y": 64} -> ok=True rc=- interacted with (64,64) -> True
+- step 1: `go_to` {"x": 1, "y": 54} -> ok=True rc=- already at (1,54)
+- step 2: `go_to` {"x": -1, "y": 54} -> ok=True rc=- walking to (-1,54) - 3 steps
+- step 3: `enter` {"target": "BusStop"} -> ok=False rc=FAILED nothing here leads to 'BusStop'. Known exits: Desert, Town, Farm, Backwoods
+- step 4: `go_to` {"x": 9, "y": 22} -> ok=True rc=- walking to (9,22) - 35 steps
+- step 5: `interact_at` {"x": 9, "y": 22} -> ok=False rc=FAILED interacted with (9,22) -> False
+- step 6: `go_to` {"x": 61, "y": 18} -> ok=True rc=- walking to (61,18) - 19 steps
+- step 7: `till_area` {"x": 61, "y": 18, "radius": 2} -> ok=False rc=FAILED till_area: 5 done, 0 given up of 5 in 7.7s - finished
+- step 8: `select_slot` {"index": 10} -> ok=True rc=- selected slot 10: 防风草种子
+- step 9: `plant_all` {} -> ok=True rc=- plant_all: 51 done, 0 given up of 51 in 54.1s - finished
+- step 10: `refill` {} -> ok=False rc=FAILED plant_all: 51 done, 0 given up of 51 in 54.1s - finished
+- step 11: `refill` {} -> ok=False rc=FAILED plant_all: 51 done, 0 given up of 51 in 54.1s - finished
+- step 12: 守门器拦下，未执行 - 'refill' {} 已连续失败 2 次，被拦截 - 换个做法
+- step 13: `water_all` {} -> ok=True rc=- plant_all: 51 done, 0 given up of 51 in 54.1s - finished
+- step 14: `water_all` {} -> ok=False rc=WATCHER_TIMEOUT water_all: 20 done, 2 given up of 51 in 26.7s - cancelled ((thirsty_crop at (66,21) would not budge)) | 守望者提前结束（timeout）且世界没有变化：thirsty_crops 31 -> 31
+- step 15: `go_to` {"x": 72, "y": 27} -> ok=True rc=- walking to (72,27) - 15 steps
+- step 16: `go_to` {"x": 74, "y": 19} -> ok=True rc=- walking to (74,19) - 13 steps
+- step 17: `refill` {} -> ok=False rc=FAILED water_all: 20 done, 2 given up of 51 in 26.7s - cancelled ((thirsty_crop at (66,21) would not budge))
+- step 18: `water_all` {} -> ok=False rc=WATCHER_TIMEOUT water_all: 0 done, 24 given up of 31 in 101.4s - cancelled ((thirsty_crop at (62,20) would not budge)) | 守望者提前结束（timeout）且世界没有变化：thirsty_crops 31 -> 31
+- step 19: `go_to` {"x": 70, "y": 26} -> ok=True rc=- walking to (70,26) - 17 steps

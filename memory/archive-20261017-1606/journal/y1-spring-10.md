@@ -1,0 +1,29 @@
+# 游戏内 y1-spring-10
+
+- step 1: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 2: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 3: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 4: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 5: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 6: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 7: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 4: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 1: `clear_area` {"x": 63, "y": 25, "radius": 3} -> ok=True rc=- clear_area: 13 done, 7 given up of 20 in 27.2s - finished ((no path to (66,28)))
+- step 2: `till_area` {"x": 64, "y": 18, "radius": 2} -> ok=True rc=- till_area: 10 done, 0 given up of 10 in 10s - finished
+- step 3: `go_to` {"x": 41, "y": 64} -> ok=False rc=NO_PATH no walkable path to (41,64) - it is probably blocked. The farmer is at (66,19); aim at an adjacent free tile instead.
+- step 4: `go_to` {"x": 40, "y": 64} -> ok=False rc=NO_PATH no walkable path to (40,64) - it is probably blocked. The farmer is at (66,19); aim at an adjacent free tile instead.
+- step 5: `enter` {"target": "Forest"} -> ok=False rc=FAILED cannot reach the door at (40,65)
+- step 6: `clear_area` {"x": 65, "y": 29, "radius": 2} -> ok=True rc=- clear_area: 7 done, 4 given up of 11 in 5.4s - finished ((no path to (66,30)))
+- step 7: `till_area` {"x": 67, "y": 20, "radius": 2} -> ok=True rc=- till_area: 6 done, 0 given up of 6 in 7.4s - finished
+- step 8: `go_to` {"x": 42, "y": 64} -> ok=False rc=NO_PATH no walkable path to (42,64) - it is probably blocked. The farmer is at (68,19); aim at an adjacent free tile instead.
+- step 9: `go_to` {"x": 80, "y": 15} -> ok=True rc=- walking to (80,15) - 17 steps
+- step 1: `enter` {"target": "Farm"} -> ok=True rc=- walking to the door of 'Farm' - it opens on arrival
+- step 2: `clear_area` {"x": 63, "y": 25, "radius": 3} -> ok=True rc=- clear_area: 4 done, 0 given up of 4 in 11.1s - finished
+- step 3: `go_to` {"x": 64, "y": 15} -> ok=True rc=- walking to (64,15) - 17 steps
+- step 4: `enter` {"target": "FarmHouse"} -> ok=False rc=FAILED nothing here leads to 'FarmHouse'. Known exits: BusStop, Forest, Backwoods, FarmCave
+- step 5: `interact_at` {"x": 64, "y": 14} -> ok=True rc=- interacted with (64,14) -> True
+- step 6: `go_to` {"x": 9, "y": 9} -> ok=True rc=- walking to (9,9) - 9 steps
+- step 7: `sleep` {} -> ok=True rc=- going to sleep at (10,9) - answered yes

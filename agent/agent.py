@@ -113,6 +113,69 @@ def match_slot(slots: list[dict], ai_save: dict | None) -> dict | None:
 # Bootstrap: get the AI's own save in game
 # ---------------------------------------------------------------------------
 
+def _boot_control(ui: dict, wanted: str) -> str:
+    """The handle (id) of a control in this menu, found by name or label.
+
+    bootstrap used to click by NAME and throw the answer away, so when a click was refused - and a name
+    that matches two controls is refused now, by design - the loop simply clicked again. Four times.
+    Forty times. With nothing in the log to say why. That is not a mysterious game; it is a harness that
+    does not read its own answers.
+    """
+    buttons = ui.get("buttons") or []
+    want = str(wanted).lower()
+
+    # Exact first: the save slots are named "0", "1", ... and "0" must never match "10".
+    for button in buttons:
+        fields = [str(button.get(key) or "") for key in ("id", "name", "label")]
+        if any(field.lower() == want for field in fields if field):
+            return str(button.get("id") or button.get("name") or "")
+
+    for button in buttons:
+        fields = [str(button.get(key) or "") for key in ("id", "name", "label")]
+        if any(want in field.lower() for field in fields if field):
+            return str(button.get("id") or button.get("name") or "")
+
+    return ""
+
+
+def _boot_click(client: StateClient, ui: dict, wanted: str, log, note: str = "") -> bool:
+    """Click one control by its handle, and SAY WHAT CAME BACK.
+
+    The first click on a background window is eaten by Windows: it activates the window and never
+    reaches the game. So a single click reports OK while nothing happens - which is exactly what made
+    starting a new save look impossible. When the receipt says the window was not active, the click is
+    sent ONCE MORE a moment later. That is what a person does with a window sitting behind another,
+    and it is what works.
+    """
+    handle = _boot_control(ui, wanted)
+    if not handle:
+        offered = ", ".join(str(b.get("name") or b.get("id") or "?")
+                            for b in (ui.get("buttons") or [])[:8])
+        log(f"[boot] nothing in this menu looks like '{wanted}' - it offers: {offered}")
+        return False
+
+    for attempt in (1, 2):
+        result = client.action("menu_click", id=handle) or {}
+        receipt = result.get("data") or {}
+        verdict = receipt.get("verdict") or ""
+        active = receipt.get("active", True)
+        log(f"[boot] click {wanted!r} -> id={handle!r} ok={result.get('ok')} {verdict}"
+            f"{'' if active else ' [窗口当时不是活动窗口]'}"
+            f"{' ' + note if note else ''} | {str(result.get('detail'))[:110]}")
+
+        if result.get("ok") and verdict in ("OK", "OK_OLD_PATH"):
+            return True
+
+        if attempt == 1 and not active:
+            log("[boot] that click only woke the window - sending the second one")
+            time.sleep(1.5)
+            continue
+
+        return False
+
+    return False
+
+
 def bootstrap(client: StateClient, streamer: StreamerAI, ai_save: dict | None,
               force_new: bool, max_iterations: int) -> dict | None:
     """Drive the title / load / character menus until the AI's own save is loaded.
@@ -121,9 +184,27 @@ def bootstrap(client: StateClient, streamer: StreamerAI, ai_save: dict | None,
     """
     created: dict | None = None
     want_new = force_new or ai_save is None
+    stuck = 0
 
     for _ in range(max_iterations):
-        state = client.state()
+        try:
+            state = client.state()
+        except Exception:
+            state = None
+
+        if not state:
+            # The bridge is not answering, which means the GAME is not up. Nothing in this menu loop can
+            # fix that, and clicking into a dead game is exactly what made starting a new save look
+            # impossible: forty clicks sent nowhere, no error, no game.
+            log("[boot] the bridge is not answering - bringing the game up")
+            try:
+                if not game_process.is_running():
+                    game_process.launch()
+            except Exception as exc:
+                log(f"[boot] could not start the game: {exc}")
+            time.sleep(8)
+            continue
+
         game = state.get("game") or {}
         ui = state.get("ui") or {}
         menu = ui.get("menu_name") or ""
@@ -176,10 +257,10 @@ def bootstrap(client: StateClient, streamer: StreamerAI, ai_save: dict | None,
 
             if slot:
                 log(f"[boot] loading the AI's own save - slot {slot['index']} ({slot['farmer_name']})")
-                client.action("menu_click", name=str(slot["index"]))
+                _boot_click(client, ui, str(slot["index"]), log, note="(the AI's own save)")
             else:
                 log("[boot] the AI has no save in this list - going back to create one")
-                client.action("menu_click", name="backButton")
+                _boot_click(client, ui, "backButton", log)
                 want_new = True
 
             time.sleep(2.5)
@@ -188,10 +269,20 @@ def bootstrap(client: StateClient, streamer: StreamerAI, ai_save: dict | None,
         if menu == "TitleMenu":
             target = "New" if want_new else "Load"
             log(f"[boot] title menu -> {target}")
-            client.action("menu_click", name=target)
+            if not _boot_click(client, ui, target, log):
+                stuck += 1
+                if stuck >= 3:
+                    # Same control, three refusals: this is not a retry, it is an answer. Say what the
+                    # menu actually offers and stop clicking into it.
+                    log("[boot] that control refuses me three times - stopping the boot loop instead of "
+                        "clicking into it forever")
+                    return created
+            else:
+                stuck = 0
             time.sleep(2.5)
             continue
 
+        stuck = 0
         time.sleep(1.5)
 
     return created

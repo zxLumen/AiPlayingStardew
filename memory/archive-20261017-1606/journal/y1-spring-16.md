@@ -1,0 +1,88 @@
+# 游戏内 y1-spring-16
+
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `select_slot` {"index": 2} -> ok=True rc=- selected slot 2: 喷壶
+- step 4: `refill` {} -> ok=True rc=- refill: 1 done, 0 given up of 1 in 4.5s - finished
+- step 5: `water_all` {} -> ok=True rc=- water_all: 10 done, 0 given up of 10 in 8.2s - finished
+- step 6: `clear_area` {"x": 70, "y": 16, "radius": 2} -> ok=False rc=FAILED nothing to do for clear_area - nothing nearby needs that work
+- step 7: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 8: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 9: `enter` {"target": "SeedShop"} -> ok=False rc=LOCKED the door is locked ('上锁了……（营业时间：9:00~21:00）') - SeedShop opens 9:00 and shuts 21:00. It is 7:30, so 170 game-minutes to wait. Standing here knocking is not something a player does; the hours are known, so plan around them.
+- step 10: `enter` {"target": "CommunityCenter"} -> ok=True rc=- walking to the door of 'CommunityCenter' - it opens on arrival
+- step 11: `go_to` {"x": 32, "y": 24} -> ok=True rc=- walking to (32,24) - 2 steps
+- step 12: `exit_building` {} -> ok=False rc=ALREADY_OUTDOORS already outdoors
+- step 13: `enter` {"target": "CommunityCenter"} -> ok=True rc=- walking to the door of 'CommunityCenter' - it opens on arrival
+- step 14: `go_to` {"x": 32, "y": 24} -> ok=True rc=- walking to (32,24) - 2 steps
+- step 15: `interact_at` {"x": 32, "y": 24} -> ok=False rc=FAILED interacted with (32,24) -> False
+- step 16: `enter` {"target": "CommunityCenter"} -> ok=True rc=- walking to the door of 'CommunityCenter' - it opens on arrival
+- step 17: `go_to` {"x": 32, "y": 22} -> ok=True rc=- walking to (32,22) - 2 steps
+- step 18: `go_to` {"x": 20, "y": 20} -> ok=False rc=NO_PATH no walkable path to (20,20) - it is probably blocked. The farmer is at (32,22); aim at an adjacent free tile instead.
+- step 19: `interact_at` {"x": 14, "y": 25} -> ok=False rc=FAILED interacted with (14,25) -> False
+- step 20: `go_to` {"x": 18, "y": 25} -> ok=True rc=- walking to (18,25) - 48 steps
+- step 21: `interact_at` {"x": 14, "y": 25} -> ok=False rc=FAILED interacted with (14,25) -> False
+- step 22: `interact_at` {"x": 12, "y": 26} -> ok=False rc=FAILED interacted with (12,26) -> False
+- step 23: `interact_at` {"x": 12, "y": 26} -> ok=False rc=FAILED interacted with (12,26) -> False
+- step 24: `go_to` {"x": 13, "y": 26} -> ok=True rc=- walking to (13,26) - 7 steps
+- step 25: `interact_at` {"x": 12, "y": 26} -> ok=False rc=FAILED interacted with (12,26) -> False
+- step 26: `interact` {} -> ok=False rc=FAILED checkAction at (12, 26) -> False
+- step 27: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 28: `go_to` {"x": 32, "y": 25} -> ok=False rc=NO_PATH no walkable path to (32,25) - it is probably blocked. The farmer is at (32,23); aim at an adjacent free tile instead.
+- step 29: `go_to` {"x": 13, "y": 25} -> ok=True rc=- walking to (13,25) - 44 steps
+- step 30: `interact_at` {"x": 12, "y": 26} -> ok=False rc=FAILED interacted with (12,26) -> False
+- step 31: `go_to` {"x": 12, "y": 25} -> ok=True rc=- walking to (12,25) - 2 steps
+- step 32: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 33: `go_to` {"x": 13, "y": 25} -> ok=True rc=- walking to (13,25) - 44 steps
+- step 34: 守门器拦下，未执行 - 'interact_at' {"x": 12, "y": 26} 本日已重复 4 次 - 这是个循环，别再做了
+- step 35: `go_to` {"x": 12, "y": 26} -> ok=True rc=- walking to (12,26) - 3 steps
+- step 36: `interact` {"x": 12, "y": 26} -> ok=False rc=FAILED checkAction at (12, 27) -> False
+- step 37: `scan` {"radius": 6} -> ok=True rc=- scan around (12,26) r=6
+- step 38: `go_to` {"x": 13, "y": 26} -> ok=True rc=- walking to (13,26) - 2 steps
+- step 39: 守门器拦下，未执行 - 'interact_at' {"x": 12, "y": 26} 本日已重复 4 次 - 这是个循环，别再做了
+- step 40: `go_to` {"x": 31, "y": 24} -> ok=False rc=NO_PATH no walkable path to (31,24) - it is probably blocked. The farmer is at (13,26); aim at an adjacent free tile instead.
+- step 41: `move` {"direction": "left", "duration_ms": 300} -> ok=True rc=- moving left for 300ms
+- step 42: `interact` {} -> ok=False rc=FAILED checkAction at (12, 27) -> False
+- step 43: 守门器拦下，未执行 - 'interact_at' {"x": 12, "y": 26} 本日已重复 4 次 - 这是个循环，别再做了
+- step 44: `go_to` {"x": 11, "y": 26} -> ok=True rc=- walking to (11,26) - 2 steps
+- step 45: 守门器拦下，未执行 - 'interact_at' {"x": 12, "y": 26} 本日已重复 4 次 - 这是个循环，别再做了
+- step 46: `go_to` {"x": 12, "y": 25} -> ok=True rc=- walking to (12,25) - 3 steps
+- step 47: `interact` {} -> ok=False rc=FAILED checkAction at (12, 26) -> False
+- step 48: `exit_building` {} -> ok=False rc=WATCHER_TIMEOUT walking to the exit at (32,24) -> Town | 守望者提前结束（timeout）且世界没有变化：location CommunityCenter -> CommunityCenter
+- step 49: `go_to` {"x": 12, "y": 27} -> ok=True rc=- walking to (12,27) - 47 steps
+- step 50: `enter` {"target": "CommunityCenter"} -> ok=True rc=- walking to the door of 'CommunityCenter' - it opens on arrival
+- step 51: `go_to` {"x": 14, "y": 25} -> ok=True rc=- walking to (14,25) - 45 steps
+- step 52: `interact` {"target": "Junimo"} -> ok=False rc=FAILED checkAction at (14, 26) -> False
+- step 53: `interact_at` {"x": 14, "y": 27} -> ok=False rc=FAILED interacted with (14,27) -> False
+- step 54: `exit_building` {} -> ok=False rc=WATCHER_TIMEOUT walking to the exit at (32,24) -> Town | 守望者提前结束（timeout）且世界没有变化：location CommunityCenter -> CommunityCenter
+- step 55: `interact_at` {"x": 14, "y": 27} -> ok=False rc=FAILED interacted with (14,27) -> False
+- step 56: `go_to` {"x": 50, "y": 68} -> ok=True rc=- walking to (50,68) - 52 steps
+- step 57: `interact_at` {"x": 50, "y": 68} -> ok=True rc=- interacted with (50,68) -> True
+- step 58: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 59: `go_to` {"x": 4, "y": 19} -> ok=False rc=NOT_FREE player not free: dialogue is open
+- step 60: `dialogue_advance` {} -> ok=True rc=- dialogue advanced
+- step 61: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 62: `press_key` {"key": "space"} -> ok=True rc=- pressed key 'space' (needs the game window focused)
+- step 63: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 64: `dialogue_advance` {} -> ok=True rc=- dialogue advanced
+- step 65: `press_key` {"key": "space"} -> ok=True rc=- pressed key 'space' (needs the game window focused)
+- step 66: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 67: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 68: `press_key` {"key": "enter"} -> ok=True rc=- pressed key 'enter' (needs the game window focused)
+- step 69: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 70: `dialogue_advance` {} -> ok=True rc=- dialogue advanced
+- step 71: `dialogue_advance` {} -> ok=True rc=- dialogue advanced
+- step 72: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 1: `go_to` {"x": 6, "y": 29} -> ok=True rc=- walking to (6,29) - 13 steps
+- step 2: `enter` {"target": "Town"} -> ok=False rc=FAILED the door at (6,30) would not open - it may be locked or shut at this hour
+- step 3: `go_to` {"x": 6, "y": 30} -> ok=True rc=- walking to (6,30) - 2 steps
+- step 4: `go_to` {"x": 0, "y": 53} -> ok=True rc=- walking to (0,53) - 48 steps
+- step 5: `enter` {"target": "BusStop"} -> ok=False rc=FAILED the door at (-1,53) would not open - it may be locked or shut at this hour
+- step 6: `move` {"direction": "left", "duration_ms": 600} -> ok=True rc=- moving left for 600ms
+- step 7: `move` {"direction": "left", "duration_ms": 600} -> ok=False rc=NOT_FREE player not free: farmer cannot move right now
+- step 8: `move` {"direction": "left", "duration_ms": 800} -> ok=True rc=- moving left for 800ms
+- step 9: `enter` {"target": "Farm"} -> ok=True rc=- walking to the door of 'Farm' - it opens on arrival
+- step 10: `enter` {"target": "Farm"} -> ok=False rc=FAILED cannot reach the door at (34,5)
+- step 11: `go_to` {"x": 64, "y": 15} -> ok=True rc=- walking to (64,15) - 17 steps
+- step 12: `enter` {"target": "FarmHouse"} -> ok=True rc=- entered via the door at (64,14)
+- step 13: `sleep` {} -> ok=True rc=- walking to the bed at (10,9) - will lie down on arrival
+- step 14: `noop` {} -> ok=True rc=- noop

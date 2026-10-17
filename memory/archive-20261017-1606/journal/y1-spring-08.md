@@ -1,0 +1,43 @@
+# 游戏内 y1-spring-08
+
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 1: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 2: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 3: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 1: `go_to` {"x": 10, "y": 20} -> ok=True rc=- walking to (10,20) - 14 steps
+- step 2: `interact_at` {"x": 11, "y": 20} -> ok=True rc=- interacted with (11,20) -> True
+- step 3: `interact_at` {"x": 11, "y": 20} -> ok=False rc=FAILED interacted with (11,20) -> False
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `clear_area` {"x": 67, "y": 23, "radius": 3} -> ok=False rc=FAILED nothing to do for clear_area - nothing nearby needs that work
+- step 1: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 2: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 3: `enter` {"target": "SeedShop"} -> ok=True rc=- walking to the door of 'SeedShop' - it opens on arrival
+- step 4: `go_to` {"x": 4, "y": 19} -> ok=True rc=- walking to (4,19) - 13 steps
+- step 5: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 1: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 3: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 4: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 5: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 6: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 7: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 8: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 1: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 3: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 4: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 5: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 6: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 7: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 8: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 9: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 10: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 11: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 12: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 13: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 14: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 15: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 16: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 17: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8

@@ -1,0 +1,158 @@
+# 游戏内 y1-spring-14
+
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `clear_area` {"x": 70, "y": 17, "radius": 3} -> ok=False rc=FAILED nothing to do for clear_area - nothing nearby needs that work
+- step 4: `select_slot` {"index": 2} -> ok=True rc=- selected slot 2: 喷壶
+- step 5: `water_all` {} -> ok=True rc=- water_all: 7 done, 0 given up of 7 in 6.2s - finished
+- step 6: `select_slot` {"index": 10} -> ok=True rc=- selected slot 10: 混合种子
+- step 7: `plant_all` {} -> ok=True rc=- plant_all: 40 tile(s) queued - it will work through them by itself
+- step 8: `water_all` {} -> ok=False rc=FAILED already busy - plant_all: 21/40 visited, 3 finished, 18 given up (empty_soil at (67,24) would not budge)
+- step 9: `select_slot` {"index": 2} -> ok=True rc=- selected slot 2: 喷壶
+- step 10: `water_all` {} -> ok=False rc=FAILED plant_all: 3 done, 37 given up of 40 in 163.3s - finished ((empty_soil at (59,18) would not budge))
+- step 11: 守门器拦下，未执行 - 'water_all' {} 已连续失败 2 次，被拦截 - 换个做法
+- step 12: `work` {"x": 69, "y": 18} -> ok=True rc=- walking into range of (69,18) - it will be worked on arrival
+- step 13: `work` {"x": 69, "y": 20} -> ok=True rc=- thirsty_crop: swung 喷壶 at (69,20)
+- step 14: `work` {"x": 70, "y": 20} -> ok=True rc=- walking into range of (70,20) - it will be worked on arrival
+- step 15: 守门器拦下，未执行 - 'water_all' {} 已连续失败 2 次，被拦截 - 换个做法
+- step 16: `work` {"x": 69, "y": 18} -> ok=True rc=- walking into range of (69,18) - it will be worked on arrival
+- step 17: `work` {"x": 69, "y": 20} -> ok=True rc=- thirsty_crop: swung 喷壶 at (69,20)
+- step 18: `work` {"x": 70, "y": 20} -> ok=True rc=- walking into range of (70,20) - it will be worked on arrival
+- step 19: 守门器拦下，未执行 - 'work' {'x': 69, 'y': 18} 已连续失败 2 次，被拦截 - 换个做法
+- step 20: 守门器拦下，未执行 - 'work' {'x': 69, 'y': 20} 已连续失败 2 次，被拦截 - 换个做法
+- step 21: 守门器拦下，未执行 - 'work' {'x': 70, 'y': 20} 已连续失败 2 次，被拦截 - 换个做法
+- step 22: 守门器拦下，未执行 - 'work' {'x': 69, 'y': 18} 已连续失败 2 次，被拦截 - 换个做法
+- step 23: 守门器拦下，未执行 - 'work' {'x': 70, 'y': 20} 已连续失败 2 次，被拦截 - 换个做法
+- step 24: `use_tool_at` {"x": 70, "y": 20} -> ok=True rc=- swung 喷壶 at (70,20)
+- step 25: `go_to` {"x": 69, "y": 21} -> ok=True rc=- walking to (69,21) - 2 steps
+- step 26: `use_tool_at` {"x": 69, "y": 20} -> ok=True rc=- swung 喷壶 at (69,20)
+- step 27: `go_to` {"x": 69, "y": 19} -> ok=True rc=- walking to (69,19) - 3 steps
+- step 28: `use_tool_at` {"x": 69, "y": 18} -> ok=True rc=- swung 喷壶 at (69,18)
+- step 29: `use_tool_at` {"x": 69, "y": 20} -> ok=True rc=- swung 喷壶 at (69,20)
+- step 30: `go_to` {"x": 69, "y": 19} -> ok=True rc=- already at (69,19)
+- step 31: `use_tool_at` {"x": 70, "y": 20} -> ok=True rc=- swung 喷壶 at (70,20)
+- step 32: `go_to` {"x": 69, "y": 19, "facing": 0} -> ok=True rc=- already at (69,19)
+- step 33: `use_tool_at` {"x": 69, "y": 18} -> ok=True rc=- swung 喷壶 at (69,18)
+- step 34: 守门器拦下，未执行 - 'use_tool_at' {'x': 69, 'y': 20} 已连续失败 2 次，被拦截 - 换个做法
+- step 35: `go_to` {"x": 69, "y": 20, "facing": 1} -> ok=True rc=- walking to (69,20) - 2 steps
+- step 36: `use_tool_at` {"x": 70, "y": 20} -> ok=True rc=- swung 喷壶 at (70,20)
+- step 37: `water_all` {} -> ok=True rc=- water_all: 0 done, 3 given up of 3 in 10.7s - finished ((thirsty_crop at (69,18) would not budge))
+- step 38: `use_tool` {} -> ok=True rc=- used 喷壶 at (69, 18)
+- step 39: `use_tool_at` {"x": 69, "y": 20} -> ok=True rc=- swung 喷壶 at (69,20)
+- step 40: `go_to` {"x": 70, "y": 27} -> ok=True rc=- walking to (70,27) - 10 steps
+- step 41: `use_tool_at` {"x": 70, "y": 28} -> ok=True rc=- swung 喷壶 at (70,28)
+- step 42: `use_tool_at` {"x": 69, "y": 18} -> ok=True rc=- swung 喷壶 at (69,18)
+- step 43: `use_tool_at` {"x": 69, "y": 20} -> ok=True rc=- swung 喷壶 at (69,20)
+- step 44: `use_tool_at` {"x": 70, "y": 20} -> ok=True rc=- swung 喷壶 at (70,20)
+- step 45: `use_tool_at` {"x": 69, "y": 18} -> ok=True rc=- swung 喷壶 at (69,18)
+- step 46: 守门器拦下，未执行 - 'use_tool_at' {"x": 69, "y": 20} 本日已重复 4 次 - 这是个循环，别再做了
+- step 47: 守门器拦下，未执行 - 'use_tool_at' {"x": 70, "y": 20} 本日已重复 4 次 - 这是个循环，别再做了
+- step 48: `go_to` {"x": 69, "y": 17} -> ok=True rc=- walking to (69,17) - 12 steps
+- step 49: 守门器拦下，未执行 - 'use_tool_at' {"x": 69, "y": 18} 本日已重复 4 次 - 这是个循环，别再做了
+- step 50: `go_to` {"x": 68, "y": 20} -> ok=True rc=- walking to (68,20) - 5 steps
+- step 51: 守门器拦下，未执行 - 'use_tool_at' {"x": 69, "y": 20} 本日已重复 4 次 - 这是个循环，别再做了
+- step 52: `go_to` {"x": 71, "y": 20} -> ok=True rc=- walking to (71,20) - 4 steps
+- step 53: 守门器拦下，未执行 - 'use_tool_at' {"x": 70, "y": 20} 本日已重复 4 次 - 这是个循环，别再做了
+- step 54: `water_all` {} -> ok=True rc=- water_all: 3 done, 0 given up of 3 in 2.4s - finished
+- step 55: `go_to` {"x": 40, "y": 62, "facing": 2} -> ok=False rc=NO_PATH no walkable path to (40,62) - it is probably blocked. The farmer is at (69,19); aim at an adjacent free tile instead.
+- step 1: `exit_building` {} -> ok=True rc=- walking to the exit at (3,12) -> Farm
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (64,15) r=8
+- step 3: `select_slot` {"index": 2} -> ok=True rc=- selected slot 2: 喷壶
+- step 4: `refill` {} -> ok=True rc=- refill: 1 done, 0 given up of 1 in 4.4s - finished
+- step 5: `water_all` {} -> ok=True rc=- water_all: 7 done, 0 given up of 7 in 6.5s - finished
+- step 6: `select_slot` {"index": 10} -> ok=True rc=- selected slot 10: 混合种子
+- step 7: `plant_all` {} -> ok=True rc=- plant_all: 40 tile(s) queued - it will work through them by itself
+- step 8: `water_all` {} -> ok=False rc=FAILED already busy - plant_all: 20/40 visited, 3 finished, 17 given up (empty_soil at (60,20) would not budge)
+- step 9: `water_all` {} -> ok=False rc=FAILED plant_all: 3 done, 37 given up of 40 in 152.5s - finished ((empty_soil at (68,26) would not budge))
+- step 10: `select_slot` {"index": 2} -> ok=True rc=- selected slot 2: 喷壶
+- step 11: `refill` {} -> ok=True rc=- refill: 1 done, 0 given up of 1 in 1.3s - finished
+- step 12: `water_all` {} -> ok=True rc=- water_all: 3 done, 0 given up of 3 in 4.3s - finished
+- step 13: `enter` {"target": "BusStop"} -> ok=True rc=- walking to the door of 'BusStop' - it opens on arrival
+- step 14: `enter` {"target": "Town"} -> ok=True rc=- walking to the door of 'Town' - it opens on arrival
+- step 15: `enter` {"target": "SeedShop"} -> ok=False rc=NOT_FREE player not free: cutscene/event playing
+- step 16: `dialogue_advance` {} -> ok=True rc=- dialogue advanced
+- step 17: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 18: `press_key` {"key": "space"} -> ok=True rc=- pressed key 'space' (needs the game window focused)
+- step 19: `dialogue_advance` {} -> ok=True rc=- dialogue advanced
+- step 20: `enter` {"target": "SeedShop"} -> ok=False rc=NOT_FREE player not free: dialogue is open
+- step 21: `press_key` {"key": "space"} -> ok=True rc=- pressed key 'space' (needs the game window focused)
+- step 22: `enter` {"target": "SeedShop"} -> ok=False rc=NOT_FREE player not free: dialogue is open
+- step 23: `dialogue_advance` {} -> ok=True rc=- dialogue advanced
+- step 24: `dialogue_advance` {} -> ok=True rc=- dialogue advanced
+- step 25: `enter` {"target": "SeedShop"} -> ok=False rc=NOT_FREE player not free: cutscene/event playing
+- step 26: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 27: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 28: `press_key` {"key": "space"} -> ok=True rc=- pressed key 'space' (needs the game window focused)
+- step 29: `dialogue_advance` {} -> ok=True rc=- dialogue advanced
+- step 30: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 31: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 32: `press_key` {"key": "space"} -> ok=True rc=- pressed key 'space' (needs the game window focused)
+- step 33: `press_key` {"key": "space"} -> ok=True rc=- pressed key 'space' (needs the game window focused)
+- step 34: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 35: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 36: `press_key` {"key": "escape"} -> ok=True rc=- pressed key 'escape' (needs the game window focused)
+- step 37: `dialogue_advance` {} -> ok=True rc=- dialogue advanced
+- step 38: `press_key` {"key": "space"} -> ok=True rc=- pressed key 'space' (needs the game window focused)
+- step 39: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 40: `dialogue_advance` {} -> ok=True rc=- dialogue advanced
+- step 41: `press_key` {"key": "space"} -> ok=True rc=- pressed key 'space' (needs the game window focused)
+- step 42: `dialogue_advance` {} -> ok=False rc=FAILED no dialogue box open
+- step 43: `enter` {"target": "CommunityCenter"} -> ok=True rc=- entered via the door at (52,19)
+- step 44: `go_to` {"x": 30, "y": 22} -> ok=False rc=NO_PATH no walkable path to (30,22) - it is probably blocked. The farmer is at (32,23); aim at an adjacent free tile instead.
+- step 45: `go_to` {"x": 14, "y": 25} -> ok=True rc=- walking to (14,25) - 45 steps
+- step 46: `interact_at` {"x": 15, "y": 27} -> ok=False rc=FAILED interacted with (15,27) -> False
+- step 47: `go_to` {"x": 15, "y": 26} -> ok=True rc=- walking to (15,26) - 3 steps
+- step 48: `interact` {} -> ok=False rc=FAILED checkAction at (15, 27) -> False
+- step 49: `interact_at` {"x": 15, "y": 27} -> ok=False rc=FAILED interacted with (15,27) -> False
+- step 50: `interact_at` {"x": 15, "y": 27} -> ok=False rc=FAILED interacted with (15,27) -> False
+- step 51: `select_slot` {"index": 5} -> ok=True rc=- selected slot 5: 纤维
+- step 52: `interact` {} -> ok=False rc=FAILED checkAction at (15, 27) -> False
+- step 53: `go_to` {"x": 32, "y": 24} -> ok=True rc=- walking to (32,24) - 48 steps
+- step 54: `interact` {} -> ok=False rc=FAILED checkAction at (52, 22) -> False
+- step 55: 守门器拦下，未执行 - 'enter' {"target": "SeedShop"} 本日已重复 4 次 - 这是个循环，别再做了
+- step 56: `enter` {"target": "CommunityCenter"} -> ok=True rc=- walking to the door of 'CommunityCenter' - it opens on arrival
+- step 57: `go_to` {"x": 14, "y": 24} -> ok=True rc=- walking to (14,24) - 44 steps
+- step 58: `interact_at` {"x": 14, "y": 25} -> ok=False rc=FAILED interacted with (14,25) -> False
+- step 59: `interact_at` {"x": 15, "y": 27} -> ok=False rc=FAILED interacted with (15,27) -> False
+- step 1: `go_to` {"x": 43, "y": 55} -> ok=False rc=NO_PATH no walkable path to (43,55) - it is probably blocked. The farmer is at (52,21); aim at an adjacent free tile instead.
+- step 2: `go_to` {"x": 44, "y": 55} -> ok=False rc=NO_PATH no walkable path to (44,55) - it is probably blocked. The farmer is at (52,21); aim at an adjacent free tile instead.
+- step 3: `go_to` {"x": 44, "y": 54} -> ok=False rc=NO_PATH no walkable path to (44,54) - it is probably blocked. The farmer is at (52,21); aim at an adjacent free tile instead.
+- step 4: `go_to` {"x": 52, "y": 20} -> ok=True rc=- walking to (52,20) - 2 steps
+- step 5: `enter` {"target": "CommunityCenter"} -> ok=True rc=- entered via the door at (52,19)
+- step 6: `go_to` {"x": 32, "y": 24} -> ok=True rc=- walking to (32,24) - 2 steps
+- step 7: `go_to` {"x": 43, "y": 57} -> ok=True rc=- walking to (43,57) - 46 steps
+- step 8: `interact_at` {"x": 43, "y": 56} -> ok=False rc=LOCKED the door is locked ('上锁了……（营业时间：9:00~21:00）') - SeedShop opens 9:00 and shuts 21:00. Standing here knocking is not something a player does; the hours are known, so plan around them.
+- step 9: `go_to` {"x": 4, "y": 19} -> ok=True rc=- walking to (4,19) - 13 steps
+- step 10: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 11: `go_to` {"x": 10, "y": 20} -> ok=True rc=- walking to (10,20) - 8 steps
+- step 12: `interact_at` {"x": 11, "y": 20} -> ok=True rc=- interacted with (11,20) -> True
+- step 13: `go_to` {"x": 4, "y": 19} -> ok=True rc=- walking to (4,19) - 8 steps
+- step 14: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 15: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 16: `go_to` {"x": 15, "y": 13} -> ok=False rc=NO_PATH no walkable path to (15,13) - it is probably blocked. The farmer is at (4,19); aim at an adjacent free tile instead.
+- step 17: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 18: `go_to` {"x": 5, "y": 18} -> ok=False rc=NO_PATH no walkable path to (5,18) - it is probably blocked. The farmer is at (4,19); aim at an adjacent free tile instead.
+- step 19: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 20: `interact_at` {"x": 4, "y": 17} -> ok=False rc=FAILED interacted with (4,17) -> False
+- step 21: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 22: `interact` {} -> ok=True rc=- checkAction at (4, 18) -> True
+- step 23: `interact_at` {"x": 4, "y": 18} -> ok=True rc=- interacted with (4,18) -> True
+- step 24: `go_to` {"x": 36, "y": 6} -> ok=False rc=NO_PATH no walkable path to (36,6) - it is probably blocked. The farmer is at (4,19); aim at an adjacent free tile instead.
+- step 25: `go_to` {"x": 37, "y": 6} -> ok=True rc=- walking to (37,6) - 53 steps
+- step 26: `interact_at` {"x": 37, "y": 5} -> ok=False rc=FAILED interacted with (37,5) -> False
+- step 27: `go_to` {"x": 6, "y": 29} -> ok=True rc=- walking to (6,29) - 61 steps
+- step 28: `enter` {"target": "Town"} -> ok=False rc=FAILED the door at (6,30) would not open - it may be locked or shut at this hour
+- step 29: `exit_building` {} -> ok=True rc=- walking to the exit at (6,30) -> Town
+- step 30: `go_to` {"x": 64, "y": 15} -> ok=False rc=NO_PATH no walkable path to (64,15) - it is probably blocked. The farmer is at (43,57); aim at an adjacent free tile instead.
+- step 31: `go_to` {"x": 3, "y": 53} -> ok=True rc=- walking to (3,53) - 45 steps
+- step 32: `go_to` {"x": 0, "y": 53} -> ok=True rc=- walking to (0,53) - 4 steps
+- step 33: `enter` {"target": "BusStop"} -> ok=False rc=FAILED the door at (-1,53) would not open - it may be locked or shut at this hour
+- step 34: `enter` {"target": "BusStop"} -> ok=False rc=FAILED the door at (-1,53) would not open - it may be locked or shut at this hour
+- step 35: `go_to` {"x": 0, "y": 53} -> ok=True rc=- already at (0,53)
+- step 36: `move` {"direction": "left", "duration_ms": 1500} -> ok=True rc=- moving left for 1500ms
+- step 37: `enter` {"target": "Farm"} -> ok=False rc=NOT_FREE player not free: farmer cannot move right now
+- step 38: `move` {"direction": "left", "duration_ms": 2500} -> ok=True rc=- moving left for 2500ms
+- step 39: `enter` {"target": "Farm"} -> ok=True rc=- walking to the door of 'Farm' - it opens on arrival
+- step 40: `go_to` {"x": 64, "y": 15} -> ok=True rc=- walking to (64,15) - 17 steps
+- step 41: `enter` {"target": "FarmHouse"} -> ok=True rc=- entered via the door at (64,14)
+- step 42: `sleep` {} -> ok=True rc=- walking to the bed at (10,9) - will lie down on arrival

@@ -1,0 +1,33 @@
+{
+  "character_name": "Juniper",
+  "farm_name": "Moss Hollow",
+  "persona": "I'm a quiet forest-dweller who'd rather talk to mushrooms than people, but I warm up fast over a shared campfire. I care about living gently off the land, keeping the woods wild, and naming every crow that visits my farm. Profit matters less to me than a good berry season and a well-stocked preserves jar.",
+  "start_goal": "Clear a small patch near the trees, plant parsnips, and fill my backpack with forageables before sundown.",
+  "design": {
+    "name": "Juniper",
+    "farm_name": "Moss Hollow",
+    "favorite_thing": "foraging",
+    "gender": "female",
+    "farm_type": "Forest",
+    "skin": 4,
+    "hair_style": 18,
+    "accessory": 0,
+    "hair_color": [
+      92,
+      148,
+      74
+    ],
+    "eye_color": [
+      70,
+      110,
+      140
+    ],
+    "pants_color": [
+      60,
+      80,
+      60
+    ],
+    "start_goal": "Clear a small patch near the trees, plant parsnips, and fill my backpack with forageables before sundown.",
+    "persona": "I'm a quiet forest-dweller who'd rather talk to mushrooms than people, but I warm up fast over a shared campfire. I care about living gently off the land, keeping the woods wild, and naming every crow that visits my farm. Profit matters less to me than a good berry season and a well-stocked preserves jar."
+  }
+}

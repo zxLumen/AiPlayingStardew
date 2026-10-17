@@ -1,60 +1,8 @@
 {
   "tally": {
     "area|clear_area": {
-      "ok": 24,
-      "fail": 57
-    },
-    "area|harvest_all": {
-      "ok": 4,
-      "fail": 19
-    },
-    "area|plant_all": {
-      "ok": 15,
-      "fail": 2
-    },
-    "area|refill": {
-      "ok": 21,
-      "fail": 22
-    },
-    "area|till_area": {
-      "ok": 23,
-      "fail": 68
-    },
-    "area|water_all": {
-      "ok": 39,
-      "fail": 29
-    },
-    "big_debris|go_to": {
-      "ok": 0,
+      "ok": 1,
       "fail": 1
-    },
-    "forage|interact_at": {
-      "ok": 2,
-      "fail": 5
-    },
-    "forage|work": {
-      "ok": 0,
-      "fail": 1
-    },
-    "thirsty_crop|go_to": {
-      "ok": 1,
-      "fail": 0
-    },
-    "thirsty_crop|use_tool_at": {
-      "ok": 1,
-      "fail": 30
-    },
-    "thirsty_crop|work": {
-      "ok": 1,
-      "fail": 6
-    },
-    "tree|work": {
-      "ok": 1,
-      "fail": 0
-    },
-    "weed|go_to": {
-      "ok": 0,
-      "fail": 2
     }
   }
 }

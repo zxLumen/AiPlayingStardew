@@ -56,16 +56,17 @@
       "key": "stage:save",
       "title": "流水线卡在「读入 AI 自己的存档」",
       "owner": "developer",
-      "detail": "不知道自己的存档长什么样（config/ai_save.json 缺失）",
+      "detail": "创建存档失败: RuntimeError: could not read /state after 4 tries: [WinError 10061] 由于目标计算机积极拒绝，无法连接。",
       "severity": 3,
-      "count": 2,
+      "count": 3,
       "first_seen": "2026-10-16 14:55",
-      "last_seen": "2026-10-16 14:56",
+      "last_seen": "2026-10-17 16:08",
       "cost_s": 0.0,
       "days": 0,
       "status": "open",
       "evidence": [
-        "不知道自己的存档长什么样（config/ai_save.json 缺失）"
+        "不知道自己的存档长什么样（config/ai_save.json 缺失）",
+        "创建存档失败: RuntimeError: could not read /state after 4 tries: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"
       ]
     },
     {

@@ -221,7 +221,8 @@ public static class ActionProcessor
 
     private static void Receipt(string requested, string resolved, string grid, bool unique,
                                 int matches, IEnumerable<string> candidates, string verdict,
-                                string point, IEnumerable<int> rect, IEnumerable<string> changed)
+                                string point, IEnumerable<int> rect, IEnumerable<string> changed,
+                                bool active = true)
     {
         _receipt = new Dictionary<string, object?>
         {
@@ -235,6 +236,10 @@ public static class ActionProcessor
             ["point"] = point,
             ["rect"] = rect.ToList(),
             ["changed"] = changed.ToList(),
+            // Whether the game window was ACTIVE when the click went out. False explains a click that
+            // landed perfectly and was never heard - and it is the one thing a retry can fix, because
+            // the click that activates a background window is eaten by Windows, not by the game.
+            ["active"] = active,
         };
     }
 
@@ -2186,6 +2191,9 @@ public static class ActionProcessor
 
         EnsureWindowActive();
 
+        // Captured AFTER the focus attempt, because that is the state the click will actually meet.
+        bool windowActive = NativeInput.IsGameWindowActive();
+
         // Descend into TitleMenu's submenu (e.g. LoadGameMenu) when one is open.
         IClickableMenu menu = UiStateBuilder.GetEffectiveMenu() ?? active;
 
@@ -2297,7 +2305,7 @@ public static class ActionProcessor
 
             Receipt(handle, hit.Id, hit.Grid, true, 1, Array.Empty<string>(), "OK",
                     $"({cx},{cy})", new[] { target.bounds.X, target.bounds.Y, target.bounds.Width, target.bounds.Height },
-                    evidence);
+                    evidence, windowActive);
 
             return (true, $"clicked '{name}' at ({cx},{cy}) with the mouse in {menu.GetType().Name} "
                           + $"[{string.Join(", ", evidence)}]{viaReal}");
@@ -2318,6 +2326,14 @@ public static class ActionProcessor
             ? "the click was delivered - the game did not react, which may be its own correct answer "
               + $"(nothing free to take it, nothing to confirm). {NativeInput.LastClickReport()}"
             : "the cursor could not be moved";
+
+        // THE ONE CAUSE WORTH NAMING. A background window is activated by the first click and that
+        // click is eaten by Windows, not by the game - so "nothing happened" has a specific, fixable
+        // meaning here, and saying it is the difference between a retry and a superstition.
+        if (!windowActive)
+            why += " | THE GAME WINDOW WAS NOT ACTIVE: the game ignores menu input while it is not, and "
+                 + "the click that activates a background window is swallowed by Windows - so this click "
+                 + "may have only woken the window. One more click, a moment later, is heard.";
 
         // A real click is hover -> press -> release, and the press half is the old shape too: a shop row
         // that is picked up and never put down was one missing release, with four symptoms.
@@ -2365,7 +2381,7 @@ public static class ActionProcessor
         Receipt(handle, hit.Id, hit.Grid, true, 1, Array.Empty<string>(),
                 evidence.Count > 0 ? "OK_OLD_PATH" : (real ? "SILENT_NOOP" : "NO_CURSOR"),
                 $"({cx},{cy})", new[] { target.bounds.X, target.bounds.Y, target.bounds.Width, target.bounds.Height },
-                evidence);
+                evidence, windowActive);
 
         return (true, $"clicked '{name}' at ({cx},{cy}) in {menu.GetType().Name}{via}"
                       + $" - {why}, so it was done the old way{proof}");

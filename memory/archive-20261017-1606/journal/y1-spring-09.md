@@ -1,0 +1,26 @@
+# 游戏内 y1-spring-09
+
+- step 1: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 2: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 3: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 4: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 5: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 6: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 1: `scan` {"radius": 8} -> ok=True rc=- scan around (9,9) r=8
+- step 2: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 3: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 4: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 5: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 6: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 7: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 8: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 9: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 10: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 11: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 12: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 13: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 14: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 15: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 16: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 17: `noop` {"radius": 8} -> ok=True rc=- noop
+- step 18: `noop` {"radius": 8} -> ok=True rc=- noop
