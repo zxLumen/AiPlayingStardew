@@ -55,13 +55,10 @@ Never nest the arguments inside an "args" object. Never output markdown or prose
 ACTION_CATALOGUE = """Actions (args are shown after the arrow):
 
 GAMEPLAY
-- refill          -> {}   fill the watering can from the nearest water, by itself. The can runs
-                          dry, and an empty can waters nothing - check inventory[].charges before
-                          watering, and refill when it is 0.
+- refill          -> {}   fill the watering can from the nearest water, by itself
 - clear_area      -> {"x": int, "y": int, "radius": int}
-                     clear every weed, twig and stone in that area. It walks and swings BY ITSELF
-                     at game speed - one decision replaces dozens. Use this instead of clearing
-                     tiles one at a time.
+                     clear every weed, twig and stone in that area - it walks and swings by itself
+                     at game speed, one decision replaces dozens
 - water_all       -> {}   water every unwatered crop nearby, by itself
 - harvest_all     -> {}   harvest every ready crop nearby, by itself
 - till_area       -> {"x": int, "y": int, "radius": int}   till a whole patch, by itself
@@ -69,12 +66,9 @@ GAMEPLAY
                           by itself (select the seeds first)
 - plant           -> {"x": int, "y": int}   put the held seeds into ONE tilled tile
 - enter           -> {"target": "SeedShop"}
-                     walk to the door of a named place and go in. Door tiles cannot be walked onto,
-                     so go_to can never reach them - use this for every shop and building. The
-                     names are in location.warps ("to").
+                     walk to the door of a named place and go in. Names are in location.warps ("to").
 - scan            -> {"radius": int}   count what is available nearby (debris / tillable /
-                          empty soil / crops) and show example tiles. USE THIS when you are
-                          unsure where the work is - do not guess coordinates.
+                          empty soil / crops) and show example tiles
 - work            -> {"x": int, "y": int}
                      handle ONE tile: walk into range, pick the right tool, do it. Use for a
                      single target; use clear_area for a patch.
@@ -96,14 +90,12 @@ GAMEPLAY
 
 MENUS / UI (when ui.menu_name is not empty)
 - menu_click      -> {"name":"<button name from ui.buttons, or a shop slot from ui.shop>"}
-  IN A SHOP the rows carry no labels on their own - ui.shop is what joins them onto the goods:
-  {"slot":"0","item":"防风草种子","price":20,"stock":-1,"affordable":true}. Buy the row whose item
-  is the one you actually want. A row with no item name is NOT known - do not buy it and hope.
-  AFTER any purchase, check ui.held_item (the MENU's hand) and player.on_cursor (your own). If either
-  is set, the goods are in your HAND, not in your bag: click the bag slot you want them in - a shop's
-  bag slots are listed in ui.buttons as inventory[0], inventory[1], ... - or press_key escape to put
-  them back to the shop. A shop will NOT close while its hand is full, and that looks exactly like the
-  game ignoring you - so check the hand before blaming the menu.
+  IN A SHOP ui.shop joins the goods onto the rows: {"slot":"0","item":"防风草种子","price":20,
+  "stock":-1,"affordable":true}. Buy the row whose item is the one you want; a row with no item
+  name is NOT known, so do not buy it and hope.
+  AFTER a purchase check ui.held_item: if it is set the goods are in the MENU's hand, not your bag -
+  click the bag slot you want them in (in ui.buttons as inventory[0], inventory[1], ...) or
+  press_key escape to put them back. A shop cannot close while its hand is full.
 - dialogue_advance -> {}
 - dialogue_choose -> {"index": int}          pick from ui.dialogue.responses
 - skip_intro      -> {}
@@ -237,7 +229,13 @@ day by going to bed so the next day begins."""
 
 
 def streamer_system(goal: str) -> str:
-    return STREAMER_SYSTEM.replace("{{\n}}", goal.strip() or "(no explicit goal)")
+    # THE GOAL WAS NEVER REACHING THE MODEL. STREAMER_SYSTEM is an f-string, and an f-string folds its
+    # own {{ }} into a bare { } as it is built - so by the time this line ran, the placeholder it was
+    # searching for (two braces) did not exist any more, the replace matched nothing, and the farmer
+    # played every day with an empty GOAL block: told to follow the quest, never told what the quest
+    # was. Both spellings are replaced now, so which way the braces come out stops mattering.
+    text = goal.strip() or "(no explicit goal)"
+    return STREAMER_SYSTEM.replace("{{\n}}", text).replace("{\n}", text)
 
 
 def streamer_user(state: dict, history: list[str], directive: str | None) -> str:
