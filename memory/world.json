@@ -7,6 +7,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "ShopMenu:shelf row|menu_click": {
+      "works": 15,
+      "fails": 39,
+      "says": "forSaleButtons.0",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "go_to@Town|go_to": {
       "works": 36,
       "fails": 18,
@@ -14,10 +21,10 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "ShopMenu:shelf row|menu_click": {
-      "works": 11,
-      "fails": 39,
-      "says": "forSaleButtons.0",
+    "tile:empty|interact_at": {
+      "works": 13,
+      "fails": 37,
+      "says": "嗯……我现在已经要入不敷出了。现在来找我看病的病人不是很多。",
       "note": "",
       "last": "2026-10-17"
     },
@@ -25,13 +32,6 @@
       "works": 34,
       "fails": 11,
       "says": "BusStop",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "tile:empty|interact_at": {
-      "works": 13,
-      "fails": 32,
-      "says": "嗯……我现在已经要入不敷出了。现在来找我看病的病人不是很多。",
       "note": "",
       "last": "2026-10-17"
     },
@@ -43,7 +43,7 @@
       "last": "2026-10-17"
     },
     "door:SeedShop|enter": {
-      "works": 24,
+      "works": 25,
       "fails": 12,
       "says": "SeedShop",
       "note": "",
@@ -57,9 +57,16 @@
       "last": "2026-10-17"
     },
     "tile:something|interact_at": {
-      "works": 25,
+      "works": 26,
       "fails": 6,
       "says": "等到皮埃尔经营店铺的时候再回来。",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Town:exit_building|exit_building": {
+      "works": 29,
+      "fails": 0,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -70,10 +77,10 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Town:exit_building|exit_building": {
-      "works": 28,
-      "fails": 0,
-      "says": "",
+    "ShopMenu:bag slot|menu_click": {
+      "works": 8,
+      "fails": 20,
+      "says": "inventory.11",
       "note": "",
       "last": "2026-10-17"
     },
@@ -85,16 +92,16 @@
       "last": "2026-10-17"
     },
     "go_to@SeedShop|go_to": {
-      "works": 25,
+      "works": 26,
       "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "ShopMenu:bag slot|menu_click": {
-      "works": 7,
-      "fails": 17,
-      "says": "inventory.11",
+    "menu:upperRightCloseButton|menu_click": {
+      "works": 24,
+      "fails": 0,
+      "says": "upperRightCloseButton",
       "note": "",
       "last": "2026-10-17"
     },
@@ -102,13 +109,6 @@
       "works": 4,
       "fails": 19,
       "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "menu:upperRightCloseButton|menu_click": {
-      "works": 23,
-      "fails": 0,
-      "says": "upperRightCloseButton",
       "note": "",
       "last": "2026-10-17"
     },
@@ -170,7 +170,7 @@
     },
     "ShopMenu:upperRightCloseButton|menu_click": {
       "works": 0,
-      "fails": 9,
+      "fails": 10,
       "says": "upperRightCloseButton",
       "note": "",
       "last": "2026-10-17"
@@ -178,6 +178,13 @@
     "go_to@BusStop|go_to": {
       "works": 9,
       "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:刘易斯|interact_at": {
+      "works": 0,
+      "fails": 9,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -190,13 +197,6 @@
       "last": "2026-10-17"
     },
     "tile:hoe_dirt|use_tool_at": {
-      "works": 0,
-      "fails": 8,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "tile:刘易斯|interact_at": {
       "works": 0,
       "fails": 8,
       "says": "",

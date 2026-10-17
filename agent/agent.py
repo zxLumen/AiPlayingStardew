@@ -644,24 +644,60 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         # the tile is resolved here, at the moment of dispatch, from this step's state.
         wanted = str(args.get("character") or args.get("npc") or "").strip()
         if wanted and action in ("go_to", "interact_at", "interact"):
-            people = (state.get("nearby_characters") or []) + (state.get("characters") or [])
-            found = None
-            for person in people:
-                label = f"{person.get('name') or ''} {person.get('display_name') or ''}".lower()
-                if wanted.lower() in label:
-                    found = person
-                    break
+            def live_tile(view: dict):
+                for person in (view.get("nearby_characters") or []) + (view.get("characters") or []):
+                    label = f"{person.get('name') or ''} {person.get('display_name') or ''}".lower()
+                    if wanted.lower() in label and person.get("tile_x") is not None:
+                        return person
+                return None
 
-            if found is not None and found.get("tile_x") is not None:
-                args = {k: v for k, v in args.items() if k not in ("character", "npc")}
-                args["x"] = int(found["tile_x"])
-                args["y"] = int(found["tile_y"])
-                log(f"[找人] {wanted} 现在在 ({args['x']},{args['y']}) - 按此刻的位置出发")
+            # WALK TOWARD A LIVE THING, re-aiming as it moves.
+            #
+            # A player does not walk to where a person was - they keep their eyes on them and adjust. The
+            # harness can do the same thing with the action it already has: walk, look again, walk again,
+            # until they are next to them, with no model call in between. That is what this is - the aim
+            # staying on the person instead of on a tile read a minute ago.
+            if action == "go_to":
+                reached = None
+                for _ in range(5):
+                    person = live_tile(state)
+                    if person is None:
+                        break
+                    here = state.get("player") or {}
+                    dx = abs(int(here.get("tile_x") or 0) - int(person["tile_x"]))
+                    dy = abs(int(here.get("tile_y") or 0) - int(person["tile_y"]))
+                    if dx + dy <= 1:
+                        reached = person
+                        break
+                    client.action("go_to", x=int(person["tile_x"]), y=int(person["tile_y"]))
+                    try:
+                        state = client.state()
+                    except Exception:
+                        break
+
+                person = reached or live_tile(state)
+                if person is None:
+                    history.append(f"{wanted} moved off before I could reach them - people keep walking.")
+                    log(f"[找人] {wanted} 中途走开了 -> 改成 scan")
+                    action, args = "scan", {"radius": 8}
+                else:
+                    # Arrived (or as close as the walk would get): talking to them is what "go to the
+                    # person" means in this game, so the step becomes the interaction rather than a no-op.
+                    args = {"x": int(person["tile_x"]), "y": int(person["tile_y"])}
+                    action = "interact_at"
+                    log(f"[找人] 走到 {wanted} 旁边 ({args['x']},{args['y']}) - 现在说句话")
             else:
-                history.append(f"{wanted} is not nearby right now - people walk their own schedules, so "
-                               f"the tile you had would have been where they were. Look around first.")
-                log(f"[找人] {wanted} 不在附近（NPC 会走动）-> 改成 scan")
-                action, args = "scan", {"radius": 8}
+                person = live_tile(state)
+                if person is not None:
+                    args = {k: v for k, v in args.items() if k not in ("character", "npc")}
+                    args["x"] = int(person["tile_x"])
+                    args["y"] = int(person["tile_y"])
+                    log(f"[找人] {wanted} 现在在 ({args['x']},{args['y']}) - 按此刻的位置")
+                else:
+                    history.append(f"{wanted} is not nearby right now - people walk their own schedules, "
+                                   f"so the tile you had would have been where they were.")
+                    log(f"[找人] {wanted} 不在附近（NPC 会走动）-> 改成 scan")
+                    action, args = "scan", {"radius": 8}
 
         attempt_entry = learning.remember_attempt(action, args)
 
