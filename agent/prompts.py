@@ -8,8 +8,10 @@ import json
 # The one-action-per-turn JSON contract
 # ---------------------------------------------------------------------------
 
-ACTION_SCHEMA = """Reply with a SHORT QUEUE of actions as strict JSON - 1 to 6 of them. The arguments go
-at the TOP LEVEL of each entry, next to its "action":
+ACTION_SCHEMA = """Reply with a queue of actions as strict JSON. Queue a STRETCH of play, not a single step -
+the harness calls you again when the queue runs out or something goes wrong, so "walk home, put the
+harvest in the shipping bin, water, then go to bed" is ONE turn of thinking and not five. The arguments
+go at the TOP LEVEL of each entry, next to its "action":
 
 {"reason": "clear the west patch then sow it", "actions": [
   {"action": "clear_area", "x": 8, "y": 21, "radius": 4},
@@ -166,6 +168,11 @@ Other fields worth reading:
                              will BUY that item from you right here, so in a shop that is how you sell:
                              click the slot showing the thing you want rid of. A button with no
                              "shows" is a plain control (a close button, an arrow).
+- ui.menu_name "ItemGrabMenu"  a CONTAINER - a chest, a fridge, or the SHIPPING BIN on your farm. Its
+                             slots are placeholders: click one while holding an item to put it in, click
+                             it again to take it out. The shipping bin is how you sell from home -
+                             whatever is left in it is sold overnight, and it costs no trip to town.
+                             When your bag is full, this is the answer that is always available.
 - player.bag                how full your bag is, and which slot is free. A shop cannot take a
                              purchase it has nowhere to put - make room first.
 - location.warps             every door and warp here, and where it leads.

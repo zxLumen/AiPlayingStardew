@@ -6,22 +6,22 @@
     },
     "area|harvest_all": {
       "ok": 4,
-      "fail": 15
+      "fail": 18
     },
     "area|plant_all": {
       "ok": 10,
       "fail": 1
     },
     "area|refill": {
-      "ok": 13,
+      "ok": 14,
       "fail": 11
     },
     "area|till_area": {
-      "ok": 12,
+      "ok": 13,
       "fail": 57
     },
     "area|water_all": {
-      "ok": 27,
+      "ok": 28,
       "fail": 18
     },
     "big_debris|go_to": {
@@ -42,7 +42,7 @@
     },
     "thirsty_crop|use_tool_at": {
       "ok": 1,
-      "fail": 18
+      "fail": 22
     },
     "thirsty_crop|work": {
       "ok": 1,

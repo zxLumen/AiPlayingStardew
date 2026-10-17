@@ -1,8 +1,8 @@
 {
   "entries": {
     "dialogue_advance@Farm|dialogue_advance": {
-      "works": 42,
-      "fails": 20,
+      "works": 45,
+      "fails": 21,
       "says": "你打算收养这只猫吗？",
       "note": "",
       "last": "2026-10-17"
@@ -64,9 +64,16 @@
       "last": "2026-10-17"
     },
     "Farm:patch|till_area": {
-      "works": 10,
+      "works": 11,
       "fails": 13,
       "says": "你的斧头不够锋利，无法砍破这个树桩。",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|harvest_all": {
+      "works": 4,
+      "fails": 18,
+      "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
       "note": "",
       "last": "2026-10-17"
     },
@@ -84,6 +91,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "press_key@Farm|press_key": {
+      "works": 12,
+      "fails": 10,
+      "says": "space",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "ShopMenu:bag slot|menu_click": {
       "works": 5,
       "fails": 16,
@@ -98,22 +112,8 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "press_key@Farm|press_key": {
-      "works": 12,
-      "fails": 9,
-      "says": "你的斧头不够锋利，无法砍破这个树桩。",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:patch|harvest_all": {
-      "works": 4,
-      "fails": 15,
-      "says": "它可能是喜欢这里！唔……你不觉得这个农场需要养只好猫吗？",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "Farm:patch|water_all": {
-      "works": 12,
+      "works": 13,
       "fails": 4,
       "says": "",
       "note": "",
@@ -127,28 +127,28 @@
       "last": "2026-10-17"
     },
     "select_slot@Farm|select_slot": {
-      "works": 15,
+      "works": 16,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:exit_building|exit_building": {
-      "works": 12,
+      "works": 13,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "DialogueBox:doneNamingButton|menu_click": {
-      "works": 11,
+      "works": 12,
       "fails": 0,
       "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|refill": {
-      "works": 7,
+      "works": 8,
       "fails": 4,
       "says": "",
       "note": "",
@@ -221,6 +221,13 @@
       "works": 0,
       "fails": 4,
       "says": "escape",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:empty|use_tool_at": {
+      "works": 0,
+      "fails": 4,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -462,6 +469,13 @@
       "note": "forSaleButtons.0 clicks were all blocked today and no purchase happened - if the next attempt also fails to change money, the seed-buying combo is broken and I ",
       "last": "2026-10-16"
     },
+    "harvest_all_blocked_by_dialogue|harvest_all": {
+      "works": 0,
+      "fails": 0,
+      "says": "守望者提前结束（blocked: dialogue is open）且世界没有变化",
+      "note": "a chore macro cannot start while a dialogue box is open - clear the dialogue first, then queue chores",
+      "last": "2026-10-17"
+    },
     "namingmenu_aftermath|menu_click": {
       "works": 0,
       "fails": 0,
@@ -544,20 +558,6 @@
       "fails": 0,
       "says": "the whole click changed nothing - not money, not the bag, not either hand",
       "note": "clicking an empty inventory slot ('12') twice while holding 防风草种子 x2 did not stow the seeds; try a different empty slot or dropItemInvisibleButton",
-      "last": "2026-10-17"
-    },
-    "shopmenu_forsalebuttons_0|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "the whole click changed nothing - not money, not the bag, not either hand",
-      "note": "连点 forSaleButtons.0 也不总是扣钱，菜单可能没真正接到点击；买种子不可靠时别恋战，直接关店回家干活",
-      "last": "2026-10-16"
-    },
-    "shopmenu_forsalebuttons|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "clicked 'forSaleButtons.0' at (1060,235) in ShopMenu - the real click changed nothing",
-      "note": "forSaleButtons.0 映射坐标漂移到 (1060,235)（真正应该点 (536,180) 区域），今天点击完全无效——先 downArrow 翻页再试，若仍无效就立刻离店别耗时间",
       "last": "2026-10-17"
     }
   }
