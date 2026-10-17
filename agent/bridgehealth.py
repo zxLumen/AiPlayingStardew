@@ -53,6 +53,29 @@ def _load() -> dict:
         return {"verdicts": {}, "routes": {}}
 
 
+# --- one measured fact about the window, remembered ---------------------------------------------
+#
+# A posted click is the instrument that needs neither the cursor nor the focus - and this game window
+# does not read its message queue: the press goes in, nothing happens, and the next frame still shows
+# the title screen. That was measured four times in a row before the escalation to the game's own menu
+# handler got the farmer in. There is no reason to pay for the discovery again every single click
+# (the check costs three seconds), so once the queue has been caught not being read, menu clicks go
+# straight to the handler. Facts about the instrument, not about the game - hence here.
+def queue_is_read() -> bool:
+    return bool((_load().get("input") or {}).get("queue_read", True))
+
+
+def note_queue(result: str) -> None:
+    """result: "unread" when a posted click had to be escalated, "read" when posting worked."""
+    data = _load()
+    input_state = data.setdefault("input", {})
+    wanted = result == "read"
+    if input_state.get("queue_read", True) != wanted:
+        input_state["queue_read"] = wanted
+        input_state["noted_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        _save(data)
+
+
 def _save(data: dict) -> None:
     try:
         STATE.parent.mkdir(parents=True, exist_ok=True)

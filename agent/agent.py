@@ -848,6 +848,12 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
                     log(f"[找人] {wanted} 不在附近（NPC 会走动）-> 改成 scan")
                     action, args = "scan", {"radius": 8}
 
+        # MEASURED ONCE, REMEMBERED. If this window has already been caught not reading its queue, do
+        # not pay three seconds per click to find out again - go straight to the game's own handler,
+        # which needs no OS input at all.
+        if (action == "menu_click" and "via" not in args and not bridgehealth.queue_is_read()):
+            args = dict(args, via="direct")
+
         attempt_entry = learning.remember_attempt(action, args)
 
         started = time.perf_counter()
@@ -1059,6 +1065,14 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
                             f"{' '.join(str(c) for c in (retry_receipt.get('changed') or []))}")
                 bridgehealth.record(action, retry_args, retry_receipt)
                 skip_world_notes = False
+
+        # The escalation worked, or it did not: either way the window has now told us whether it reads
+        # its own message queue, so the next click does not have to ask again.
+        if action == "menu_click" and verdict == "POSTED":
+            bridgehealth.note_queue("read")
+        elif (action == "menu_click" and verdict in ("MENU_CALL", "MENU_CALL_NO_CHANGE")
+                and str(receipt.get("requested") or "")):
+            bridgehealth.note_queue("unread")
 
         # The player's own notes on how this game behaves, written from what just happened.
         #

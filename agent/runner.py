@@ -285,18 +285,29 @@ class Pipeline:
 
         Returns the action result that counted.
         """
-        result = self.client.action("menu_click", id=handle) or {}
+        # MEASURED ONCE, REMEMBERED: if this window has already been caught not reading its queue,
+        # skip straight to the game's own handler instead of paying three seconds to find out again.
+        import bridgehealth
+
+        skip_post = not bridgehealth.queue_is_read()
+        if skip_post:
+            result = self.client.action("menu_click", id=handle, via="direct") or {}
+        else:
+            result = self.client.action("menu_click", id=handle) or {}
+
         receipt = result.get("data") if isinstance(result.get("data"), dict) else {}
 
-        if str(receipt.get("verdict") or "") != "POSTED":
+        if skip_post or str(receipt.get("verdict") or "") != "POSTED":
             return result
 
         time.sleep(3.0)
         after = ((self.client.state() or {}).get("ui") or {}).get("menu_name") or ""
         if after != menu_before:
+            bridgehealth.note_queue("read")
             return result
 
         self.log("[流水线] 投递的消息没有被读到 -> 改成直接调用游戏自己的菜单处理（不经输入层）")
+        bridgehealth.note_queue("unread")
         direct = self.client.action("menu_click", id=handle, via="direct") or {}
         drec = direct.get("data") if isinstance(direct.get("data"), dict) else {}
         self.log(f"[流水线] 直接调用 -> ok={direct.get('ok')} {drec.get('verdict') or ''} | "

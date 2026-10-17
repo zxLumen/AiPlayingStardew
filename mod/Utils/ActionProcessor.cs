@@ -1856,6 +1856,16 @@ public static class ActionProcessor
         if (!NativeInput.TryGetVirtualKey(key, out byte vk))
             return (false, $"unsupported key '{key}'");
 
+        // A KEY PRESSED IN THE BACKGROUND MUST NOT LAND IN SOMEBODY ELSE'S WINDOW.
+        //
+        // The physical key goes to whatever window has the focus, so pressing escape with the game
+        // behind somebody's editor closes something in the editor. While the game IS the active window
+        // the real key is the faithful thing and it can only reach the game; otherwise the key is
+        // posted into the game's own queue, exactly like a click.
+        if (!NativeInput.IsGameWindowActive() && NativeInput.PostKey(vk))
+            return (true, $"posted '{key}' into the game window's queue without taking focus. "
+                          + NativeInput.LastClickReport());
+
         NativeInput.PressAndRelease(vk);
         return (true, $"pressed key '{key}' (needs the game window focused)");
     }
@@ -3956,6 +3966,32 @@ public static class NativeInput
             return false;
         }
     }
+
+    public static bool PostKey(byte virtualKey)
+    {
+        IntPtr handle = GameWindowHandle();
+        if (handle == IntPtr.Zero)
+        {
+            _lastClick = "no window handle to post the key to";
+            return false;
+        }
+
+        try
+        {
+            PostMessage(handle, WM_KEYDOWN, (IntPtr)virtualKey, IntPtr.Zero);
+            PostMessage(handle, WM_KEYUP, (IntPtr)virtualKey, IntPtr.Zero);
+            _lastClick = $"posted key {virtualKey} into the window's queue without focus";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _lastClick = $"posting the key failed: {ex.Message}";
+            return false;
+        }
+    }
+
+    private const uint WM_KEYDOWN = 0x0100;
+    private const uint WM_KEYUP = 0x0101;
 
     public static bool ClickAt(int clientX, int clientY)
     {
