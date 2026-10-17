@@ -2447,11 +2447,23 @@ public static class ActionProcessor
             ? $" [{string.Join(", ", evidence)}]"
             : " [the whole click changed nothing - not money, not the bag, not either hand]";
 
+        // A DIRECT CALL'S EFFECT LANDS ON THE NEXT FRAME, SO THIS CANNOT CLAIM ONE.
+        //
+        // Calling the menu's own handler is synchronous, but the menu reacts when the game next
+        // updates - and this code is running on the game's thread, inside that very update. The
+        // before/after snapshot taken here is blind to the effect by construction: a save that loaded
+        // perfectly was reported as "changed nothing", which is exactly the kind of confident wrong
+        // answer this project keeps having to unpick. So the verdict says what actually happened (the
+        // handler was called, no OS input took part) and the state read that follows is the judge.
+        var observed = new List<string>(evidence);
+        if (direct)
+            observed.Add("the effect lands on the next frame - the state read that follows is the judge");
+
         Receipt(handle, hit.Id, hit.Grid, true, 1, Array.Empty<string>(),
-                evidence.Count > 0 ? (direct ? "MENU_CALL" : "OK_OLD_PATH")
-                                   : (direct ? "MENU_CALL_NO_CHANGE" : (real ? "SILENT_NOOP" : "NO_CURSOR")),
+                direct ? "MENU_CALL"
+                       : (evidence.Count > 0 ? "OK_OLD_PATH" : (real ? "SILENT_NOOP" : "NO_CURSOR")),
                 $"({cx},{cy})", new[] { target.bounds.X, target.bounds.Y, target.bounds.Width, target.bounds.Height },
-                evidence, windowActive);
+                observed, windowActive);
 
         return (true, $"clicked '{name}' at ({cx},{cy}) in {menu.GetType().Name}{via}"
                       + $" - {why}{proof}");

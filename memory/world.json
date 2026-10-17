@@ -8,8 +8,29 @@
       "last": "2026-10-17"
     },
     "Farm:patch|clear_area": {
-      "works": 2,
+      "works": 3,
       "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "select_slot@Farm|select_slot": {
+      "works": 3,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|till_area": {
+      "works": 2,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|water_all": {
+      "works": 2,
+      "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -17,20 +38,6 @@
     "tile:empty|interact_at": {
       "works": 0,
       "fails": 2,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:patch|till_area": {
-      "works": 1,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:patch|water_all": {
-      "works": 1,
-      "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -57,13 +64,6 @@
       "last": "2026-10-17"
     },
     "go_to@Town|go_to": {
-      "works": 1,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "select_slot@Farm|select_slot": {
       "works": 1,
       "fails": 0,
       "says": "",

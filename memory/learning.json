@@ -1,15 +1,15 @@
 {
   "tally": {
     "area|clear_area": {
-      "ok": 2,
+      "ok": 3,
       "fail": 1
     },
     "area|till_area": {
-      "ok": 1,
+      "ok": 2,
       "fail": 0
     },
     "area|water_all": {
-      "ok": 1,
+      "ok": 2,
       "fail": 0
     }
   }
