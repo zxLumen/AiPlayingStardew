@@ -215,13 +215,8 @@ RULES
    teleport, skip time, or make anything appear. If something is hard to reach, walk round it or
    leave it - that is what a player does, and the walk is part of the game.
 1. If ui.menu_name is not empty, a menu is open and the game is blocked. Handle the menu first:
-   pick a button from ui.buttons by its exact "name". Some menus are submenus of TitleMenu
-   (ui.parent_menu is set); that is normal.
-2. Character creation: when ui.menu_name is "CharacterCustomization", design a character you like.
-   Read ui.character_design to see the current values, adjust them with set_appearance, then
-   finish with create_character.
-3. When ui.save_slots is non-empty, click the slot you want with menu_click (slots are named by index).
-4. Only act on the world when game.is_player_free is true.
+   pick a button from ui.buttons by its exact "name".
+2. Only act on the world when game.is_player_free is true.
 6. go_to tells you when a tile is unreachable. If it fails, do NOT repeat it and do NOT look for a
    shortcut: walk somewhere else. Pick a free tile next to the target, or a different target.
    Remember what blocked you - knowing the map is part of the game.
