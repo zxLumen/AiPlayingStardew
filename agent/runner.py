@@ -249,13 +249,20 @@ class Pipeline:
         buttons = ui.get("buttons") or []
         want = str(wanted).lower()
 
-        for button in buttons:
-            for field in ("name", "label", "id"):
-                if str(button.get(field) or "").lower() == want:
+        # The name carries its field: the Load button reports itself as "buttons.Load". So the word to
+        # match is the last segment, not the whole string - and the handle to send back is the id,
+        # which for that button is "buttons#1".
+        def tail_of(button: dict, field: str) -> str:
+            raw = str(button.get(field) or "")
+            return raw.rsplit(".", 1)[-1].lower()
+
+        for field in ("name", "label", "id"):
+            for button in buttons:
+                if str(button.get(field) or "").lower() == want or tail_of(button, field) == want:
                     return str(button.get("id") or button.get("name") or "")
 
         for button in buttons:
-            if str(button.get("name") or "").lower().startswith(want):
+            if want in str(button.get("name") or "").lower():
                 return str(button.get("id") or button.get("name") or "")
 
         return ""
