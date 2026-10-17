@@ -1,15 +1,15 @@
 {
   "entries": {
-    "Farm:patch|clear_area": {
-      "works": 1,
-      "fails": 1,
+    "Farm:exit_building|exit_building": {
+      "works": 2,
+      "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:exit_building|exit_building": {
+    "Farm:patch|clear_area": {
       "works": 1,
-      "fails": 0,
+      "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"

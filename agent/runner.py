@@ -280,6 +280,35 @@ class Pipeline:
         return ""
 
 
+    def _click_heard(self, handle: str, menu_before: str):
+        """Click a control and MAKE SURE IT WAS HEARD.
+
+        Posting the press into the window's queue is the instrument that does not touch the mouse and
+        does not take the focus - but a window sitting in the background may never read its queue, and
+        then the press is delivered and simply never happens. So: post, give the game a few frames, and
+        if the menu has not moved, call the game's OWN menu handler instead. That path takes no OS input
+        at all, which is exactly why it still works with the game behind somebody's work.
+
+        Returns the action result that counted.
+        """
+        result = self.client.action("menu_click", id=handle) or {}
+        receipt = result.get("data") if isinstance(result.get("data"), dict) else {}
+
+        if str(receipt.get("verdict") or "") != "POSTED":
+            return result
+
+        time.sleep(3.0)
+        after = ((self.client.state() or {}).get("ui") or {}).get("menu_name") or ""
+        if after != menu_before:
+            return result
+
+        self.log("[流水线] 投递的消息没有被读到 -> 改成直接调用游戏自己的菜单处理（不经输入层）")
+        direct = self.client.action("menu_click", id=handle, via="direct") or {}
+        drec = direct.get("data") if isinstance(direct.get("data"), dict) else {}
+        self.log(f"[流水线] 直接调用 -> ok={direct.get('ok')} {drec.get('verdict') or ''} | "
+                 f"{str(direct.get('detail'))[:110]}")
+        return direct
+
     def _create(self, create) -> dict:
         """Have the agent make itself a save. `create` returns the record of what it made."""
         if create is None:

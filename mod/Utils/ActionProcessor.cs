@@ -2287,19 +2287,45 @@ public static class ActionProcessor
         // into the window's own queue instead - no focus taken, and the game reads it on its next frame.
         // The effect is therefore not visible in this frame, and the receipt says so rather than
         // claiming the click did or did not work.
-        if (!direct && !windowActive && NativeInput.PostClick(cx, cy))
+        // WHICH INSTRUMENT, and the default is now the one that does not touch the mouse.
+        //
+        //   投递消息 (posted)  -> the press goes into the window's own queue. No focus is taken and the
+        //                         physical cursor is not moved, so the person at the keyboard keeps
+        //                         their pointer: they are working on the other screen and the farmer
+        //                         must not yank the mouse out from under them.
+        //   via:"mouse"        -> the physical cursor, moved to the button and clicked. The most
+        //                         faithful thing there is, and the one a person feels. Only when asked
+        //                         for by name.
+        //   via:"direct"       -> the game's own menu handler, called on the game thread. No OS input
+        //                         at all; the escalation for a window whose queue is not being read.
+        //
+        // This is a straight consequence of the requirement: play while the window is in the
+        // background. A physical click cannot do that (Windows spends it on activating the window),
+        // and moving somebody's cursor every ten seconds is not something they can work next to.
+        if (!direct)
         {
-            Receipt(handle, hit.Id, hit.Grid, true, 1, Array.Empty<string>(), "POSTED",
-                    $"({cx},{cy})",
-                    new[] { target.bounds.X, target.bounds.Y, target.bounds.Width, target.bounds.Height },
-                    new[] { "delivered into the window's queue without taking focus" }, active: false);
+            if (NativeInput.PostClick(cx, cy))
+            {
+                Receipt(handle, hit.Id, hit.Grid, true, 1, Array.Empty<string>(), "POSTED",
+                        $"({cx},{cy})",
+                        new[] { target.bounds.X, target.bounds.Y, target.bounds.Width, target.bounds.Height },
+                        new[] { "delivered into the window's queue without touching the mouse or the focus" },
+                        active: windowActive);
 
-            return (true, $"clicked '{name}' at ({cx},{cy}) WITHOUT taking focus (the window was not "
-                          + $"active, so the physical click would have been spent on activating it) - "
-                          + $"posted into the queue, the game reads it next frame. {NativeInput.LastClickReport()}");
+                return (true, $"clicked '{name}' at ({cx},{cy}) by posting the press into the window's "
+                              + $"queue (no focus taken, no cursor moved; the game reads it next frame). "
+                              + $"{NativeInput.LastClickReport()}");
+            }
+
+            // The physical mouse is DISABLED - see NativeInput.ClickAt. Falling back to it "just in
+            // case" is exactly how somebody's cursor gets yanked while they are typing on another
+            // screen, and a click does not need the pointer to be anybody's.
+            return (false, "could not post the click into the game window (no window handle?), and the "
+                           + "physical mouse is disabled on purpose - it moves the cursor of whoever is "
+                           + "at the keyboard");
         }
 
-        bool real = !direct && NativeInput.ClickAt(cx, cy);
+        bool real = false;   // the direct path below takes no OS input at all
 
         int moneyAfter = Game1.player?.Money ?? 0;
         string cursorAfter = CursorName();
@@ -3932,6 +3958,22 @@ public static class NativeInput
     }
 
     public static bool ClickAt(int clientX, int clientY)
+    {
+        // THE PHYSICAL MOUSE IS DISABLED, ON PURPOSE.
+        //
+        // It moved the pointer onto the button and clicked there: the most faithful thing there is, and
+        // unusable next to a person - the cursor belongs to whoever is at the keyboard, and it jumped
+        // out from under their hand every time the farmer wanted to open a door.
+        //
+        // Nothing about clicking needs the pointer to be anybody's. Posting the press into the window's
+        // queue (PostClick) delivers it without moving the cursor and without taking the focus, and
+        // calling the game's own menu handler (via "direct") needs no input at all. Both are in use; the
+        // escalation between them is the caller's.
+        _lastClick = "the physical mouse is disabled on purpose: it moved somebody else's cursor";
+        return false;
+    }
+
+    private static bool ClickAtDisabled(int clientX, int clientY)
     {
         POINT? origin = ClientOrigin();
         if (origin == null)
