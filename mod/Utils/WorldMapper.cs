@@ -501,6 +501,30 @@ public static class WorldMapper
             .OrderBy(a => Math.Abs(a.At[0] - px) + Math.Abs(a.At[1] - py))
             .ToList();
 
+        // The letter box. On the farm it is written on no tile at all - the game keeps its position on
+        // the location instead - which is why a scan of the farm found "letters waiting" and nowhere to
+        // read them: seven letters sat in a box that no field, and no tile, ever pointed at.
+        try
+        {
+            Vector2? mailAt = MailboxTile(location);
+            if (mailAt.HasValue)
+            {
+                int mx = (int)mailAt.Value.X;
+                int my = (int)mailAt.Value.Y;
+                if (!list.Any(a => a.At.Count == 2 && a.At[0] == mx && a.At[1] == my))
+                {
+                    list.Insert(0, new PlaceActionInfo
+                    {
+                        Verb = "Mailbox",
+                        Action = "Mailbox",
+                        At = new List<int> { mx, my },
+                        Count = 1,
+                    });
+                }
+            }
+        }
+        catch { }
+
         _placeCache[key] = (day, list);
 
         // Say what was found, once per place. The verbs are the game's own words, and a verb we have
@@ -511,6 +535,47 @@ public static class WorldMapper
                    string.Join(", ", list.Select(a => $"{a.Verb} x{a.Count}@{a.At[0]},{a.At[1]}")));
 
         return list;
+    }
+
+
+    /// <summary>
+    /// Where the player's letter box is, asked of the game rather than assumed.
+    ///
+    /// The mail box is not a tile action on the farm - the position lives on the location - so the map
+    /// scan cannot see it. Two spellings are tried because the method is named differently in different
+    /// versions, and the object the game keeps for the box is the last resort.
+    /// </summary>
+    private static Vector2? MailboxTile(GameLocation location)
+    {
+        foreach (string method in new[] { "GetMainMailboxPosition", "getMailboxPosition" })
+        {
+            try
+            {
+                System.Reflection.MethodInfo? mi = location.GetType().GetMethod(method);
+                if (mi == null || mi.GetParameters().Length != 0)
+                    continue;
+
+                object? raw = mi.Invoke(location, null);
+                switch (raw)
+                {
+                    case Vector2 v:
+                        return v;
+                    case Point p:
+                        return new Vector2(p.X, p.Y);
+                }
+            }
+            catch { }
+        }
+
+        try
+        {
+            System.Reflection.FieldInfo? fi = location.GetType().GetField("farmhouseMailbox");
+            if (fi?.GetValue(location) is StardewValley.Object box && box.TileLocation != Vector2.Zero)
+                return box.TileLocation;
+        }
+        catch { }
+
+        return null;
     }
 
 

@@ -14,14 +14,14 @@
     },
     "area|refill": {
       "ok": 19,
-      "fail": 18
+      "fail": 19
     },
     "area|till_area": {
       "ok": 20,
       "fail": 62
     },
     "area|water_all": {
-      "ok": 34,
+      "ok": 35,
       "fail": 27
     },
     "big_debris|go_to": {

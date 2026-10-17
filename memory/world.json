@@ -15,7 +15,7 @@
       "last": "2026-10-17"
     },
     "go_to@Town|go_to": {
-      "works": 39,
+      "works": 40,
       "fails": 18,
       "says": "",
       "note": "",
@@ -23,14 +23,14 @@
     },
     "tile:empty|interact_at": {
       "works": 13,
-      "fails": 37,
+      "fails": 43,
       "says": "嗯……我现在已经要入不敷出了。现在来找我看病的病人不是很多。",
       "note": "",
       "last": "2026-10-17"
     },
     "door:BusStop|enter": {
       "works": 34,
-      "fails": 12,
+      "fails": 13,
       "says": "BusStop",
       "note": "",
       "last": "2026-10-17"
@@ -65,20 +65,20 @@
     },
     "tile:something|interact_at": {
       "works": 28,
-      "fails": 7,
+      "fails": 8,
       "says": "上锁了……（营业时间：9:00~21:00）",
       "note": "",
       "last": "2026-10-17"
     },
     "select_slot@Farm|select_slot": {
-      "works": 33,
+      "works": 34,
       "fails": 0,
       "says": "你看见这只猫了吗？",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|water_all": {
-      "works": 19,
+      "works": 20,
       "fails": 13,
       "says": "",
       "note": "",
@@ -91,17 +91,17 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "door:Town|enter": {
+      "works": 25,
+      "fails": 4,
+      "says": "Town",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "go_to@SeedShop|go_to": {
       "works": 28,
       "fails": 1,
       "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "door:Town|enter": {
-      "works": 24,
-      "fails": 4,
-      "says": "Town",
       "note": "",
       "last": "2026-10-17"
     },
@@ -114,7 +114,7 @@
     },
     "Farm:patch|refill": {
       "works": 13,
-      "fails": 11,
+      "fails": 12,
       "says": "它可能是喜欢这里！唔……你不觉得这个农场需要养只好猫吗？",
       "note": "",
       "last": "2026-10-17"
@@ -140,16 +140,16 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:exit_building|exit_building": {
-      "works": 17,
-      "fails": 1,
+    "go_to@Farm|go_to": {
+      "works": 15,
+      "fails": 4,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@Farm|go_to": {
-      "works": 14,
-      "fails": 4,
+    "Farm:exit_building|exit_building": {
+      "works": 17,
+      "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -158,6 +158,20 @@
       "works": 13,
       "fails": 0,
       "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:Junimo|interact_at": {
+      "works": 0,
+      "fails": 13,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@BusStop|go_to": {
+      "works": 11,
+      "fails": 0,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -175,8 +189,8 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@BusStop|go_to": {
-      "works": 10,
+    "go_to@CommunityCenter|go_to": {
+      "works": 9,
       "fails": 0,
       "says": "",
       "note": "",
@@ -224,20 +238,6 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@CommunityCenter|go_to": {
-      "works": 5,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "tile:Junimo|interact_at": {
-      "works": 0,
-      "fails": 5,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "dialogue_advance@Town|dialogue_advance": {
       "works": 3,
       "fails": 1,
@@ -270,6 +270,20 @@
       "works": 0,
       "fails": 3,
       "says": "dropItemInvisibleButton",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:CommunityCenter|enter": {
+      "works": 3,
+      "fails": 0,
+      "says": "CommunityCenter",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "interact@CommunityCenter|interact": {
+      "works": 0,
+      "fails": 3,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -315,20 +329,6 @@
       "note": "",
       "last": "2026-10-16"
     },
-    "door:CommunityCenter|enter": {
-      "works": 2,
-      "fails": 0,
-      "says": "CommunityCenter",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "interact@CommunityCenter|interact": {
-      "works": 0,
-      "fails": 2,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "move@Farm|move": {
       "works": 0,
       "fails": 2,
@@ -354,6 +354,13 @@
       "works": 2,
       "fails": 0,
       "says": "他们财大气粗，可以先亏本销售，搞倒我这种小本生意……然后再抬高价格割韭菜！",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "dialogue_advance@CommunityCenter|dialogue_advance": {
+      "works": 0,
+      "fails": 1,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -451,8 +458,8 @@
     "communitycenter_junimo|interact_at": {
       "works": 0,
       "fails": 0,
-      "says": "interacted with (14,27) -> False",
-      "note": "Junimo 本体不可交互，旁边的可交互物（如墙上的纸）才是调查目标",
+      "says": "interacted with (15,27) -> False",
+      "note": "对Junimo格直接interact_at反复无效，可能需先推进事件或换按键",
       "last": "2026-10-17"
     },
     "communitycenter|interact_at": {
@@ -551,13 +558,6 @@
       "fails": 0,
       "says": "上锁了……（营业时间：9:00~21:00）",
       "note": "9点前别去敲皮埃尔的门，7:40~9:00 这段时间用来在 Forest 找野菜",
-      "last": "2026-10-17"
-    },
-    "seedshop_shopmenu|menu_click_forsalebuttons_0": {
-      "works": 0,
-      "fails": 0,
-      "says": "防风草种子 20金",
-      "note": "菜单开着时买种子连点 forSaleButtons.0 即可，一次最多3笔，随后一次 upperRightCloseButton + exit_building 离店",
       "last": "2026-10-17"
     }
   }
