@@ -207,16 +207,25 @@ class Pipeline:
             if menu == "TitleMenu":
                 if time.monotonic() - load_at > 10.0:
                     load_at = time.monotonic()
-                    result = self.client.action("menu_click", name="Load")
+                    handle = self._control_id(ui, "Load")
+                    if not handle:
+                        self.log(f"[流水线] 标题界面里没有 Load 这个控件："
+                                 f"{[b.get('name') for b in (ui.get('buttons') or [])][:8]}")
+                        time.sleep(1.5)
+                        continue
+
+                    result = self.client.action("menu_click", id=handle)
                     receipt = result.get("data") if isinstance(result.get("data"), dict) else {}
                     # SAY WHAT CAME BACK. This click used to be thrown away, so a refused or unheard
-                    # click on the title screen looked exactly like a game that was still loading -
-                    # and the loop sat here for a minute at a time with nothing on the console.
-                    self.log(f"[流水线] 点 Load -> ok={result.get('ok')} "
+                    # click on the title screen looked exactly like a game that was still loading - and
+                    # the loop sat here for a minute at a time with nothing on the console. What it was
+                    # actually doing: clicking `{'name': 'Load'}` every ten seconds, being told "that
+                    # name matches two controls - use buttons#1", and clicking it again.
+                    self.log(f"[流水线] 点 Load -> id={handle} ok={result.get('ok')} "
                              f"{receipt.get('verdict') or ''}"
                              f"{'' if receipt.get('active', True) else ' [窗口不是活动的]'}"
                              f" | {str(result.get('detail'))[:110]}")
-                    self._note("save", "clicked Load", ok=bool(result.get("ok")),
+                    self._note("save", "clicked Load", ok=bool(result.get("ok")), id=handle,
                                verdict=str(receipt.get("verdict") or ""),
                                detail=str(result.get("detail", ""))[:120])
                 time.sleep(1.5)
@@ -227,6 +236,30 @@ class Pipeline:
         self._failed("save", f"{timeout_s:.0f}秒没进去；见过的界面 {seen_menus}",
                      cost_s=time.monotonic() - started)
         raise StageFailure("save", f"超时；见过的界面 {seen_menus}")
+
+    @staticmethod
+    def _control_id(ui: dict, wanted: str) -> str:
+        """The handle of a control, found by name or label.
+
+        The label alone is not a handle. "Load" matched TWO controls on the title screen - the button
+        and something else carrying the same word - so the bridge refused it as ambiguous, correctly,
+        and this loop re-sent that same refusal every ten seconds without reading a word of it. The
+        receipt had the answer in it the whole time: use buttons#1.
+        """
+        buttons = ui.get("buttons") or []
+        want = str(wanted).lower()
+
+        for button in buttons:
+            for field in ("name", "label", "id"):
+                if str(button.get(field) or "").lower() == want:
+                    return str(button.get("id") or button.get("name") or "")
+
+        for button in buttons:
+            if str(button.get("name") or "").lower().startswith(want):
+                return str(button.get("id") or button.get("name") or "")
+
+        return ""
+
 
     def _create(self, create) -> dict:
         """Have the agent make itself a save. `create` returns the record of what it made."""
