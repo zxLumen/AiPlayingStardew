@@ -1001,6 +1001,34 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         else:
             skip_world_notes = False
 
+        # A POSTED CLICK IS NOT A CLICK THAT WORKED - IT IS A CLICK THE GAME HAS NOT READ YET.
+        #
+        # With the window in the background the press goes into the window's own queue (so nobody's
+        # focus is stolen), and the game reads it on its next frame. If the world still did not move
+        # by the time the watcher gave up, the queue is not being read at all - and then the only
+        # honest instrument left is the game's own menu handler, called directly. No OS input takes
+        # part, nothing is faked about the game's state, and it works with the window behind a
+        # spreadsheet. That is the escalation, and it says which instrument it used.
+        if action == "menu_click" and verdict == "POSTED" and worked is False:
+            log("[输入] 窗口在后台，送进队列的这一下没有被读到 -> 改成调用游戏自己的菜单处理")
+            direct_args = dict(args)
+            direct_args["via"] = "direct"
+            direct = client.action(action, **direct_args)
+            direct_receipt = direct.get("data") if isinstance(direct.get("data"), dict) else {}
+            direct_verdict = str(direct_receipt.get("verdict") or "")
+            log(f"[输入] 直接调用 -> ok={direct.get('ok')} {direct_verdict} | "
+                f"{str(direct.get('detail'))[:110]}")
+
+            if direct.get("ok") and direct_verdict in ("OK", "OK_OLD_PATH", "MENU_CALL"):
+                result = direct
+                receipt = direct_receipt
+                verdict = direct_verdict
+                worked = True
+                evidence = (f"{evidence or '(nothing)'} via the game's own menu handler: "
+                            f"{' '.join(str(c) for c in (direct_receipt.get('changed') or []))}")
+                bridgehealth.record(action, direct_args, direct_receipt)
+                skip_world_notes = False
+
         # A CLICK ON A BACKGROUND WINDOW IS EATEN BY WINDOWS, NOT REFUSED BY THE GAME.
         #
         # The first click on an inactive window activates it and never reaches the game, so the action

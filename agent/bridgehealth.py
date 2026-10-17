@@ -36,6 +36,11 @@ BRIDGE_FAULTS = {
     "NO_CURSOR": "鼠标没能移过去，点击是旧路径凑合做的",
 }
 
+# Not defects and not answers: this is the instrument changing to suit a window that is in the
+# background. It says "the press is in the window's queue, the game reads it next frame" - which is
+# neither a success nor a failure, so counting it would put noise in front of the model.
+NOT_A_DEFECT = ("POSTED", "MENU_CALL")
+
 # A click that was delivered, was aimed at exactly one control, and changed nothing. That is NOT
 # automatically a fault - the game is entitled to refuse - so it is recorded but never called a fault.
 SUSPECT = {"SILENT_NOOP": "点到了唯一的目标，但世界什么都没变（可能是游戏有权拒绝）"}

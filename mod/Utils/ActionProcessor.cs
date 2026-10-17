@@ -1831,12 +1831,17 @@ public static class ActionProcessor
     /// </summary>
     internal static void EnsureWindowActive()
     {
-        try
-        {
-            if (!NativeInput.IsGameWindowActive())
-                NativeInput.FocusGameWindow();
-        }
-        catch { }
+        // NOBODY'S FOCUS IS STOLEN ANY MORE.
+        //
+        // This used to call SetForegroundWindow before every click, on the theory that the game ignores
+        // input while it is not the active window. It does ignore it - but taking the foreground away
+        // from whoever is working on the other screen is not a fix, it is a different problem, and it
+        // does not even work: Windows spends the click that wins the foreground on the activation
+        // itself, so the game hears nothing and the click reports "delivered".
+        //
+        // The instrument for a background window is a posted message, which the click paths use
+        // (NativeInput.PostClick). This is left in place as the one spot where that decision is
+        // recorded, instead of being re-taken in six callers.
     }
 
 
@@ -2194,6 +2199,13 @@ public static class ActionProcessor
         // Captured AFTER the focus attempt, because that is the state the click will actually meet.
         bool windowActive = NativeInput.IsGameWindowActive();
 
+        // 'via': which instrument to use. "direct" calls the game's OWN menu handler instead of sending
+        // input - no OS event, no foreground, and it works on a window sitting behind somebody else's
+        // work. It is the escalation for a window whose queue is not being read; the caller asks for it
+        // explicitly, so it is never a silent substitute for the real thing.
+        string instrument = root.TryGetProperty("via", out JsonElement viaEl) ? (viaEl.GetString() ?? "") : "";
+        bool direct = instrument.Equals("direct", StringComparison.OrdinalIgnoreCase);
+
         // Descend into TitleMenu's submenu (e.g. LoadGameMenu) when one is open.
         IClickableMenu menu = UiStateBuilder.GetEffectiveMenu() ?? active;
 
@@ -2269,7 +2281,25 @@ public static class ActionProcessor
         // do everything that follows - which menu receives it, the hover, the release, the item
         // following the cursor, and where it goes. Walking a menu's own receiveLeftClick() by hand is
         // what produced a week of shop bugs; a player does not do it and neither should this.
-        bool real = NativeInput.ClickAt(cx, cy);
+        //
+        // EXCEPT WHEN THE WINDOW IS NOT THE ACTIVE WINDOW: then the physical click cannot work, because
+        // Windows spends it on activating the window and the game never hears it. The click is POSTED
+        // into the window's own queue instead - no focus taken, and the game reads it on its next frame.
+        // The effect is therefore not visible in this frame, and the receipt says so rather than
+        // claiming the click did or did not work.
+        if (!direct && !windowActive && NativeInput.PostClick(cx, cy))
+        {
+            Receipt(handle, hit.Id, hit.Grid, true, 1, Array.Empty<string>(), "POSTED",
+                    $"({cx},{cy})",
+                    new[] { target.bounds.X, target.bounds.Y, target.bounds.Width, target.bounds.Height },
+                    new[] { "delivered into the window's queue without taking focus" }, active: false);
+
+            return (true, $"clicked '{name}' at ({cx},{cy}) WITHOUT taking focus (the window was not "
+                          + $"active, so the physical click would have been spent on activating it) - "
+                          + $"posted into the queue, the game reads it next frame. {NativeInput.LastClickReport()}");
+        }
+
+        bool real = !direct && NativeInput.ClickAt(cx, cy);
 
         int moneyAfter = Game1.player?.Money ?? 0;
         string cursorAfter = CursorName();
@@ -2322,7 +2352,10 @@ public static class ActionProcessor
         // confirm button with an empty field does nothing. Those are correct answers, not failures of
         // the mouse. The mouse readings that were printed here as "evidence" were a bad probe; what is
         // kept is the arithmetic, which is checkable.
-        string why = real
+        string why = direct
+            ? "the game's own menu handler was called - no OS input took part, which is what makes this "
+              + "work on a window sitting in the background"
+            : real
             ? "the click was delivered - the game did not react, which may be its own correct answer "
               + $"(nothing free to take it, nothing to confirm). {NativeInput.LastClickReport()}"
             : "the cursor could not be moved";
@@ -2330,7 +2363,7 @@ public static class ActionProcessor
         // THE ONE CAUSE WORTH NAMING. A background window is activated by the first click and that
         // click is eaten by Windows, not by the game - so "nothing happened" has a specific, fixable
         // meaning here, and saying it is the difference between a retry and a superstition.
-        if (!windowActive)
+        if (!direct && !windowActive)
             why += " | THE GAME WINDOW WAS NOT ACTIVE: the game ignores menu input while it is not, and "
                  + "the click that activates a background window is swallowed by Windows - so this click "
                  + "may have only woken the window. One more click, a moment later, is heard.";
@@ -2379,12 +2412,13 @@ public static class ActionProcessor
             : " [the whole click changed nothing - not money, not the bag, not either hand]";
 
         Receipt(handle, hit.Id, hit.Grid, true, 1, Array.Empty<string>(),
-                evidence.Count > 0 ? "OK_OLD_PATH" : (real ? "SILENT_NOOP" : "NO_CURSOR"),
+                evidence.Count > 0 ? (direct ? "MENU_CALL" : "OK_OLD_PATH")
+                                   : (direct ? "MENU_CALL_NO_CHANGE" : (real ? "SILENT_NOOP" : "NO_CURSOR")),
                 $"({cx},{cy})", new[] { target.bounds.X, target.bounds.Y, target.bounds.Width, target.bounds.Height },
                 evidence, windowActive);
 
         return (true, $"clicked '{name}' at ({cx},{cy}) in {menu.GetType().Name}{via}"
-                      + $" - {why}, so it was done the old way{proof}");
+                      + $" - {why}{proof}");
     }
 
 
@@ -3845,6 +3879,57 @@ public static class NativeInput
 
     /// <summary>The numbers behind the last real click, for the witness. A mismatch here is a diagnosis.</summary>
     public static string LastClickReport() => _lastClick;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    private const uint WM_MOUSEMOVE = 0x0200;
+    private const uint WM_LBUTTONDOWN = 0x0201;
+    private const uint WM_LBUTTONUP = 0x0202;
+    private const int MK_LBUTTON = 0x0001;
+
+    /// <summary>
+    /// Click a point IN THE GAME WINDOW WITHOUT BRINGING IT TO THE FRONT.
+    ///
+    /// The messages go into the window's own queue and the game reads them on its next frame, so the
+    /// window never has to be the active window - which is the whole requirement: the person at the
+    /// keyboard is working on the other screen, and a game that demands the foreground for every click
+    /// fights them for it. Worse, when it does ask, it loses the very click that wins it: Windows eats
+    /// the click that activates a background window, so the game sees nothing, the click reports
+    /// "delivered", and it reads as the game refusing.
+    ///
+    /// Position comes from the window-relative point the menu gave us, scaled the same way the physical
+    /// click scales it, so both instruments aim at the same pixel.
+    /// </summary>
+    public static bool PostClick(int uiX, int uiY)
+    {
+        IntPtr handle = GameWindowHandle();
+        if (handle == IntPtr.Zero)
+        {
+            _lastClick = "no window handle to post to";
+            return false;
+        }
+
+        try
+        {
+            float scale = UiScale();
+            int clientX = (int)Math.Round(uiX * scale);
+            int clientY = (int)Math.Round(uiY * scale);
+            IntPtr point = (IntPtr)((clientY << 16) | (clientX & 0xFFFF));
+
+            PostMessage(handle, WM_MOUSEMOVE, IntPtr.Zero, point);
+            PostMessage(handle, WM_LBUTTONDOWN, (IntPtr)MK_LBUTTON, point);
+            PostMessage(handle, WM_LBUTTONUP, IntPtr.Zero, point);
+
+            _lastClick = $"posted into the window's queue without focus: client=({clientX},{clientY})";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _lastClick = $"posting the click failed: {ex.Message}";
+            return false;
+        }
+    }
 
     public static bool ClickAt(int clientX, int clientY)
     {
