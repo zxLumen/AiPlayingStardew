@@ -175,6 +175,7 @@ public static class UiStateBuilder
                         Stack = item.Stack,
                         Quality = item.Quality,
                         Category = item.Category,
+                        CategoryName = StateSnapshotBuilder.CategoryWords(item.Category),
                         Kind = "item",
                     });
                 }

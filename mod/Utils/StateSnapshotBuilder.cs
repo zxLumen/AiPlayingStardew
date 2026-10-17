@@ -26,9 +26,16 @@ public static class StateSnapshotBuilder
 
     private static long _tick;
 
+    /// <summary>
+    /// Where the per-place scan reports what it found. The line-by-line helpers have no monitor of
+    /// their own, and a scan that finds no verb at all is exactly the news that needs to be readable.
+    /// </summary>
+    private static IMonitor? _monitor;
+
     public static string BuildJson(ModConfig cfg, IMonitor monitor)
     {
         _tick++;
+        _monitor = monitor;
         var snap = new GameStateSnapshot { Tick = _tick };
 
         try { snap.Game = BuildGameInfo(); }
@@ -188,6 +195,10 @@ public static class StateSnapshotBuilder
             IsMoving = f.isMoving(),
             BedTile = new[] { (int)f.mostRecentBed.X, (int)f.mostRecentBed.Y },
             CurrentItem = f.CurrentItem != null ? ToItemInfo(f.CurrentItem) : null,
+
+            // Letters the game is holding for this farmer. Nothing exposed it before, so the mailbox
+            // was never once opened and everything the game sends by post stayed in the box.
+            MailWaiting = MailCount(f),
         };
 
         // The stack on the cursor. Until this was exposed, a farmer could be carrying a whole
@@ -237,9 +248,11 @@ public static class StateSnapshotBuilder
             {
                 Slot = i,
                 Name = info.Name,
+                ItemId = info.ItemId,
                 Stack = info.Stack,
                 Quality = info.Quality,
                 Category = info.Category,
+                CategoryName = info.CategoryName,
                 Kind = info.Kind,
                 Description = info.Description,
                 Charges = info.Charges,
@@ -292,9 +305,11 @@ public static class StateSnapshotBuilder
         return new ItemInfo
         {
             Name = item.DisplayName ?? "",
+            ItemId = SafeItemId(item),
             Stack = item.Stack,
             Quality = item.Quality,
             Category = item.Category,
+            CategoryName = CategoryWords(item.Category),
             Kind = kind,
             Description = description,
             Charges = charges,
@@ -302,6 +317,53 @@ public static class StateSnapshotBuilder
             UpgradeLevel = upgradeLevel,
         };
     }
+
+
+    private static string SafeItemId(Item item)
+    {
+        try { return item.ItemId ?? ""; }
+        catch { return ""; }
+    }
+
+
+    private static int MailCount(Farmer f)
+    {
+        try { return f.mailbox?.Count ?? 0; }
+        catch { return 0; }
+    }
+
+
+    /// <summary>
+    /// What a thing IS, in the game's own words: 种子 / 蔬菜 / 水果 / 采集品 / 工具.
+    ///
+    /// A name and a count are not enough to tell a harvested parsnip from a packet of parsnip seeds -
+    /// both are "防风草[种子]" in the same bag - and an agent that had just bought seeds read the seven
+    /// parsnips it was carrying as those seeds and went off to sow them. The game already files the two
+    /// under different categories; this is that category, said out loud, so the answer travels with the
+    /// item instead of having to be worked out.
+    /// </summary>
+    public static string CategoryWords(int category) => category switch
+    {
+        -74 => "种子",
+        -75 => "蔬菜",
+        -79 => "水果",
+        -80 => "花",
+        -81 => "采集品",
+        -4 => "鱼",
+        -5 => "蛋",
+        -6 => "奶",
+        -14 => "肉",
+        -2 => "宝石",
+        -12 => "矿物",
+        -15 => "金属",
+        -16 => "建材",
+        -8 => "合成品",
+        -7 => "料理",
+        -9 => "家具",
+        -20 => "杂物",
+        -99 => "工具",
+        _ => "",
+    };
 
 
     private static LocationInfo BuildLocationInfo(GameLocation loc, ModConfig cfg)
@@ -335,6 +397,17 @@ public static class StateSnapshotBuilder
         // knocks in one day while the game was saying the hours out loud.
         try { info.Shops = WorldMapper.BuildLockedDoors(loc); }
         catch { info.Shops = new List<ShopDoorInfo>(); }
+
+        // What this place OFFERS, one entry per kind of tile-action: a letter box, a notice board, a
+        // bed, a bin. Nothing described them, so the mail was never read and the board outside the shop
+        // was never once used - the agent had no way to know either existed.
+        try
+        {
+            info.PlaceActions = WorldMapper.BuildPlaceActions(
+                loc, info.TileX, info.TileY,
+                msg => _monitor?.Log(msg, LogLevel.Info));
+        }
+        catch { info.PlaceActions = new List<PlaceActionInfo>(); }
 
         // Work available anywhere in this location, so planning does not have to guess coordinates.
         try

@@ -70,6 +70,44 @@ def _bag_room(state: dict) -> str:
     return f"{len(used)} slots used, hotbar slots {free[0]}-{free[-1]} free ({len(free)} free)"
 
 
+# What a thing IS, in words. A bag used to arrive as a name and a count, and that is not enough to
+# tell a parsnip from a packet of parsnip seeds: having just bought seeds, the agent read seven
+# harvested parsnips as those seeds and went off to sow them. The game itself files the two under
+# different categories, so the category is carried through - in words, because nobody should have to
+# remember that -75 means vegetable.
+_CATEGORY_WORDS = {
+    -74: "种子", -75: "蔬菜", -79: "水果", -80: "花", -81: "采集品",
+    -4: "鱼", -5: "蛋", -6: "奶", -14: "肉", -2: "宝石", -12: "矿物",
+    -15: "金属", -16: "建材", -8: "合成品", -7: "料理", -9: "家具",
+    -20: "杂物", -99: "工具",
+}
+
+
+def item_category(item: dict) -> str:
+    """种子 / 蔬菜 / 水果 ... - the mod's own words if it sent any, else the number, decoded."""
+    spoken = item.get("category_name")
+    if spoken:
+        return str(spoken)
+    try:
+        return _CATEGORY_WORDS.get(int(item.get("category")), "")
+    except (TypeError, ValueError):
+        return ""
+
+
+def item_row(item: dict) -> dict:
+    """One thing in the bag, with what it IS - not just what it is called."""
+    row = {
+        "slot": item.get("slot"),
+        "name": item.get("name"),
+        "count": item.get("stack"),
+        "kind": item.get("kind"),
+    }
+    what = item_category(item)
+    if what:
+        row["category_name"] = what
+    return row
+
+
 def compact_state(state: dict) -> dict:
     game = state.get("game", {}) or {}
     player = state.get("player", {}) or {}
@@ -116,10 +154,7 @@ def compact_state(state: dict) -> dict:
         # could give it nothing. The supervisor's prose was the only thing that ever mentioned it; now
         # it is a fact in front of the agent, with the number of the slot to use.
         "bag": _bag_room(state),
-        "inventory": [
-            {"slot": i.get("slot"), "name": i.get("name"), "count": i.get("stack"), "kind": i.get("kind")}
-            for i in (state.get("inventory") or [])[:MAX_LIST]
-        ],
+        "inventory": [item_row(i) for i in (state.get("inventory") or [])[:MAX_LIST]],
     }
 
     # What the farmer faces right now - the tile an action would act on.

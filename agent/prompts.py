@@ -171,6 +171,9 @@ Other fields worth reading:
                              When your bag is full, this is the answer that is always available.
 - player.bag                how full your bag is, and which slot is free. A shop cannot take a
                              purchase it has nowhere to put - make room first.
+- inventory[].category_name  what the thing actually IS: 种子, 蔬菜, 水果, 采集品, 鱼, 工具 ...
+                             A harvested 防风草 is 蔬菜; 防风草种子 is 种子. Only seeds go in the
+                             ground - look at this before you sow anything or sell it.
 - location.warps             every door and warp here, and where it leads.
 - location.shops             a shop whose door shuts outside opening hours, with the hours taken off
                              the door tile itself: where the door is, which shop it leads into, its

@@ -322,7 +322,7 @@ public static class WorldMapper
 
 
     /// <summary>The raw "Action" property of a tile, or "" when it has none.</summary>
-    private static string TileAction(GameLocation location, int x, int y)
+    public static string TileAction(GameLocation location, int x, int y)
     {
         // The game reads doors off the "Buildings" layer (GameLocation builds `location.doors` from
         // exactly that layer and that property). Back/Front are tried too because a map may put a
@@ -404,6 +404,113 @@ public static class WorldMapper
         catch { }
 
         return doors;
+    }
+
+
+    // Scanning a whole map tiles-by-tile is not something to repeat every state call, so the answer is
+    // kept per location per day. A day is the right key: a board or a letter box does not move.
+    private static readonly Dictionary<string, (int Day, List<PlaceActionInfo> List)> _placeCache = new();
+    private static readonly HashSet<string> _placesLogged = new();
+
+
+    /// <summary>
+    /// Every kind of tile-action in this place, one entry per verb, each with the nearest example.
+    ///
+    /// This is what a person's eye does that the state never did: walking into town you SEE the notice
+    /// board on the wall, and you know the box by your door is a letter box. The agent was told only
+    /// about the tile it stood on, so it never read its mail and never took a job off the board -
+    /// not because it refused, but because nothing ever mentioned they existed.
+    /// </summary>
+    public static List<PlaceActionInfo> BuildPlaceActions(GameLocation location, int px, int py,
+                                                          Action<string>? report = null)
+    {
+        var empty = new List<PlaceActionInfo>();
+        if (location?.map == null)
+            return empty;
+
+        string key = $"{location.Name}";
+        int day = 0;
+        try { day = Game1.Date.TotalDays; } catch { }
+
+        if (_placeCache.TryGetValue(key, out var hit) && hit.Day == day)
+            return hit.List;
+
+        int width = 0;
+        int height = 0;
+        try
+        {
+            foreach (Layer layer in location.map.Layers)
+            {
+                width = Math.Max(width, layer.LayerWidth);
+                height = Math.Max(height, layer.LayerHeight);
+            }
+        }
+        catch { }
+
+        if (width <= 0 || height <= 0)
+            return empty;
+
+        width = Math.Min(width, 400);
+        height = Math.Min(height, 400);
+
+        var byVerb = new Dictionary<string, PlaceActionInfo>(StringComparer.OrdinalIgnoreCase);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                string action = TileAction(location, x, y);
+                if (action.Length == 0)
+                    continue;
+
+                string[] words = action.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (words.Length == 0)
+                    continue;
+
+                string verb = words[0];
+                int distance = Math.Abs(x - px) + Math.Abs(y - py);
+
+                if (byVerb.TryGetValue(verb, out PlaceActionInfo? found))
+                {
+                    found.Count++;
+                    int best = found.At.Count >= 2
+                        ? Math.Abs(found.At[0] - px) + Math.Abs(found.At[1] - py)
+                        : int.MaxValue;
+
+                    if (distance < best)
+                    {
+                        found.At = new List<int> { x, y };
+                        found.Action = action;
+                        found.Args = string.Join(" ", words.Skip(1));
+                    }
+                    continue;
+                }
+
+                byVerb[verb] = new PlaceActionInfo
+                {
+                    Verb = verb,
+                    Action = action,
+                    At = new List<int> { x, y },
+                    Count = 1,
+                    Args = string.Join(" ", words.Skip(1)),
+                };
+            }
+        }
+
+        List<PlaceActionInfo> list = byVerb.Values
+            .OrderBy(a => Math.Abs(a.At[0] - px) + Math.Abs(a.At[1] - py))
+            .ToList();
+
+        _placeCache[key] = (day, list);
+
+        // Say what was found, once per place. The verbs are the game's own words, and a verb we have
+        // never seen before is exactly the sort of thing that should show up in a log rather than in a
+        // guess about what a map contains.
+        if (report != null && _placesLogged.Add(key))
+            report($"place actions in {key}: " +
+                   string.Join(", ", list.Select(a => $"{a.Verb} x{a.Count}@{a.At[0]},{a.At[1]}")));
+
+        return list;
     }
 
 

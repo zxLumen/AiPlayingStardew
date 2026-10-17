@@ -164,6 +164,37 @@ public class LocationInfo
     /// declares. See ShopDoorInfo - the hours are on the door tile, and nothing used to read them.
     /// </summary>
     [JsonPropertyName("shops")] public List<ShopDoorInfo> Shops { get; set; } = new();
+
+    /// <summary>
+    /// Every KIND of tile-action this place has, each with the nearest tile that does it: a letter box,
+    /// a notice board, a bed, a shipping bin, a door.
+    ///
+    /// A person walking through town sees the board on the wall and reads it. The agent saw nothing at
+    /// all: the state only ever described the tiles it was already standing on, so mail sat unread in
+    /// the box and quests pinned to the board were never once taken. This is the game's own "Action"
+    /// property, grouped by verb, so the agent can see what this place offers before walking anywhere.
+    /// </summary>
+    [JsonPropertyName("place_actions")] public List<PlaceActionInfo> PlaceActions { get; set; } = new();
+}
+
+
+/// <summary>One kind of tile-action present in a location, with the nearest example of it.</summary>
+public class PlaceActionInfo
+{
+    /// <summary>The action's first word, as the game writes it: "Mailbox", "Board", "Bed", ...</summary>
+    [JsonPropertyName("verb")] public string Verb { get; set; } = "";
+
+    /// <summary>The whole action string written on that tile.</summary>
+    [JsonPropertyName("action")] public string Action { get; set; } = "";
+
+    /// <summary>The nearest tile with this action: [x, y].</summary>
+    [JsonPropertyName("at")] public List<int> At { get; set; } = new();
+
+    /// <summary>How many tiles here carry this action - a doorstep and a row of thirty doors differ.</summary>
+    [JsonPropertyName("count")] public int Count { get; set; }
+
+    /// <summary>Extra arguments the action declares after the verb (e.g. a warp's destination).</summary>
+    [JsonPropertyName("args")] public string Args { get; set; } = "";
 }
 
 
@@ -272,6 +303,13 @@ public class PlayerInfo
     /// <summary>Where the player's bed is, so an agent knows where to go to end the day.</summary>
     [JsonPropertyName("bed_tile")] public int[] BedTile { get; set; } = Array.Empty<int>();
 
+    /// <summary>
+    /// How many letters the game is holding for this player (Farmer.mailbox). Nothing exposed it, so
+    /// the mailbox was never once opened and everything the game sends by post - quests, recipes, the
+    /// letters that move the story - stayed in the box.
+    /// </summary>
+    [JsonPropertyName("mail_waiting")] public int MailWaiting { get; set; }
+
     [JsonPropertyName("current_item")] public ItemInfo? CurrentItem { get; set; }
 
     /// <summary>
@@ -289,9 +327,21 @@ public class PlayerInfo
 public class ItemInfo
 {
     [JsonPropertyName("name")] public string Name { get; set; } = "";
+    [JsonPropertyName("id")] public string ItemId { get; set; } = "";
     [JsonPropertyName("stack")] public int Stack { get; set; }
     [JsonPropertyName("quality")] public int Quality { get; set; }
     [JsonPropertyName("category")] public int Category { get; set; }
+
+    /// <summary>
+    /// What the thing IS, in the game's own words: 种子 / 蔬菜 / 水果 / 采集品 / 工具.
+    ///
+    /// A name and a count are not enough. A harvested parsnip and a packet of parsnip seeds are both
+    /// called "防风草..." and sit in the same bag, and an agent that had just bought seeds read the
+    /// seven parsnips it was carrying as those seeds and went off to sow them. The game already keeps
+    /// the two in different categories; this is that category, said out loud.
+    /// </summary>
+    [JsonPropertyName("category_name")] public string CategoryName { get; set; } = "";
+
     [JsonPropertyName("kind")] public string Kind { get; set; } = "item";
     [JsonPropertyName("description")] public string Description { get; set; } = "";
 
@@ -314,9 +364,11 @@ public class InventorySlot
 {
     [JsonPropertyName("slot")] public int Slot { get; set; }
     [JsonPropertyName("name")] public string Name { get; set; } = "";
+    [JsonPropertyName("id")] public string ItemId { get; set; } = "";
     [JsonPropertyName("stack")] public int Stack { get; set; }
     [JsonPropertyName("quality")] public int Quality { get; set; }
     [JsonPropertyName("category")] public int Category { get; set; }
+    [JsonPropertyName("category_name")] public string CategoryName { get; set; } = "";
     [JsonPropertyName("kind")] public string Kind { get; set; } = "item";
     [JsonPropertyName("description")] public string Description { get; set; } = "";
     [JsonPropertyName("charges")] public int Charges { get; set; } = -1;
@@ -517,6 +569,11 @@ public class ShopItemInfo
 
     [JsonPropertyName("item")] public string Item { get; set; } = "";
     [JsonPropertyName("item_id")] public string ItemId { get; set; } = "";
+    [JsonPropertyName("category")] public int Category { get; set; }
+
+    /// <summary>种子 / 蔬菜 / 工具 ... - so a shelf row can be read as what it is, not just its name.</summary>
+    [JsonPropertyName("category_name")] public string CategoryName { get; set; } = "";
+
     [JsonPropertyName("price")] public int Price { get; set; }
 
     /// <summary>How many are left, or -1 when the shop never runs out.</summary>

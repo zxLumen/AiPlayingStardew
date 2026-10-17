@@ -232,6 +232,17 @@ public static class ActionProcessor
         try { info["buildable"] = location.isBuildable(tile, false); } catch { }
         try { info["diggable"] = location.doesTileHaveProperty(x, y, "Diggable", "Back", false) != null; } catch { }
 
+        // The game's own instruction for this tile, verbatim: "Mailbox", "Board", "Bed", "Warp ...".
+        // It is written on the map, and it is what checkAction acts on - so an agent that can read it
+        // knows what a tile DOES before walking to it, instead of standing on it and experimenting.
+        try
+        {
+            string action = WorldMapper.TileAction(location, x, y);
+            if (action.Length > 0)
+                info["action"] = action;
+        }
+        catch { }
+
         try
         {
             foreach (KeyValuePair<Vector2, StardewValley.Object> pair in location.objects.Pairs)

@@ -9,13 +9,13 @@
     },
     "ShopMenu:shelf row|menu_click": {
       "works": 15,
-      "fails": 39,
+      "fails": 45,
       "says": "forSaleButtons.0",
       "note": "",
       "last": "2026-10-17"
     },
     "go_to@Town|go_to": {
-      "works": 36,
+      "works": 39,
       "fails": 18,
       "says": "",
       "note": "",
@@ -30,20 +30,20 @@
     },
     "door:BusStop|enter": {
       "works": 34,
-      "fails": 11,
+      "fails": 12,
       "says": "BusStop",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|clear_area": {
-      "works": 9,
+      "works": 10,
       "fails": 34,
       "says": "你的斧头不够锋利，无法砍破这个树桩。",
       "note": "",
       "last": "2026-10-17"
     },
     "door:SeedShop|enter": {
-      "works": 25,
+      "works": 27,
       "fails": 12,
       "says": "SeedShop",
       "note": "",
@@ -56,59 +56,66 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "ShopMenu:bag slot|menu_click": {
+      "works": 8,
+      "fails": 28,
+      "says": "inventory.9",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:something|interact_at": {
+      "works": 28,
+      "fails": 7,
+      "says": "上锁了……（营业时间：9:00~21:00）",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "select_slot@Farm|select_slot": {
-      "works": 32,
+      "works": 33,
       "fails": 0,
       "says": "你看见这只猫了吗？",
       "note": "",
       "last": "2026-10-17"
     },
-    "tile:something|interact_at": {
-      "works": 26,
-      "fails": 6,
-      "says": "等到皮埃尔经营店铺的时候再回来。",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "Farm:patch|water_all": {
-      "works": 18,
+      "works": 19,
       "fails": 13,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "Town:exit_building|exit_building": {
-      "works": 29,
+      "works": 30,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "ShopMenu:bag slot|menu_click": {
-      "works": 8,
-      "fails": 20,
-      "says": "inventory.11",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "door:Town|enter": {
-      "works": 23,
-      "fails": 4,
-      "says": "Town",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "go_to@SeedShop|go_to": {
-      "works": 26,
+      "works": 28,
       "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "menu:upperRightCloseButton|menu_click": {
+    "door:Town|enter": {
       "works": 24,
+      "fails": 4,
+      "says": "Town",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "menu:upperRightCloseButton|menu_click": {
+      "works": 26,
       "fails": 0,
       "says": "upperRightCloseButton",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|refill": {
+      "works": 13,
+      "fails": 11,
+      "says": "它可能是喜欢这里！唔……你不觉得这个农场需要养只好猫吗？",
       "note": "",
       "last": "2026-10-17"
     },
@@ -116,13 +123,6 @@
       "works": 4,
       "fails": 19,
       "says": "哦，小宠物 味噌……现在你是只好猫咪了……知道吗？",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:patch|refill": {
-      "works": 13,
-      "fails": 10,
-      "says": "它可能是喜欢这里！唔……你不觉得这个农场需要养只好猫吗？",
       "note": "",
       "last": "2026-10-17"
     },
@@ -140,16 +140,16 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@Farm|go_to": {
-      "works": 14,
-      "fails": 4,
+    "Farm:exit_building|exit_building": {
+      "works": 17,
+      "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "Farm:exit_building|exit_building": {
-      "works": 16,
-      "fails": 1,
+    "go_to@Farm|go_to": {
+      "works": 14,
+      "fails": 4,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -176,7 +176,7 @@
       "last": "2026-10-17"
     },
     "go_to@BusStop|go_to": {
-      "works": 9,
+      "works": 10,
       "fails": 0,
       "says": "",
       "note": "",
@@ -217,6 +217,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "ShopMenu:downArrow|menu_click": {
+      "works": 0,
+      "fails": 5,
+      "says": "downArrow",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "go_to@CommunityCenter|go_to": {
       "works": 5,
       "fails": 0,
@@ -227,6 +234,13 @@
     "tile:Junimo|interact_at": {
       "works": 0,
       "fails": 5,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "dialogue_advance@Town|dialogue_advance": {
+      "works": 3,
+      "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -252,10 +266,10 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "dialogue_advance@Town|dialogue_advance": {
-      "works": 2,
-      "fails": 1,
-      "says": "",
+    "ShopMenu:dropItemInvisibleButton|menu_click": {
+      "works": 0,
+      "fails": 3,
+      "says": "dropItemInvisibleButton",
       "note": "",
       "last": "2026-10-17"
     },
@@ -294,13 +308,6 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "ShopMenu:dropItemInvisibleButton|menu_click": {
-      "works": 0,
-      "fails": 2,
-      "says": "dropItemInvisibleButton",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "Town:patch|water_all": {
       "works": 0,
       "fails": 2,
@@ -329,6 +336,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "select_slot@SeedShop|select_slot": {
+      "works": 1,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "tile:亚历克斯|interact_at": {
       "works": 2,
       "fails": 0,
@@ -340,13 +354,6 @@
       "works": 2,
       "fails": 0,
       "says": "他们财大气粗，可以先亏本销售，搞倒我这种小本生意……然后再抬高价格割韭菜！",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "ShopMenu:downArrow|menu_click": {
-      "works": 0,
-      "fails": 1,
-      "says": "downArrow",
       "note": "",
       "last": "2026-10-17"
     },
@@ -384,13 +391,6 @@
       "says": "",
       "note": "",
       "last": "2026-10-16"
-    },
-    "select_slot@SeedShop|select_slot": {
-      "works": 0,
-      "fails": 1,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
     },
     "tile:hoe_dirt|interact_at": {
       "works": 0,
