@@ -182,6 +182,15 @@ Other fields worth reading:
                              false the door does NOT open - no amount of knocking changes that, and the
                              answer is already here. Plan around the hours instead of walking there to
                              find out.
+- player.mail_waiting       how many letters the game is holding for you. The letter box by the
+                            farmhouse is where the game sends quests, recipes and news; it is in
+                            location.place_actions as "Mailbox". Read it - a full box is unread game.
+- location.place_actions    every kind of thing in this place that can be OPERATED, one entry per
+                            verb, each with the nearest tile: "Mailbox", "Board", "Bed", a bin, a
+                            door. Each entry has "verb" (what it does), "at" (the tile), "count", and
+                            "args" (anything the action carries, such as where a door leads). A notice
+                            board is how the town hands out jobs: walk to it and interact, and the
+                            jobs it is offering come up on screen.
 - location.work              how much work this place has (tillable / empty_soil / debris / crops)
                              and example tiles (tillable_at, empty_soil_at). READ THIS BEFORE
                              planning farm work - do not guess coordinates. If tillable is 0 here,

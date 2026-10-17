@@ -148,6 +148,8 @@ def compact_state(state: dict) -> dict:
             "selected_slot": player.get("selected_slot_index"),
             "auto_moving": player.get("is_auto_moving"),
             "bed_tile": player.get("bed_tile"),
+            # Letters the game is holding. Nothing said so before, and the mailbox was never opened.
+            "mail_waiting": player.get("mail_waiting") or 0,
         },
         # How much room there is. A shop cannot take a purchase it has nowhere to put, and "my bag is
         # full" was the real reason the seed run failed while the streamer kept clicking a shelf that
@@ -256,6 +258,17 @@ def compact_state(state: dict) -> dict:
                 compact["location"]["work"]["tillable_at"] = work["tillable_samples"]
             if work.get("empty_soil_samples"):
                 compact["location"]["work"]["empty_soil_at"] = work["empty_soil_samples"]
+
+        # What this place OFFERS, one entry per kind of tile action. A person walking into town sees the
+        # notice board; the state only ever described the tile underfoot, so the box by the door and the
+        # board on the shop wall were invisible, and the mail and the jobs pinned to them were never
+        # touched. The verb is the game's own word for what the tile does.
+        offered = location.get("place_actions") or []
+        if offered:
+            compact["location"]["place_actions"] = [
+                {k: o.get(k) for k in ("verb", "at", "count", "args") if o.get(k) not in (None, "", [], 0)}
+                for o in offered[:MAX_LIST]
+            ]
 
     crops = [
         {"tile": [c.get("tile_x"), c.get("tile_y")], "name": c.get("name"),
