@@ -231,6 +231,42 @@ def beat_alignment(said: list[dict], worst: int = 5) -> list[str]:
     return out
 
 
+PLAN_WORDS = ("为了", "计划", "说好", "本来", "目标", "打算")
+PLAN_TERMS = ("打招呼", "介绍", "种子", "浇水", "种下", "清", "收", "睡觉", "钓鱼", "矿")
+
+
+def plan_engagement(said: list[dict], hours: float = 0.0) -> list[str]:
+    """Does the talker actually talk about the day's plan, and how often does it re-announce it?
+
+    Two cheap questions with very different answers expected:
+
+      * how many lines hang what they are doing onto a goal ("为了买种子先回镇上"), counted by the
+        vocabulary of intent plus the plan's own words. A low number means the commentary is
+        narrating movements rather than a person with a plan - which is what it sounded like.
+      * how many lines *announce* the plan. Before this was fixed the planner rewrote itself every
+        ~3 minutes and every rewrite was announced, so the streamer restated the day's plan around
+        twelve times an hour, each time in different words.
+    """
+    rows = [row for row in said if row.get("say")]
+    if not rows:
+        return []
+
+    engaged = [row for row in rows
+               if any(word in str(row["say"]) for word in PLAN_WORDS)
+               or any(term in str(row["say"]) for term in PLAN_TERMS)]
+    announced = [row for row in rows
+                 if "计划有了变化" in str(row.get("beat") or "")
+                 or "今天的打算定下来了" in str(row.get("beat") or "")]
+
+    out = ["  台词里带上「计划/为了/目标」或计划里的事：%d/%d 句（%.0f%%）"
+           % (len(engaged), len(rows), 100 * len(engaged) / len(rows)),
+           "  重新宣布计划的次数：%d 次（计划每 3 分钟重写一次；改前每重写一次就播报一次，"
+           "现在只该在真转向时发生）" % len(announced)]
+    for row in engaged[-4:]:
+        out.append("    %s  %s" % (str(row.get("t"))[11:], str(row["say"])[:26]))
+    return out
+
+
 def report(limit: int, show_lines: int) -> str:
     spoken = read_spoken(limit)
     said = read_said(limit * 2)
@@ -334,6 +370,12 @@ def report(limit: int, show_lines: int) -> str:
                    % (ordered[len(ordered) // 2], _percentile(ages, 0.9), max(ages),
                       sum(1 for a in ages if a > 10), len(ages)))
         out.append("   （再加上管线那约 7 秒，才是观众听到时事件真正过去的时长）")
+
+    engagement = plan_engagement(read_said(300))
+    if engagement:
+        out.append("")
+        out.append("和「今天的目标」的关系：")
+        out.extend(engagement)
 
     out.append("")
     return "\n".join(out)

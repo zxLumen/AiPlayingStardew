@@ -222,9 +222,6 @@ RULES
    finish with create_character.
 3. When ui.save_slots is non-empty, click the slot you want with menu_click (slots are named by index).
 4. Only act on the world when game.is_player_free is true.
-5. NEVER use noop to wait for something to finish. The harness already waits for your action to
-   complete and hands you the settled state - you will not be asked again until the farmer has
-   stopped moving. noop is only for genuinely choosing to stand still.
 6. go_to tells you when a tile is unreachable. If it fails, do NOT repeat it and do NOT look for a
    shortcut: walk somewhere else. Pick a free tile next to the target, or a different target.
    Remember what blocked you - knowing the map is part of the game.
