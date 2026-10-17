@@ -396,6 +396,22 @@
       "days": 0,
       "status": "open",
       "evidence": []
+    },
+    {
+      "key": "gap:interact_at",
+      "title": "`interact_at` 被判定 BROKEN",
+      "owner": "agent",
+      "detail": "BROKEN: 6 次尝试 / 报 OK 0 次 / 空转 0 次",
+      "severity": 2,
+      "count": 1,
+      "first_seen": "2026-10-17 16:35",
+      "last_seen": "2026-10-17 16:35",
+      "cost_s": 0.0,
+      "days": 0,
+      "status": "open",
+      "evidence": [
+        "WATCHER_TIMEOUT: interacted with (29,87) -> True | 守望者处置: dialogue_advance | 守望者提前结束（timeout）且世界没有变化：tile k; FAILED: interacted with (32,82) -> False"
+      ]
     }
   ]
 }

@@ -227,6 +227,10 @@ class Pipeline:
                         continue
 
                     result = self._click_heard(handle, menu)
+                    # `receipt` has to be read from the result that actually counted - it used to be
+                    # assigned before the call, so this line crashed with UnboundLocalError and the
+                    # boot carried on without its own log line.
+                    receipt = result.get("data") if isinstance(result.get("data"), dict) else {}
                     self.log(f"[流水线] 点 Load -> id={handle} ok={result.get('ok')} "
                              f"{receipt.get('verdict') or ''}"
                              f"{'' if receipt.get('active', True) else ' [窗口不是活动的]'}"
