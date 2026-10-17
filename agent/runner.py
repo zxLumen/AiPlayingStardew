@@ -168,10 +168,12 @@ class Pipeline:
             menu = ui.get("menu_name") or ""
             slots = ui.get("save_slots") or []
 
-            # Re-assert focus periodically: the desktop can steal it back mid-load.
-            if time.monotonic() - focus_at > 10.0:
-                focus_at = time.monotonic()
-                self.client.action("focus_window")
+            # NOBODY'S FOCUS IS STOLEN HERE EITHER. This used to re-assert the foreground every ten
+            # seconds "in case the desktop stole it", which is the opposite of what is wanted: the
+            # person at the keyboard is working on the other screen, and the game now keeps running
+            # while it is behind them (see the mod: pause-when-unfocused is held off). Asking for the
+            # foreground is not needed to receive a click any more, and doing it every ten seconds
+            # makes the machine unusable to work next to.
 
             if menu and menu not in seen_menus:
                 seen_menus.append(menu)
@@ -205,7 +207,18 @@ class Pipeline:
             if menu == "TitleMenu":
                 if time.monotonic() - load_at > 10.0:
                     load_at = time.monotonic()
-                    self.client.action("menu_click", name="Load")
+                    result = self.client.action("menu_click", name="Load")
+                    receipt = result.get("data") if isinstance(result.get("data"), dict) else {}
+                    # SAY WHAT CAME BACK. This click used to be thrown away, so a refused or unheard
+                    # click on the title screen looked exactly like a game that was still loading -
+                    # and the loop sat here for a minute at a time with nothing on the console.
+                    self.log(f"[流水线] 点 Load -> ok={result.get('ok')} "
+                             f"{receipt.get('verdict') or ''}"
+                             f"{'' if receipt.get('active', True) else ' [窗口不是活动的]'}"
+                             f" | {str(result.get('detail'))[:110]}")
+                    self._note("save", "clicked Load", ok=bool(result.get("ok")),
+                               verdict=str(receipt.get("verdict") or ""),
+                               detail=str(result.get("detail", ""))[:120])
                 time.sleep(1.5)
                 continue
 

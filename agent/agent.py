@@ -1499,28 +1499,34 @@ def run_forever(args: argparse.Namespace) -> int:
             # judged it. This reads back its own log and the witness, works out which interventions
             # the world contradicts, and files them the same way the gap detector does. A verdict
             # that is not true belongs to whoever made it, so these go to `developer`.
-            try:
-                watch_audit.run(memory_mod.PROJECT_ROOT, ledger=ledger, run_id=runlog.run_id, log=log)
-            except Exception as exc:
-                log(f"[裁决] 守望者审计失败: {type(exc).__name__}: {exc}")
+            # THE PRE-PLAY AUDITS WAIT UNTIL SOMETHING HAS BEEN PLAYED.
+            #
+            # Both of these read back history and think about it with the model - the watcher audit over
+            # every previous run, the authenticity audit over the whole action set. They are worth doing;
+            # they are not worth doing BEFORE the farmer has taken a step, which is what they were doing:
+            # minutes of silence with the game sitting at the title screen and nothing on the console.
+            # That is the entire story of "why is starting a new save so slow". From the second day on,
+            # they run every cycle as before.
+            if days_done <= 0:
+                log("[审计] 今天还没打过一天 - 两道重审计推迟到第一天之后，先去开档/继续玩")
+            else:
+                try:
+                    watch_audit.run(memory_mod.PROJECT_ROOT, ledger=ledger, run_id=runlog.run_id, log=log)
+                except Exception as exc:
+                    log(f"[裁决] 守望者审计失败: {type(exc).__name__}: {exc}")
 
-            # The witness asks "did the world change". It cannot ask "could a player do this", and
-            # a teleport changes the world perfectly. So the action set itself is audited, every
-            # cycle, against the one rule that matters for a stream: only what a person at the
-            # keyboard could do. Findings are raised as defects, not printed into a log to be
-            # discovered by a human later.
-            try:
-                decls = authenticity.load_declarations(memory_mod.PROJECT_ROOT)
-                findings = authenticity.audit(memory_mod.PROJECT_ROOT / "mod", decls,
-                                              catalogue=prompts.ACTION_CATALOGUE)
-                (memory_mod.PROJECT_ROOT / "logs" / "authenticity.md").write_text(
-                    authenticity.report(findings, decls), encoding="utf-8")
+                try:
+                    decls = authenticity.load_declarations(memory_mod.PROJECT_ROOT)
+                    findings = authenticity.audit(memory_mod.PROJECT_ROOT / "mod", decls,
+                                                  catalogue=prompts.ACTION_CATALOGUE)
+                    (memory_mod.PROJECT_ROOT / "logs" / "authenticity.md").write_text(
+                        authenticity.report(findings, decls), encoding="utf-8")
 
-                for key, title, owner, detail in authenticity.as_defects(findings):
-                    ledger.raise_defect(key, title, owner, detail=detail)
-                    log(f"[合法性] [{owner}] {title} - {detail}")
-            except Exception as exc:
-                log(f"[合法性] 审计失败: {type(exc).__name__}: {exc}")
+                    for key, title, owner, detail in authenticity.as_defects(findings):
+                        ledger.raise_defect(key, title, owner, detail=detail)
+                        log(f"[合法性] [{owner}] {title} - {detail}")
+                except Exception as exc:
+                    log(f"[合法性] 审计失败: {type(exc).__name__}: {exc}")
 
             try:
                 # Every stage before a day is played now has an owner, a retry, and a record.

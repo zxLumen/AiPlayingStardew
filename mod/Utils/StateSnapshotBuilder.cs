@@ -26,6 +26,9 @@ public static class StateSnapshotBuilder
 
     private static long _tick;
 
+    /// <summary>Whether the "keep running when unfocused" correction has been reported yet.</summary>
+    private static bool _pauseOffReported;
+
     /// <summary>
     /// Where the per-place scan reports what it found. The line-by-line helpers have no monitor of
     /// their own, and a scan that finds no verb at all is exactly the news that needs to be readable.
@@ -109,7 +112,30 @@ public static class StateSnapshotBuilder
         // clicking but never reported it, so the failure read as "the game did not react" and looked
         // like the game's fault. It is a fact about the window, and it belongs in the state.
         try { info.IsActive = NativeInput.IsGameWindowActive(); } catch { }
-        try { info.PauseWhenUnfocused = options.pauseWhenOutOfFocus; } catch { }
+        // THE GAME MUST KEEP RUNNING WHILE THE WINDOW IS BEHIND SOMEBODY'S WORK.
+        //
+        // SDV's "pause when window loses focus" does not merely make a background window ignore clicks:
+        // it stops the game updating at all - no frame, no input handling, nothing to receive a click by
+        // any route. That default is right for one person at one keyboard and wrong for an agent sharing
+        // the machine: the farm has to keep being playable while the person works on the other screen.
+        // It is a setting in the options menu; this is that setting, held off while the agent plays.
+        try
+        {
+            if (Game1.options.pauseWhenOutOfFocus)
+            {
+                Game1.options.pauseWhenOutOfFocus = false;
+                if (!_pauseOffReported)
+                {
+                    _pauseOffReported = true;
+                    _monitor?.Log("pause-when-unfocused is now OFF: a background window must keep running, "
+                                  + "or it cannot receive a click by any route (this is the game's own "
+                                  + "options-menu setting, held off while the agent plays)", LogLevel.Info);
+                }
+            }
+
+            info.PauseWhenUnfocused = Game1.options.pauseWhenOutOfFocus;
+        }
+        catch { }
 
         return info;
     }
