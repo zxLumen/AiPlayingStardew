@@ -492,6 +492,29 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
 
         clock.mark("supervisor")
 
+        # THE HANDS ARE ALREADY WORKING, SO THE BRAIN IS NOT ASKED.
+        #
+        # A reflex macro runs at game speed inside the game; while it does, the only thing a fresh decision
+        # can produce is "already busy", and the log is full of exactly that - a full model call spent to be
+        # told nothing can be done yet. Waiting for the hands and then looking at the result is the split in
+        # miniature: the hands run at frame rate, the brain is consulted when there is something to decide.
+        # The macro has its own ceiling inside the game, so this cannot wait forever; and the farmer's own
+        # action is still watched, so a macro that stops making progress still gets cancelled.
+        busy = str(state.get("chore") or "idle")
+        if busy != "idle":
+            waited_s = 0.0
+            log(f"[等候] {busy} 正在游戏里干着，先不打扰它（让人手干完再想）")
+            while waited_s < 90.0:
+                time.sleep(2.0)
+                waited_s += 2.0
+                try:
+                    fresh = client.state()
+                except Exception:
+                    break
+                if str(fresh.get("chore") or "idle") == "idle":
+                    state = fresh
+                    break
+
         # One model call per queue, not per action. The queue is what makes this play at a human
         # pace: a person does not re-decide between walking somewhere and opening the door.
         #

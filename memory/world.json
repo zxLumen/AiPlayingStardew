@@ -15,7 +15,7 @@
       "last": "2026-10-17"
     },
     "go_to@Town|go_to": {
-      "works": 28,
+      "works": 31,
       "fails": 18,
       "says": "",
       "note": "",
@@ -39,6 +39,13 @@
       "works": 24,
       "fails": 12,
       "says": "SeedShop",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:empty|interact_at": {
+      "works": 12,
+      "fails": 24,
+      "says": "哎，我昨晚路过出货箱，发现你的第一批欧防风已经成熟了，祝贺你！",
       "note": "",
       "last": "2026-10-17"
     },
@@ -67,13 +74,6 @@
       "works": 28,
       "fails": 0,
       "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "tile:empty|interact_at": {
-      "works": 9,
-      "fails": 19,
-      "says": "我的胳膊好酸啊，但对我这样的人来说，这正是取得进步的标志。",
       "note": "",
       "last": "2026-10-17"
     },
@@ -245,6 +245,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "dialogue_advance@Town|dialogue_advance": {
+      "works": 2,
+      "fails": 1,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "move@BusStop|move": {
       "works": 1,
       "fails": 2,
@@ -286,13 +293,6 @@
       "says": "",
       "note": "",
       "last": "2026-10-16"
-    },
-    "dialogue_advance@Town|dialogue_advance": {
-      "works": 1,
-      "fails": 1,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
     },
     "door:CommunityCenter|enter": {
       "works": 2,
