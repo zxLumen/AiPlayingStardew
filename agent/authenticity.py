@@ -149,6 +149,9 @@ DEFAULT_DECLARATIONS: dict[str, dict] = {
     "bridge_patch": {"kind": "repair",
                      "how": "ask for a change to the bridge source; compiled first, deployed behind a "
                             "probe, rolled back if the probe fails, referee files off limits"},
+    "bridge_deploy": {"kind": "repair",
+                      "how": "put a compiled change live: the game is stopped, the old service is kept, "
+                             "and the probe decides whether the new one stays"},
 
     # -- knowledge: what a player can look up ----------------------------
     #

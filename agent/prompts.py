@@ -121,9 +121,12 @@ the state. Do not spend the day working around that. Say it, or change it:
 - bridge_patch  -> {"file": "mod/Utils/SomeFile.cs", "find": "<exact text that is already there>",
                     "replace": "<the text it should become>", "why": "...", "evidence": "..."}
   For when the bridge itself has to change. The harness compiles it immediately (if it does not
-  compile, nothing changes and you get the compiler's words), and it goes live the next time the game
-  restarts - a hand cannot be repaired while it is being used. One patch at a time.
+  compile, nothing changes and you get the compiler's words). One patch at a time.
   You cannot patch the files that decide what you are allowed to do.
+- bridge_deploy -> {}
+  Put a compiled change live. THIS RESTARTS THE GAME, so call it at the start of a day, never in the
+  middle of one - the day's work is not saved yet. The old bridge is kept; if the probe fails the old
+  one comes back and the game keeps running.
 - noop            -> {}"""
 
 

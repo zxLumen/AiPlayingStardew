@@ -329,6 +329,12 @@ def _bridge_request(action: str, args: dict) -> dict:
                     "reason_code": "BRIDGE_REPORT_ARGS"}
         argv = [sys.executable, str(tool), "ticket", "--symptom", symptom,
                 "--evidence", str(args.get("evidence") or ""), "--source", "agent"]
+    elif action == "bridge_deploy":
+        # A compiled patch goes live here, and this RESTARTS THE GAME - which is why it is the agent's
+        # call and not the harness's: it is done between days, not in the middle of one. Behind it the
+        # old DLL is kept and the probe decides whether the new one stays.
+        argv = [sys.executable, str(tool), "deploy", "--probe-cmd",
+                "python tools/probes/menu_handles_unique.py"]
     else:
         missing = [k for k in ("file", "find", "replace") if not str(args.get(k) or "").strip()]
         if missing:
@@ -353,7 +359,8 @@ def _bridge_request(action: str, args: dict) -> dict:
                    "cannot be made while the hand is being used.")
 
     return {"ok": run.returncode == 0, "detail": detail,
-            "reason_code": "BRIDGE_TICKET" if action == "bridge_report" else "BRIDGE_PATCH"}
+            "reason_code": {"bridge_report": "BRIDGE_TICKET",
+                            "bridge_deploy": "BRIDGE_DEPLOY"}.get(action, "BRIDGE_PATCH")}
 
 
 def _day_never_ended(client, day_start: dict, sleep_attempts: int, label: str, log, runlog) -> None:
@@ -757,7 +764,7 @@ def play(client: StateClient, streamer: StreamerAI, supervisor: SupervisorAI,
         # asking for a change to it. Neither is sent to the game, because a hand cannot be asked to
         # repair itself. The agent says what it believes is wrong; tools/bridge.py owns the invariants
         # (compile, probe, roll back on failure, never touch the referee).
-        if action in ("bridge_report", "bridge_patch"):
+        if action in ("bridge_report", "bridge_patch", "bridge_deploy"):
             result = _bridge_request(action, args)
         else:
             result = client.action(action, **args)

@@ -93,7 +93,7 @@ INFORMATIONAL = {
     "set_display", "sleep", "new_day", "cancel_chore", "stop", "clear_event",
     "title_button", "new_game", "create_character", "set_appearance", "set_text",
     "actions", "inspect", "open_screen", "narrate", "chat", "progress", "overlay",
-    "menu_probe", "bridge_report", "bridge_patch",
+    "menu_probe", "bridge_report", "bridge_patch", "bridge_deploy",
 }
 
 
