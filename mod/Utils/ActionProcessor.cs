@@ -2128,6 +2128,7 @@ public static class ActionProcessor
         string cursorBefore = CursorName();
         string handBefore = MenuHand(menu);
         string bagBefore = BagSignature();
+        string menuBefore = MenuName();
 
         // THE REAL CLICK FIRST. Move the physical cursor over the button and click it, and let the game
         // do everything that follows - which menu receives it, the hover, the release, the item
@@ -2139,13 +2140,17 @@ public static class ActionProcessor
         string cursorAfter = CursorName();
         string handAfter = MenuHand(menu);
         string bagAfter = BagSignature();
+        string menuAfter = MenuName();
 
         bool moved = moneyAfter != moneyBefore
                      || !string.Equals(cursorBefore, cursorAfter, StringComparison.Ordinal)
                      || !string.Equals(handBefore, handAfter, StringComparison.Ordinal)
-                     || !string.Equals(bagBefore, bagAfter, StringComparison.Ordinal);
+                     || !string.Equals(bagBefore, bagAfter, StringComparison.Ordinal)
+                     || !string.Equals(menuBefore, menuAfter, StringComparison.Ordinal);
 
         var evidence = new List<string>();
+        if (!string.Equals(menuBefore, menuAfter, StringComparison.Ordinal))
+            evidence.Add($"menu {Shown(menuBefore)}->{Shown(menuAfter)}");
         if (moneyAfter != moneyBefore)
             evidence.Add($"money {moneyBefore}->{moneyAfter}");
         if (!string.Equals(cursorBefore, cursorAfter, StringComparison.Ordinal))
@@ -2192,6 +2197,7 @@ public static class ActionProcessor
         string cursorPressed = CursorName();
         string handPressed = MenuHand(menu);
         string bagPressed = BagSignature();
+        string menuPressed = MenuName();
 
         try { router.releaseLeftClick(cx, cy); } catch { }
 
@@ -2199,7 +2205,10 @@ public static class ActionProcessor
         string cursorFinal = CursorName();
         string handFinal = MenuHand(menu);
         string bagFinal = BagSignature();
+        string menuFinal = MenuName();
 
+        if (!string.Equals(menuPressed, menuFinal, StringComparison.Ordinal))
+            evidence.Add($"menu {Shown(menuPressed)}->{Shown(menuFinal)}");
         if (moneyPressed != moneyAfter)
             evidence.Add($"press: money {moneyAfter}->{moneyPressed}");
         if (!string.Equals(cursorAfter, cursorPressed, StringComparison.Ordinal))
@@ -2224,6 +2233,21 @@ public static class ActionProcessor
 
         return (true, $"clicked '{name}' at ({cx},{cy}) in {menu.GetType().Name}{via}"
                       + $" - {why}, so it was done the old way{proof}");
+    }
+
+
+    /// <summary>
+    /// Which menu is open right now, for the click witness.
+    ///
+    /// A click on a CLOSE button changes money nothing, the bag nothing and the hands nothing - it
+    /// changes the MENU, which the witness was not watching. So every successful close was reported as
+    /// "the whole click changed nothing", and the streamer was told its working clicks had failed. It is
+    /// the same blindness the bag had, in the one place left: the thing the click was aimed at.
+    /// </summary>
+    private static string MenuName()
+    {
+        try { return Game1.activeClickableMenu?.GetType().Name ?? ""; }
+        catch { return "?"; }
     }
 
 

@@ -1,79 +1,107 @@
 {
   "entries": {
     "dialogue_advance@Farm|dialogue_advance": {
-      "works": 38,
-      "fails": 17,
+      "works": 42,
+      "fails": 20,
       "says": "你打算收养这只猫吗？",
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@Town|go_to": {
-      "works": 24,
-      "fails": 14,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "ShopMenu:shelf row|menu_click": {
-      "works": 2,
-      "fails": 32,
+      "works": 7,
+      "fails": 36,
       "says": "forSaleButtons.0",
       "note": "",
       "last": "2026-10-17"
     },
+    "go_to@Town|go_to": {
+      "works": 26,
+      "fails": 17,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "door:BusStop|enter": {
-      "works": 23,
+      "works": 27,
       "fails": 7,
       "says": "BusStop",
       "note": "",
       "last": "2026-10-17"
     },
     "door:SeedShop|enter": {
-      "works": 20,
-      "fails": 7,
+      "works": 21,
+      "fails": 12,
       "says": "SeedShop",
       "note": "",
       "last": "2026-10-17"
     },
     "tile:empty|interact_at": {
-      "works": 8,
-      "fails": 17,
-      "says": "嗯。我才想起我好像需要做某件事……但又不记得是什么事了。",
+      "works": 9,
+      "fails": 19,
+      "says": "我的胳膊好酸啊，但对我这样的人来说，这正是取得进步的标志。",
       "note": "",
       "last": "2026-10-17"
     },
     "tile:something|interact_at": {
-      "works": 20,
-      "fails": 4,
+      "works": 22,
+      "fails": 5,
       "says": "上锁了……（营业时间：9:00~21:00）",
       "note": "",
       "last": "2026-10-17"
     },
     "Town:exit_building|exit_building": {
-      "works": 23,
+      "works": 25,
       "fails": 0,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "Farm:patch|clear_area": {
-      "works": 3,
-      "fails": 18,
-      "says": "",
+      "works": 4,
+      "fails": 20,
+      "says": "你的斧头不够锋利，无法砍破这个树桩。",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|till_area": {
+      "works": 10,
+      "fails": 13,
+      "says": "你的斧头不够锋利，无法砍破这个树桩。",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "door:Town|enter": {
+      "works": 19,
+      "fails": 3,
+      "says": "Town",
       "note": "",
       "last": "2026-10-17"
     },
     "go_to@SeedShop|go_to": {
-      "works": 19,
+      "works": 21,
       "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
+    "ShopMenu:bag slot|menu_click": {
+      "works": 5,
+      "fails": 16,
+      "says": "at (1472,688) in ShopMenu - the real click changed nothing (aimed at (1472,688), the game",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "menu:upperRightCloseButton|menu_click": {
+      "works": 21,
+      "fails": 0,
+      "says": "upperRightCloseButton",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "press_key@Farm|press_key": {
       "works": 12,
-      "fails": 8,
-      "says": "嗨，Juniper！",
+      "fails": 9,
+      "says": "你的斧头不够锋利，无法砍破这个树桩。",
       "note": "",
       "last": "2026-10-17"
     },
@@ -84,43 +112,22 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "door:Town|enter": {
-      "works": 16,
-      "fails": 3,
-      "says": "Town",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "menu:upperRightCloseButton|menu_click": {
-      "works": 19,
-      "fails": 0,
-      "says": "upperRightCloseButton",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:patch|till_area": {
-      "works": 7,
-      "fails": 7,
-      "says": "你的斧头不够锋利，无法砍破这个树桩。",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "Farm:patch|water_all": {
-      "works": 10,
+      "works": 12,
       "fails": 4,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
     "door:Farm|enter": {
-      "works": 10,
+      "works": 12,
       "fails": 4,
       "says": "Farm",
       "note": "",
       "last": "2026-10-17"
     },
     "select_slot@Farm|select_slot": {
-      "works": 13,
+      "works": 15,
       "fails": 0,
       "says": "",
       "note": "",
@@ -141,16 +148,16 @@
       "last": "2026-10-17"
     },
     "Farm:patch|refill": {
-      "works": 6,
+      "works": 7,
       "fails": 4,
       "says": "",
       "note": "",
       "last": "2026-10-17"
     },
-    "ShopMenu:bag slot|menu_click": {
-      "works": 2,
-      "fails": 7,
-      "says": "at (1536,688) in ShopMenu - the real click changed nothing (aimed at (1536,688), the game",
+    "SeedShop:exit_building|exit_building": {
+      "works": 0,
+      "fails": 9,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -158,6 +165,13 @@
       "works": 7,
       "fails": 2,
       "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "ShopMenu:upperRightCloseButton|menu_click": {
+      "works": 0,
+      "fails": 8,
+      "says": "upperRightCloseButton",
       "note": "",
       "last": "2026-10-17"
     },
@@ -171,6 +185,20 @@
     "go_to@BusStop|go_to": {
       "works": 7,
       "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "go_to@CommunityCenter|go_to": {
+      "works": 5,
+      "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "tile:Junimo|interact_at": {
+      "works": 0,
+      "fails": 5,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -189,6 +217,13 @@
       "note": "",
       "last": "2026-10-17"
     },
+    "press_key@SeedShop|press_key": {
+      "works": 0,
+      "fails": 4,
+      "says": "escape",
+      "note": "",
+      "last": "2026-10-17"
+    },
     "move@BusStop|move": {
       "works": 1,
       "fails": 2,
@@ -203,17 +238,24 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "tile:Junimo|interact_at": {
-      "works": 0,
-      "fails": 3,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "tile:文森特|interact_at": {
       "works": 1,
       "fails": 2,
       "says": "不知他有没有给我买玩具回来呢。",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "CommunityCenter:exit_building|exit_building": {
+      "works": 0,
+      "fails": 2,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "Farm:patch|plant_all": {
+      "works": 2,
+      "fails": 0,
+      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -238,9 +280,16 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "go_to@CommunityCenter|go_to": {
+    "door:CommunityCenter|enter": {
       "works": 2,
       "fails": 0,
+      "says": "CommunityCenter",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "interact@CommunityCenter|interact": {
+      "works": 0,
+      "fails": 2,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -252,27 +301,6 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "CommunityCenter:exit_building|exit_building": {
-      "works": 0,
-      "fails": 1,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "Farm:patch|plant_all": {
-      "works": 1,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "SeedShop:exit_building|exit_building": {
-      "works": 0,
-      "fails": 1,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "ShopMenu:downArrow|menu_click": {
       "works": 0,
       "fails": 1,
@@ -280,31 +308,10 @@
       "note": "",
       "last": "2026-10-17"
     },
-    "ShopMenu:upperRightCloseButton|menu_click": {
-      "works": 0,
-      "fails": 1,
-      "says": "upperRightCloseButton",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "door:CommunityCenter|enter": {
-      "works": 1,
-      "fails": 0,
-      "says": "",
-      "note": "",
-      "last": "2026-10-17"
-    },
     "door:Forest|enter": {
       "works": 1,
       "fails": 0,
       "says": "Forest",
-      "note": "",
-      "last": "2026-10-17"
-    },
-    "interact@CommunityCenter|interact": {
-      "works": 0,
-      "fails": 1,
-      "says": "",
       "note": "",
       "last": "2026-10-17"
     },
@@ -325,6 +332,13 @@
     "interact@Town|interact": {
       "works": 1,
       "fails": 0,
+      "says": "",
+      "note": "",
+      "last": "2026-10-17"
+    },
+    "move@Farm|move": {
+      "works": 0,
+      "fails": 1,
       "says": "",
       "note": "",
       "last": "2026-10-17"
@@ -399,11 +413,25 @@
       "note": "Junimo 本体不可交互，旁边的可交互物（如墙上的纸）才是调查目标",
       "last": "2026-10-17"
     },
+    "communitycenter|interact_at": {
+      "works": 0,
+      "fails": 0,
+      "says": "interacted with (14,25) -> False",
+      "note": "empty floor tiles inside CommunityCenter don't respond - interact with the Junimo or objects instead",
+      "last": "2026-10-17"
+    },
     "cutscene_block|dialogue_advance": {
       "works": 0,
       "fails": 0,
       "says": "no dialogue box open while blocked_reason=cutscene/event playing",
       "note": "a cutscene without a visible dialogue box blocks the player; a choice cutscene needs dialogue_choose instead",
+      "last": "2026-10-17"
+    },
+    "enter_during_chore|enter": {
+      "works": 0,
+      "fails": 0,
+      "says": "walking to the door of 'BusStop' - it opens on arrival",
+      "note": "enter 排队可以在后台 chore 仍在收尾时照常执行，玩家移动不被 chore 阻塞",
       "last": "2026-10-17"
     },
     "farm_crops|scan": {
@@ -504,6 +532,20 @@
       "note": "when the hotbar is full you cannot make room by clicking an inventory slot then dropItemInvisibleButton in ShopMenu - clicks land but change nothing; better to ",
       "last": "2026-10-17"
     },
+    "shopmenu_closing|menu_click_10_bag_slot": {
+      "works": 0,
+      "fails": 0,
+      "says": "press: menu hand 防风草种子 x2->empty, press: bag 12/12 slots ... 67 items",
+      "note": "clicking a numbered bag slot with pure digit name DOES work - it placed the seeds from the menu hand into the bag; the menu hand must be emptied before the shop",
+      "last": "2026-10-17"
+    },
+    "shopmenu_empty_bag_slot|menu_click": {
+      "works": 0,
+      "fails": 0,
+      "says": "the whole click changed nothing - not money, not the bag, not either hand",
+      "note": "clicking an empty inventory slot ('12') twice while holding 防风草种子 x2 did not stow the seeds; try a different empty slot or dropItemInvisibleButton",
+      "last": "2026-10-17"
+    },
     "shopmenu_forsalebuttons_0|menu_click": {
       "works": 0,
       "fails": 0,
@@ -516,48 +558,6 @@
       "fails": 0,
       "says": "clicked 'forSaleButtons.0' at (1060,235) in ShopMenu - the real click changed nothing",
       "note": "forSaleButtons.0 映射坐标漂移到 (1060,235)（真正应该点 (536,180) 区域），今天点击完全无效——先 downArrow 翻页再试，若仍无效就立刻离店别耗时间",
-      "last": "2026-10-17"
-    },
-    "shopmenu_hand|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "press: menu hand empty->防风草种子",
-      "note": "buying puts goods in the menu's HAND; click the matching bag slot (stacking onto the same seed slot works) to store it before closing",
-      "last": "2026-10-17"
-    },
-    "shopmenu_inventory_clicks|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "no button 'inventory.8' in ShopMenu",
-      "note": "ShopMenu背包格在菜单里叫纯数字 '4'-'24'，inventory.4 以上不存在；且包满时点格子也不会腾出空间",
-      "last": "2026-10-17"
-    },
-    "shopmenu_purchase_failure|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "the whole click changed nothing - not money, not the bag",
-      "note": "forSaleButtons.0 bought nothing while the bag was full (12 slots used) - free a slot or sell before buying",
-      "last": "2026-10-17"
-    },
-    "shopmenu_purchase_with_full_hotbar|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "bag says HOTBAR FULL - a shop has nowhere to put a purchase",
-      "note": "when hotbar (slots 0-11) is full, buy then immediately click a numbered bag slot like '12' to put the held goods away, or the shop menu cannot close",
-      "last": "2026-10-17"
-    },
-    "shopmenu_卖东西|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "press: money 240->485, press: bag 12/12 slots, 65 items->11/12 slots",
-      "note": "在 ShopMenu 里点自己背包里 sells_for 的格子会把该物品卖给商店：一次点按卖出一组，钱立刻增加，同时腾出背包格",
-      "last": "2026-10-17"
-    },
-    "shopmenu_背包格|menu_click": {
-      "works": 0,
-      "fails": 0,
-      "says": "clicked '6' - nothing changed",
-      "note": "包满时点商店货架没有意义：先在 ShopMenu 里点一次 inventory.N 把物品拿到手上，再点 dropItemInvisibleButton 丢掉腾出格子，然后才买种子",
       "last": "2026-10-17"
     }
   }
