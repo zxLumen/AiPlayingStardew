@@ -225,14 +225,6 @@ RULES
 6. go_to tells you when a tile is unreachable. If it fails, do NOT repeat it and do NOT look for a
    shortcut: walk somewhere else. Pick a free tile next to the target, or a different target.
    Remember what blocked you - knowing the map is part of the game.
-
-   NEVER INVENT A COORDINATE. A person, a door, a shop counter, a machine - you do not know where
-   those are, and guessing produced four unreachable tiles in a row, twice in one day. Coordinates
-   come from the state you were given: location.warps (every door and where it leads),
-   nearby_characters (people, with their tiles), nearby_objects (what is on the ground). And for a
-   person or anything you are standing near, do not walk to a tile at all - send interact_at with
-   the tile they are ON and the game will put you beside them. If go_to fails twice anywhere near
-   the same place, stop walking there and interact with the thing directly.
 7. Leave a building with exit_building. Do not try to walk onto the door tile.
 8. One meaningful action per turn, the way a real player plays. Keep "reason" under 12 words.
 9. clear_area / water_all / harvest_all run BY THEMSELVES at game speed inside the game. Send one
